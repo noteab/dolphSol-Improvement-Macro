@@ -1,3 +1,4 @@
-
-settings/config.ini
 /settings
+settings/config.ini
+lib/staticData.json
+lib/ss.jpg

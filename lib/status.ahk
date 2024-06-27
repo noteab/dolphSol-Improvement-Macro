@@ -1,6 +1,10 @@
 #singleinstance, force
 #noenv
 #persistent
+
+OnError("LogError")
+OnExit, ShowCursor
+
 SetWorkingDir, % A_ScriptDir
 CoordMode, Pixel, Screen
 CoordMode, Mouse, Screen
@@ -13,15 +17,20 @@ Gdip_Startup()
 
 global mainDir
 RegExMatch(A_ScriptDir, "(.*)\\", mainDir)
+global loggingEnabled := 1
+global lastLoggedMessage := ""
 
 global configPath := mainDir . "settings\config.ini"
 global ssPath := "ss.jpg"
 global imageDir := mainDir . "images\"
 
+logMessage("") ; empty line for separation
+logMessage("status.ahk opened")
 
 global webhookEnabled := 0
 global webhookURL := ""
 global discordID := ""
+global discordGlitchID := "" ; can be a role or a user. role is prefixed with "&"
 global sendMinimum := 10000
 global pingMinimum := 100000
 global auraImages := 0
@@ -33,14 +42,17 @@ global currentBiomeTimer := 0
 global currentBiomeDisplayed := 0
 
 global biomeData := {"Normal":{color: 0xdddddd}
-    ,"Windy":{color: 0x9ae5ff, duration: 120}
-    ,"Rainy":{color: 0x027cbd, duration: 120}
-    ,"Snowy":{color: 0xDceff9, duration: 120}
-    ,"Hell":{color: 0xff4719, duration: 660, display: 1}
-    ,"Starfall":{color: 0x011ab7, duration: 600, display: 1}
-    ,"Corruption":{color: 0x6d32a8, duration: 660, display: 1}
-    ,"Null":{color: 0x838383, duration: 90, display: 1}
-    ,"Glitched":{color: 0xbfff00, duration: 164, display: 1}}
+,"Windy":{color: 0x9ae5ff, duration: 120, display: 0, ping: 0}
+,"Rainy":{color: 0x027cbd, duration: 120, display: 0, ping: 0}
+,"Snowy":{color: 0xDceff9, duration: 120, display: 0, ping: 0}
+,"Hell":{color: 0xff4719, duration: 660, display: 1, ping: 0}
+,"Starfall":{color: 0x011ab7, duration: 600, display: 0, ping: 0}
+,"Corruption":{color: 0x6d32a8, duration: 660, display: 0, ping: 0}
+,"Null":{color: 0x838383, duration: 90, display: 0, ping: 0}
+,"Glitched":{color: 0xbfff00, duration: 164, display: 1, ping: 1}}
+
+global options := {}
+global auraNames := []
 
 FileRead, retrieved, %configPath%
 
@@ -51,13 +63,77 @@ if (!ErrorLevel){
         ExitApp
     }
     RegExMatch(retrieved, "(?<=DiscordUserID=)(.*)", discordID)
+    RegExMatch(retrieved, "(?<=DiscordGlitchID=)(.*)", discordGlitchID)
     RegExMatch(retrieved, "(?<=WebhookRollSendMinimum=)(.*)", sendMinimum)
     RegExMatch(retrieved, "(?<=WebhookRollPingMinimum=)(.*)", pingMinimum)
     RegExMatch(retrieved, "(?<=WebhookAuraRollImages=)(.*)", auraImages)
 } else {
-    MsgBox, An error occurred while reading %configPath% data, rarity webhook messages will not be sent.
+    MsgBox, An error occurred while reading %configPath% data, Discord messages will not be sent.
     return
 }
+
+FileRead, staticDataContent, % "staticData.json"
+global staticData := Jxon_Load(staticDataContent)[1]
+
+; Added in v1.4.0 - Does this improve anything?
+; for i,v in staticData.stars {
+;     if (v.rarity < 1000000 && !v.mutations){
+;         v.cornerColor := 0
+;     }
+; }
+
+LogError(exc) {
+    logMessage("[LogError] Error on line " exc.Line ": " exc.Message)
+    FormatTime, fTime, , HH:mm:ss
+    try webhookPost({embedContent: "[Error on line " exc.Line "]: " fTime " - " exc.Message, embedColor: 15548997})
+}
+
+checkOCRLanguage() {
+    languages := ocr("ShowAvailableLanguages")
+    if (languages) {
+        logMessage("OCR languages installed:") 
+        logMessage(languages)
+
+        if (InStr(languages, "en-US")) {
+            return
+        }
+    } else {
+        logMessage("An error occurred while checking for OCR languages")
+    }
+
+    ; Check if the script is running as admin
+    if (!A_IsAdmin) {
+        logMessage("status.ahk not running as admin")
+
+        MsgBox, 4, , % "You will need the 'English (United States)' language pack installed to detect biomes.`n`n"
+            . "Would you like to run this file as an administrator to attempt to install it automatically?"
+
+        IfMsgBox Yes
+            logMessage("Restarting status.ahk as admin")
+            RunWait, *RunAs "%A_AhkPath%" /restart "%A_ScriptFullPath%"
+            return
+    } else {
+        logMessage("status.ahk running as admin")
+
+        ; Give the option to auto install the language pack
+        MsgBox, 4, , % "You will need the 'English (United States)' language pack installed to detect biomes.`n`n"
+            . "Select 'No' to do it yourself through Settings > Time & Language > Language & Region > Add a language.`n"
+            . "Select 'Yes' to attempt to install it automatically.`n`n"
+            . "Both options will require you to log out and back in to take effect."
+
+        IfMsgBox Yes
+            logMessage("Attempting to install the language pack")
+            try {
+                RunWait, *RunAs powershell.exe -ExecutionPolicy Bypass Install-Language en-US
+            } catch e {
+                logMessage("An error occurred while attempting to install the language pack")
+                logMessage(e, 1)
+                MsgBox, 16, Error, % "An error occurred while attempting to install the language pack.`n`n"
+                    . "Please install it manually through Settings > Time & Language > Language & Region > Add a language."
+            }
+    }
+}
+; checkOCRLanguage()
 
 getUnixTime(){
     now := A_NowUTC
@@ -161,30 +237,83 @@ compareColors(color1, color2) ; determines how far apart 2 colors are
 
 getINIData(path){
     FileRead, retrieved, %path%
+    
+    if (!retrieved){
+        logMessage("[getINIData] No data found in " path)
+        MsgBox, An error occurred while reading %path% data, please review the file.
+        return
+    }
 
     retrievedData := {}
     readingPoint := 0
 
-    if (!ErrorLevel){
-        ls := StrSplit(retrieved,"`r`n")
-        for i,v in ls {
-            isHeader := RegExMatch(v,"\[(.*)]")
-            if (v && readingPoint && !isHeader){
-                RegExMatch(v,"(.*)(?==)",index)
-                RegExMatch(v,"(?<==)(.*)",value)
-                if (index){
-                    retrievedData[index] := value
-                }
-            } else if (isHeader){
-                readingPoint := 1
+    ls := StrSplit(retrieved,"`n")
+    for i,v in ls {
+        ; Remove any carriage return characters
+        v := Trim(v, "`r")
+
+        isHeader := RegExMatch(v,"\[(.*)]")
+        if (v && readingPoint && !isHeader){
+            RegExMatch(v,"(.*)(?==)",index)
+            RegExMatch(v,"(?<==)(.*)",value)
+            if (index){
+                retrievedData[index] := value
             }
+        } else if (isHeader){
+            readingPoint := 1
         }
-    } else {
-        MsgBox, An error occurred while reading %path% data, please review the file.
-        return
     }
     return retrievedData
 }
+
+loadWebhookSettings(){
+    global
+    logMessage("") ; empty line for separation
+    logMessage("[loadData] Loading config data from " configPath)
+
+    local savedRetrieve := getINIData(configPath)
+    if (!savedRetrieve){
+        logMessage("[loadData] Unable to retrieve config data, Resetting to defaults.")
+        MsgBox, Unable to retrieve config data, your settings have been set to their defaults.
+        savedRetrieve := {}
+    }
+
+    ; Load aura names from JSON
+    auraNames := []
+    for key, value in staticData.stars {
+        auraNames.push(value.name)
+        if (value.mutations) {
+            for index, mutation in value.mutations {
+                auraNames.push(mutation.name)
+            }
+        }
+    }
+
+    ; Load aura settings with prefix
+    for index, auraName in auraNames {
+        sAuraName := RegExReplace(auraName, "[^a-zA-Z0-9]+", "_") ; Replace all non-alphanumeric characters with underscore
+        sAuraName := RegExReplace(sAuraName, "\_$", "") ; Remove any trailing underscore
+        key := "wh" . sAuraName
+        if (savedRetrieve.HasKey(key)) {
+            options[key] := savedRetrieve[key]
+        } else {
+            options[key] := 1 ; default value
+        }
+        ; logMessage("[loadData] Aura: " auraName " - " sAuraName " - " options[key])
+    }
+
+    ; Load biome settings
+    for biome in biomeData {
+        key := "Biome" . biome
+        if (savedRetrieve.HasKey(key)) {
+            biomeData[biome].ping := savedRetrieve[key] = "Ping" ? 1 : 0
+            ; Technically not required since Ping overrides Display anyway. Might be required after future changes
+            biomeData[biome].display := savedRetrieve[key] = "Message" ? 1 : 0
+            ; logMessage("[loadData] Biome: " biome " - d:" biomeData[biome].display ", p:" biomeData[biome].ping)
+        }
+    }
+}
+loadWebhookSettings()
 
 commaFormat(num){
     len := StrLen(num)
@@ -199,18 +328,10 @@ commaFormat(num){
     return final
 }
 
-FileRead, staticDataContent, % "staticData.json"
-global staticData := Jxon_Load(staticDataContent)[1]
-
-for i,v in staticData.stars {
-    if (v.rarity < 1000000 && !v.mutations){
-        v.cornerColor := 0
-    }
-}
-
 ; CreateFormData() by tmplinshi, AHK Topic: https://autohotkey.com/boards/viewtopic.php?t=7647
 ; Thanks to Coco: https://autohotkey.com/boards/viewtopic.php?p=41731#p41731
 ; Modified version by SKAN, 09/May/2016
+; Rewritten by iseahound in September 2022
 
 CreateFormData(ByRef retData, ByRef retHeader, objParam) {
 	New CreateFormData(retData, retHeader, objParam)
@@ -225,8 +346,10 @@ Class CreateFormData {
         Local Boundary := this.RandomBoundary()
         Local BoundaryLine := "------------------------------" . Boundary
 
-        this.Len := 0 ; GMEM_ZEROINIT|GMEM_FIXED = 0x40
-        this.Ptr := DllCall( "GlobalAlloc", "UInt",0x40, "UInt",1, "Ptr" ) ; allocate global memory
+        ; Create an IStream backed with movable memory.
+        hData := DllCall("GlobalAlloc", "uint", 0x2, "uptr", 0, "ptr")
+        DllCall("ole32\CreateStreamOnHGlobal", "ptr", hData, "int", False, "ptr*", pStream:=0, "uint")
+        this.pStream := pStream
 
         ; Loop input paramters
         For k, v in objParam
@@ -235,45 +358,58 @@ Class CreateFormData {
                 For i, FileName in v
                 {
                     str := BoundaryLine . CRLF
-                    . "Content-Disposition: form-data; name=""" . k . """; filename=""" . FileName . """" . CRLF
-                    . "Content-Type: " . this.MimeType(FileName) . CRLF . CRLF
+                        . "Content-Disposition: form-data; name=""" . k . """; filename=""" . FileName . """" . CRLF
+                        . "Content-Type: " . this.MimeType(FileName) . CRLF . CRLF
+
                     this.StrPutUTF8( str )
                     this.LoadFromFile( Filename )
                     this.StrPutUTF8( CRLF )
+
                 }
             } Else {
                 str := BoundaryLine . CRLF
-                . "Content-Disposition: form-data; name=""" . k """" . CRLF . CRLF
-                . v . CRLF
+                    . "Content-Disposition: form-data; name=""" . k """" . CRLF . CRLF
+                    . v . CRLF
                 this.StrPutUTF8( str )
             }
         }
 
         this.StrPutUTF8( BoundaryLine . "--" . CRLF )
 
-        ; Create a bytearray and copy data in to it.
-        retData := ComObjArray( 0x11, this.Len ) ; Create SAFEARRAY = VT_ARRAY|VT_UI1
-        pvData := NumGet( ComObjValue( retData ) + 8 + A_PtrSize )
-        DllCall( "RtlMoveMemory", "Ptr",pvData, "Ptr",this.Ptr, "Ptr",this.Len )
+        this.pStream := ObjRelease(pStream) ; Should be 0.
+        pData := DllCall("GlobalLock", "ptr", hData, "ptr")
+        size := DllCall("GlobalSize", "ptr", pData, "uptr")
 
-        this.Ptr := DllCall( "GlobalFree", "Ptr",this.Ptr, "Ptr" ) ; free global memory 
+        ; Create a bytearray and copy data in to it.
+        retData := ComObjArray( 0x11, size ) ; Create SAFEARRAY = VT_ARRAY|VT_UI1
+        pvData  := NumGet( ComObjValue( retData ), 8 + A_PtrSize , "ptr" )
+        DllCall( "RtlMoveMemory", "Ptr", pvData, "Ptr", pData, "Ptr", size )
+
+        DllCall("GlobalUnlock", "ptr", hData)
+        DllCall("GlobalFree", "Ptr", hData, "Ptr")                   ; free global memory
 
         retHeader := "multipart/form-data; boundary=----------------------------" . Boundary
     }
 
     StrPutUTF8( str ) {
-        Local ReqSz := StrPut( str, "utf-8" ) - 1
-        this.Len += ReqSz ; GMEM_ZEROINIT|GMEM_MOVEABLE = 0x42
-        this.Ptr := DllCall( "GlobalReAlloc", "Ptr",this.Ptr, "UInt",this.len + 1, "UInt", 0x42 ) 
-        StrPut( str, this.Ptr + this.len - ReqSz, ReqSz, "utf-8" )
+        length := StrPut(str, "UTF-8") - 1 ; remove null terminator
+        VarSetCapacity(utf8, length)
+        StrPut(str, &utf8, length, "UTF-8")
+        DllCall("shlwapi\IStream_Write", "ptr", this.pStream, "ptr", &utf8, "uint", length, "uint")
     }
 
-    LoadFromFile( Filename ) {
-        Local objFile := FileOpen( FileName, "r" )
-        this.Len += objFile.Length ; GMEM_ZEROINIT|GMEM_MOVEABLE = 0x42 
-        this.Ptr := DllCall( "GlobalReAlloc", "Ptr",this.Ptr, "UInt",this.len, "UInt", 0x42 )
-        objFile.RawRead( this.Ptr + this.Len - objFile.length, objFile.length )
-        objFile.Close() 
+    LoadFromFile( filepath ) {
+        DllCall("shlwapi\SHCreateStreamOnFileEx"
+                    ,   "wstr", filepath
+                    ,   "uint", 0x0             ; STGM_READ
+                    ,   "uint", 0x80            ; FILE_ATTRIBUTE_NORMAL
+                    ,    "int", False           ; fCreate is ignored when STGM_CREATE is set.
+                    ,    "ptr", 0               ; pstmTemplate (reserved)
+                    ,   "ptr*", pFileStream:=0
+                    ,   "uint")
+        DllCall("shlwapi\IStream_Size", "ptr", pFileStream, "uint64*", size:=0, "uint")
+        DllCall("shlwapi\IStream_Copy", "ptr", pFileStream , "ptr", this.pStream, "uint", size, "uint")
+        ObjRelease(pFileStream)
     }
 
     RandomBoundary() {
@@ -285,15 +421,14 @@ Class CreateFormData {
 
     MimeType(FileName) {
         n := FileOpen(FileName, "r").ReadUInt()
-        Return (n = 0x474E5089) ? "image/png"
-        : (n = 0x38464947) ? "image/gif"
-        : (n&0xFFFF = 0x4D42 ) ? "image/bmp"
-        : (n&0xFFFF = 0xD8FF ) ? "image/jpeg"
-        : (n&0xFFFF = 0x4949 ) ? "image/tiff"
-        : (n&0xFFFF = 0x4D4D ) ? "image/tiff"
-        : "application/octet-stream"
+        Return (n        = 0x474E5089) ? "image/png"
+            :  (n        = 0x38464947) ? "image/gif"
+            :  (n&0xFFFF = 0x4D42    ) ? "image/bmp"
+            :  (n&0xFFFF = 0xD8FF    ) ? "image/jpeg"
+            :  (n&0xFFFF = 0x4949    ) ? "image/tiff"
+            :  (n&0xFFFF = 0x4D4D    ) ? "image/tiff"
+            :  "application/octet-stream"
     }
-
 }
 
 webhookPost(data := 0){
@@ -307,6 +442,17 @@ webhookPost(data := 0){
 
     if (data.pings){
         data.content := data.content ? data.content " <@" discordID ">" : "<@" discordID ">"
+    }
+
+    ; Append extra ping id for glitch biome - can be a role or a user. role is prefixed with "&"
+    if (data.biome && data.biome = "Glitched" && discordGlitchID) {
+        data.content := data.content ? data.content " <@" discordGlitchID ">" : "<@" discordGlitchID ">"
+    }
+
+    ; Append extra ping id for auras containing "Apex"
+    apexPingID := "" ; can be a role or a user. role is prefixed with "&"
+    if (data.auraName && apexPingID && InStr(data.auraName, "Apex")) {
+        data.content := data.content ? data.content " <@" apexPingID ">" : "<@" apexPingID ">"
     }
 
     payload_json := "
@@ -407,12 +553,14 @@ identifyBiome(inputStr){
         }
     }
 
-
     return matchingBiome
 }
 
 determineBiome(){
+    ; logMessage("[determineBiome] Determining biome...")
     if (!WinActive("ahk_id " GetRobloxHWND()) && !WinActive("Roblox")){
+        logMessage("[determineBiome] Roblox window not active.")
+        Sleep, 5000
         return
     }
     getRobloxPos(rX,rY,width,height)
@@ -438,6 +586,10 @@ determineBiome(){
         if (identifiedBiome){
             break
         }
+    }
+    if (identifiedBiome && identifiedBiome != "Normal") {
+        logMessage("[determineBiome] OCR result: " RegExReplace(ocrResult,"(\n|\r)+",""))
+        logMessage("[determineBiome] Identified biome: " identifiedBiome)
     }
 
     Gdip_DisposeEffect(effect)
@@ -534,12 +686,18 @@ determine1mStar(ByRef starMap){
 
 handleRollPost(bypass,auraInfo,starMap,originalCorners){
     Gdip_SaveBitmapToFile(starMap,ssPath)
-    Gdip_DisposeBitmap(starMap)
     if (auraInfo && sendMinimum && sendMinimum <= auraInfo.rarity){
-        webhookPost({embedContent: "# You rolled " auraInfo.name "!\n> ### 1/" commaFormat(auraInfo.rarity) " Chance",embedTitle: "Roll",embedColor: auraInfo.color,embedImage: auraImages ? auraInfo.image : 0,embedFooter: "Detected color " . bypass . (!isColorBlack(originalCorners[4]) ? " | Corner color: " . originalCorners[4] : "") ,pings: (pingMinimum && pingMinimum <= auraInfo.rarity),files:[ssPath],embedThumbnail:"attachment://ss.jpg"})
+        ; Convert the aura name to a valid variable name
+        sAuraName := RegExReplace(auraInfo.name, "[^a-zA-Z0-9]+", "_") ; Replace with underscores
+        sAuraName := RegExReplace(sAuraName, "\_$", "") ; Remove any trailing underscores
+
+        if (options["wh" . sAuraName]) {
+            webhookPost({auraName: auraInfo.name, embedContent: "# You rolled " auraInfo.name "!\n> ### 1/" commaFormat(auraInfo.rarity) " Chance",embedTitle: "Roll",embedColor: auraInfo.color,embedImage: auraImages ? auraInfo.image : 0,embedFooter: "Detected color " . bypass . (!isColorBlack(originalCorners[4]) ? " | Corner color: " . originalCorners[4] : "") ,pings: (pingMinimum && pingMinimum <= auraInfo.rarity),files:[ssPath],embedThumbnail:"attachment://ss.jpg"})
+        }
     } else if (!auraInfo) {
         webhookPost({embedContent: "Unknown roll color: " bypass,embedTitle: "Roll?",embedColor: bypass,files:[ssPath],embedThumbnail:"attachment://ss.jpg"})
     }
+    Gdip_DisposeBitmap(starMap)
 }
 
 isColorBlack(c){
@@ -598,7 +756,9 @@ rollDetection(bypass := 0,is1m := 0,starMap := 0,originalCorners := 0){
             bottomRight := getFromUV(0.25,0.25,rX,rY,width,height)
             squareScale := [bottomRight[1]-topLeft[1]+1,bottomRight[2]-topLeft[2]+1]
 
+            SystemCursor("Off")
             starMap := Gdip_BitmapFromScreen(topLeft[1] "|" topLeft[2] "|" squareScale[1] "|" squareScale[2])
+            SystemCursor("On")
             
             Sleep, 8000
             rollDetection(cColor,is1m,starMap,cornerResults)
@@ -647,9 +807,64 @@ rollDetection(bypass := 0,is1m := 0,starMap := 0,originalCorners := 0){
     }
 }
 
+SystemCursor(OnOff=1)   ; INIT = "I","Init"; OFF = 0,"Off"; TOGGLE = -1,"T","Toggle"; ON = others
+{
+    static AndMask, XorMask, $, h_cursor
+        ,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13 ; system cursors
+        , b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11,b12,b13   ; blank cursors
+        , h1,h2,h3,h4,h5,h6,h7,h8,h9,h10,h11,h12,h13   ; handles of default cursors
+    if (OnOff = "Init" or OnOff = "I" or $ = "")       ; init when requested or at first call
+    {
+        $ := "h"                                       ; active default cursors
+        VarSetCapacity( h_cursor,4444, 1 )
+        VarSetCapacity( AndMask, 32*4, 0xFF )
+        VarSetCapacity( XorMask, 32*4, 0 )
+        system_cursors := "32512,32513,32514,32515,32516,32642,32643,32644,32645,32646,32648,32649,32650"
+        StringSplit c, system_cursors, `,
+        Loop %c0%
+        {
+            h_cursor   := DllCall( "LoadCursor", "Ptr",0, "Ptr",c%A_Index% )
+            h%A_Index% := DllCall( "CopyImage", "Ptr",h_cursor, "UInt",2, "Int",0, "Int",0, "UInt",0 )
+            b%A_Index% := DllCall( "CreateCursor", "Ptr",0, "Int",0, "Int",0
+                , "Int",32, "Int",32, "Ptr",&AndMask, "Ptr",&XorMask )
+        }
+    }
+    if (OnOff = 0 or OnOff = "Off" or $ = "h" and (OnOff < 0 or OnOff = "Toggle" or OnOff = "T"))
+        $ := "b"  ; use blank cursors
+    else
+        $ := "h"  ; use the saved cursors
+
+    Loop %c0%
+    {
+        h_cursor := DllCall( "CopyImage", "Ptr",%$%%A_Index%, "UInt",2, "Int",0, "Int",0, "UInt",0 )
+        DllCall( "SetSystemCursor", "Ptr",h_cursor, "UInt",c%A_Index% )
+    }
+}
+
+; SendBiomeData(ByRef biome){
+;     ; Allocate memory and store the string
+;     SizeInBytes := (StrLen(biome) + 1) * (A_IsUnicode ? 2 : 1)
+;     hMem := DllCall("GlobalAlloc", "UInt", 0x0042, "UInt", SizeInBytes, "Ptr")
+;     pMem := DllCall("GlobalLock", "Ptr", hMem, "Ptr")
+;     if (pMem) {
+;         StrPut(biome, pMem, "UTF-8")
+;         DllCall("GlobalUnlock", "Ptr", hMem)
+        
+;         ; Send data to Main.ahk
+;         SetTitleMatchMode, 2
+;         DetectHiddenWindows, On
+;         if hwnd := WinExist("dolphSol Macro ahk_class AutoHotkeyGUI") {
+;             PostMessage, 0x500, 0, hMem,, ahk_id %hwnd%
+;             logMessage("[SendBiomeData] Sent to Main.ahk: " currentBiome)
+;         } else {
+;             DllCall("GlobalFree", "Ptr", hMem)
+;         }
+;     }
+; }
+
 secondTick(){
     biomeFinished := 0
-    if (currentBiomeTimer - getUnixTime() < 1 && currentBiome != "Normal"){
+    if (currentBiome != "Normal" && currentBiomeTimer - getUnixTime() < 1){
         biomeFinished := 1
     }
     rollDetection()
@@ -664,25 +879,69 @@ secondTick(){
 
         detectedBiome := determineBiome()
 
-        if (detectedBiome){
+        if (detectedBiome && biomeData[detectedBiome] && detectedBiome != "Normal"){
             currentBiome := detectedBiome
+            logMessage("[secondTick] Detected biome: " currentBiome)
+            ; Send to Main.ahk
+            ; SendBiomeData(currentBiome)
+
             targetData := biomeData[currentBiome]
-            if (currentBiome != "Normal" && targetData){
-                if (targetData.display){
-                    currentBiomeDisplayed := 1
+            if (targetData.display || targetData.ping){
+                currentBiomeDisplayed := 1
 
-                    webhookPost({embedContent: "[" fTime "]: Rare Biome Started - " currentBiome,embedColor: targetData.color})
-                }
-
-                currentBiomeTimer := getUnixTime() + targetData.duration + 5
+                webhookPost({embedContent: "[" fTime "]: Rare Biome Started - " currentBiome, embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
             }
+
+            currentBiomeTimer := getUnixTime() + targetData.duration + 5
         }
     }
 }
 
 SetTimer, secondTimer, 1000
 
+logMessage(message, indent := 0) {
+    global loggingEnabled, mainDir, lastLoggedMessage
+    maxLogSize := 1048576 ; 1 MB
+
+    if (!loggingEnabled) {
+        return
+    }
+
+    ; Avoid logging the same message again
+    if (message = lastLoggedMessage) {
+        return
+    }
+    
+    logFile := mainDir . "\macro_status_log.txt"
+    
+    ; Check the log file size and truncate if necessary
+    if (FileExist(logFile) && FileGetSize(logFile) > maxLogSize) {
+        FileDelete, %logFile%
+    }
+
+    if (indent) {
+        message := "    " . message
+    }
+    FormatTime, fTime, , HH:mm:ss
+    FileAppend, % fTime " " message "`n", %logFile%
+    OutputDebug, % fTime " " message
+
+    ; Update the last logged message
+    lastLoggedMessage := message
+}
+
+; Function to get the size of a file
+FileGetSize(filePath) {
+    FileGetSize, fileSize, %filePath%
+    return fileSize
+}
+
 return
 
 secondTimer:
 secondTick()
+return
+
+ShowCursor:
+SystemCursor("On")
+ExitApp
