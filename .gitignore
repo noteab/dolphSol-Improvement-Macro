@@ -1,4 +1,6 @@
-/settings
+
 settings/config.ini
 lib/staticData.json
 lib/ss.jpg
+macro_status_log.txt
+macro_log.txt

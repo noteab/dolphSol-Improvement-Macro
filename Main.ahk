@@ -10,9 +10,10 @@
 ;   
 ;   Feel free to provide any suggestions (through discord preferably, @builderdolphin). 
 
-#singleinstance, force
-#noenv
-#persistent
+#Requires AutoHotkey v1.1+ 64-bit
+#SingleInstance, force
+#NoEnv
+#Persistent
 SetBatchLines, -1
 
 OnError("LogError")
@@ -29,7 +30,7 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 
 global version := "v1.4.0" ; Official version
-version := version " patched 06/26 by Amraki" ; Unofficial patch
+version := version " patched 06/30 by Amraki" ; Unofficial patch
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -56,6 +57,7 @@ global delayMultiplier := 3 ; Delay multiplier for slower computers - Mainly for
 global auraNames := [] ; List of aura names for webhook pings
 global biomes := ["Windy", "Rainy", "Snowy", "Hell", "Starfall", "Corruption", "Null", "Glitched"]
 global ItemSchedulerEntries := []  ; Initialize the array for item usage entries
+global StellaPortalDelay := 0 ; Extra wait time (ms) after entering portal before moving to cauldron - 1000ms = 1s
 
 global robloxId := 0
 
@@ -429,6 +431,15 @@ loadData(){
     for i, v in options { ; Iterating through defined options does not load dynamic settings - currently aura, biomes
         if (savedRetrieve.HasKey(i)) {
             newOptions[i] := savedRetrieve[i]
+
+            ; Temporary code to fix time error
+            for _, key in ["LastCraftSession","LastInvScreenshot","LastPotionAutoAdd"] {
+                if (i = key && savedRetrieve[i] > getUnixTime()) {
+                    ; logMessage("Resetting " i)
+                    ; Reset value so it's not too high to trigger
+                    newOptions[i] := 0
+                }
+            }
         } else {
             logMessage("[loadData] Missing key: " i)
             newOptions[i] := v
@@ -1270,6 +1281,7 @@ mouseActions(){
 
     ; re equip
     if (options.AutoEquipEnabled){
+        logMessage("Re-equipping user selected aura")
         closeChat()
         alreadyOpen := checkInvOpen()
 
@@ -1310,10 +1322,6 @@ mouseActions(){
 
     getRobloxPos(pX,pY,width,height)
     ClickMouse(pX + width*0.5, pY + height*0.6) ; height multiplier was 0.5 - I assume this is for Play button so I changed to match other instances
-    ; MouseMove, % pX + width*0.5, % pY + height*0.5
-    ; Sleep, 300
-    ; MouseClick
-    ; Sleep, 250
 }
 
 isFullscreen() {
@@ -1330,6 +1338,7 @@ GetRobloxHWND(){
 		return hwnd
 	} else {
         logMessage("[GetRobloxHWND] Roblox Process: Unknown", 1)
+        Sleep, 5000
 		return 0
     }
 }
@@ -1726,6 +1735,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         align()
         updateStatus("Walking to Stella's Cave (Crafting)")
         walkToPotionCrafting()
+        Sleep, % (StellaPortalDelay && StellaPortalDelay > 0) ? StellaPortalDelay : 0
         resetCameraAngle()
         Sleep, 2000
         walkSend("a","Down")
@@ -2014,14 +2024,9 @@ checkBottomLeft(){
     Gdip_DisposeEffect(readEffect1)
 }
 
-; getUnixTime(){
-;     now := A_NowUTC
-;     EnvSub, now, 1970, seconds
-;     return now
-; }
-getUnixTime(){
-    now := A_Now
-    EnvAdd, now, 0, seconds
+getUnixTime() {
+    now := A_NowUTC
+    EnvSub, now, 1970, seconds
     return now
 }
 
@@ -2063,7 +2068,7 @@ isPlayButtonOpen(){
             tY := A_Index-1
             pixelColor := Gdip_GetPixel(playMap, tX, tY)
             blackPixels += compareColors(pixelColor,0x000000) < 32
-            whitePixels += compareColors(pixelColor,0xffffff) < 32+
+            whitePixels += compareColors(pixelColor,0xffffff) < 32
         }
     }
 
@@ -2168,6 +2173,10 @@ logMessage(message, indent := 0) {
     if (!loggingEnabled) {
         return
     }
+
+    ; Sanitize message
+    message := StrReplace(message, options.WebhookLink, "*WebhookLink*")
+
 
     ; Avoid logging the same message again
     if (message = lastLoggedMessage) {
@@ -2354,7 +2363,7 @@ determineBiome(){
 }
 
 attemptReconnect(failed := 0){
-    logMessage("[attemptReconnect] Reconnect check.")
+    logMessage("[attemptReconnect] Reconnect check - Fail count: " failed)
     initialized := 0
     if (reconnecting && !failed){
         return
@@ -2378,14 +2387,11 @@ attemptReconnect(failed := 0){
         try {
             if (options.PrivateServerId && A_Index < 4){
                 Run % """roblox://placeID=15532962292&linkCode=" options.PrivateServerId """"
-            } else {
+            } ;else {
                 ; Run % """roblox://placeID=15532962292""" ; Public lobby bad!
-                logMessage("[attemptReconnect] Unable to open Private Server. Waiting 5m before trying again.")
-                Sleep, 300000
-                return
-            }
+            ; }
         } catch e {
-            logMessage("[attemptReconnect] Error opening Roblox: " . e.message)
+            logMessage("[attemptReconnect] Unable to open Private Server. Error: " e.message)
             continue
         }
 
@@ -2393,6 +2399,8 @@ attemptReconnect(failed := 0){
             rHwnd := GetRobloxHWND()
             if (rHwnd){
                 WinActivate, ahk_id %rHwnd%
+                updateStatus("Reconnecting, Roblox Opened")
+                Sleep, 3000
                 break
             }
             if (A_Index == 240){
@@ -2401,8 +2409,7 @@ attemptReconnect(failed := 0){
             }
             Sleep 1000
         }
-        updateStatus("Reconnecting, Roblox Opened")
-        Sleep, 3000
+
         Loop 120 {
             getRobloxPos(pX,pY,width,height)
 
@@ -2429,7 +2436,7 @@ attemptReconnect(failed := 0){
         Sleep, 5000
         getRobloxPos(pX,pY,width,height)
 
-        ; Skip existing aura prompt ?
+        ; Skip existing aura prompt
         ClickMouse(pX + (width*0.6), pY + (height*0.85))
 
         ; Enable Auto Roll
@@ -2444,7 +2451,7 @@ attemptReconnect(failed := 0){
     if (success){
         reconnecting := 0
     } else {
-        if (failed < 3) { ; Limit the number of recursive attempts to prevent infinite recursion
+        if (failed < 3) { ; Limit the number of attempts to prevent infinite recursion
             Sleep, 30000
             attemptReconnect(failed + 1)
         } else {
@@ -2510,23 +2517,24 @@ ExitApp
 reconnectTimeout := 60000 ; 60 seconds
 mainLoop(){
     Global
-    if (reconnecting) { ; Avoid infinite loop from reconnect error
-        ; Sleep, 1000
-        ; return
-        ; Track the start time
-        startTime := A_TickCount
+    if (reconnecting) { ; TODO: Avoid infinite loop from reconnect error
+        Sleep, 1000
+        return
 
-        ; Loop until reconnecting is false or timeout is exceeded
-        while (!GetRobloxHWND()) {
-            Sleep, 1000
-            elapsedTime := A_TickCount - startTime
-            if (elapsedTime > reconnectTimeout) {
-                ; Log an error and take appropriate action
-                logMessage("[Error] Reconnect timeout exceeded. Please check the program status.", 1)
-                attemptReconnect(1)
-                return
-            }
-        }
+        ; Track the start time
+        ; startTime := A_TickCount
+
+        ; ; Loop until reconnecting is false or timeout is exceeded
+        ; while (!GetRobloxHWND()) {
+        ;     Sleep, 15000
+        ;     elapsedTime := A_TickCount - startTime
+        ;     if (elapsedTime > reconnectTimeout) {
+        ;         ; Log an error and take appropriate action
+        ;         logMessage("[Error] Reconnect timeout exceeded. Please check the program status.", 1)
+        ;         attemptReconnect(1)
+        ;         return
+        ;     }
+        ; }
     }
 
     currentId := GetRobloxHWND()
@@ -2558,9 +2566,6 @@ mainLoop(){
     ; Checks to avoid idling
     ClickPlay()
     enableAutoRoll()
-
-    ; Biome stuff
-    ; changeBiome() ; WIP
     
     if (!initialized){
         updateStatus("Initializing")
@@ -2587,12 +2592,12 @@ mainLoop(){
     currentUnixTime := getUnixTime()
     for each, entry in ItemSchedulerEntries {
         if (entry.Enabled && currentUnixTime >= entry.NextRunTime) {
-            ; Call the function with the entry details
+            ; Use specified number of item
             UseItem(entry.ItemName, entry.Quantity)
 
             ; Update the NextRunTime for the next scheduled run
             frequencyInSeconds := entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600)
-            nextRunTime := currentUnixTime + (entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600))
+            nextRunTime := currentUnixTime + frequencyInSeconds
             FormatTime, t, nextRunTime, "hh:mm:ss tt"
             logMessage("[Scheduler] " entry.ItemName " next run: " t " (" frequencyInSeconds " seconds)", 1)
 
@@ -3219,6 +3224,10 @@ LoadItemSchedulerOptions() {
             parts := StrSplit(v, ",")
             entry := {Enabled: parts[1], ItemName: parts[2], Quantity: parts[3], Frequency: parts[4], TimeUnit: parts[5]}
             entry.NextRunTime := getUnixTime() ; Run once on load. TODO: Add option to menu entries
+
+            if (entry.ItemName = "") {
+                continue
+            }
             ItemSchedulerEntries.Push(entry)
         }
     }
