@@ -52,6 +52,7 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)")) {
 
 ; TODO: change some of these to static variables
 global loggingEnabled := true ; Debug logging to file
+global disableAlignment := false ; Toggle with F5
 global lastLoggedMessage := ""
 global delayMultiplier := 3 ; Delay multiplier for slower computers - Mainly for camera mode changes
 global auraNames := [] ; List of aura names for webhook pings
@@ -883,8 +884,10 @@ global running := 0
 initialize() {
     initialized := 1
 
-    alignCamera()
-    enableAutoRoll()
+    if (!disableAlignment) {
+        alignCamera()
+    }
+    ; enableAutoRoll()
 }
 
 resetZoom(){
@@ -3931,3 +3934,9 @@ return
     Tab::
     Enter::Return
 #If
+
+F5:: ; For debugging/testing
+    disableAlignment := !disableAlignment
+    ToolTip, % disableAlignment ? "Initial Align Disabled" : "Initial Align Enabled"
+    SetTimer, ClearToolTip, -5000
+    return
