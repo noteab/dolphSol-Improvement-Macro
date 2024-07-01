@@ -2564,7 +2564,7 @@ mainLoop(){
 
     ; Checks to avoid idling
     ClickPlay()
-    enableAutoRoll()
+    ; enableAutoRoll()
 
     if (!initialized){
         updateStatus("Initializing")
