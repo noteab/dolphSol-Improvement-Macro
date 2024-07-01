@@ -1050,19 +1050,15 @@ alignCamera(){
     resetCameraAngle() ; Fix angle before aligning direction
     Sleep, 100
 
-    walkSend("w","Down")
     walkSend("d","Down")
-    walkSleep(500)
+    walkSleep(200)
     jump()
     walkSleep(400)
-    jump()
-    walkSleep(600)
-
     walkSend("d","Up")
-    walkSend("a","Down")
-    walkSleep(1500)
-
-    walkSend("a","Up")
+    walkSend("w","Down")
+    walkSleep(500)
+    jump()
+    walkSleep(900)
     walkSend("w","Up")
 
     rotateCameraMode() ; Follow
@@ -1319,9 +1315,6 @@ mouseActions(){
         MouseClick
         Sleep, 250
     }
-
-    getRobloxPos(pX,pY,width,height)
-    ClickMouse(pX + width*0.5, pY + height*0.6) ; height multiplier was 0.5 - I assume this is for Play button so I changed to match other instances
 }
 
 isFullscreen() {
@@ -1440,7 +1433,7 @@ clamp(x,mn,mx){
 
 ; menu ui stuff (ingame)
 
-global menuBarOffset := 10 ;10 pixels from left edge
+global menuBarOffset := 20 ;10 pixels from left edge
 
 getMenuButtonPosition(num, ByRef posX := "", ByRef posY := ""){ ; num is 1-7, 1 being top, 7 only existing if you are the private server owner
     getRobloxPos(rX, rY, width, height)
@@ -1451,13 +1444,14 @@ getMenuButtonPosition(num, ByRef posX := "", ByRef posY := ""){ ; num is 1-7, 1 
     startPos := [menuEdgeCenter[1]+(menuBarButtonSize/2),menuEdgeCenter[2]+(menuBarButtonSize/4)-(menuBarButtonSize+menuBarVSpacing-1)*3.5] ; final factor = 0.5x (x is number of menu buttons visible to all, so exclude private server button)
     
     posX := startPos[1]
-    posY := startPos[2] + (menuBarButtonSize+menuBarVSpacing)*(num-1)
+    posY := startPos[2] + (menuBarButtonSize+menuBarVSpacing)*(num-0.5)
 
     MouseMove, % posX, % posY
 }
 
 clickMenuButton(num){
     getMenuButtonPosition(num, posX, posY)
+
     MouseMove, posX, posY
     Sleep, 200
     MouseClick
@@ -1876,11 +1870,11 @@ enableAutoAdd(){
 }
 
 waitForInvVisible(){
-    Loop 20 {
+    Loop 10 {
         alreadyOpen := checkInvOpen()
         if (alreadyOpen)
             break
-        Sleep, 500
+        Sleep, 50
     }
 }
 
@@ -1935,7 +1929,7 @@ ClickMouse(posX, posY) {
 }
 
 useItem(itemName, useAmount := 1) {
-    updateStatus("Using item: " item)
+    updateStatus("Using item: " itemName)
 
     ; Open Inventory
     clickMenuButton(3)
@@ -1956,13 +1950,13 @@ useItem(itemName, useAmount := 1) {
     ClickMouse(clickPosX, clickPosY)
 
     ; Update quantity - Must be done each time to reset amount from previous item
-    convertScreenCoordinates(590, 600, clickPosX, clickPosY)
+    convertScreenCoordinates(590, 590, clickPosX, clickPosY)
     ClickMouse(clickPosX, clickPosY)
     Send, % useAmount
     Sleep, 200
 
     ; Click Use
-    convertScreenCoordinates(700, 600, clickPosX, clickPosY)
+    convertScreenCoordinates(700, 590, clickPosX, clickPosY)
     ClickMouse(clickPosX, clickPosY)
 
     ; Clear search result
@@ -2036,25 +2030,27 @@ closeRoblox(){
 }
 
 playBitMap := Gdip_CreateBitmapFromFile(imgDir . "play.png")
-isPlayButtonOpen(){
+isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
+
     global playBitMap
     getRobloxPos(pX,pY,width,height)
-    
-    targetW := height*0.025
-    startX := width*0.5 - targetW/2
-    x := pX + startX
-    y := pY + height*0.575
-    w := targetW
-    h := height*0.05
 
-    if (options.OCREnabled) {
-        if (containsText(890, 610, 140, 80, "Play")) {
+    targetW := height * 0.3833
+    startX := width * 0.5 - targetW * 0.55
+    x := pX + startX
+    y := pY + height * 0.8
+    w := targetW * 1.1
+    h := height * 0.1
+
+    if (options.OCREnabled) { ; TODO: can be used directly in ClickPlay() to save time
+        if (containsText(x, y, w, h, "Play")) { ; Era 7 = 890, 610, 140, 80
             return 1
         }
         return 0
     }
 
-    retrievedMap := Gdip_BitmapFromScreen(pX + startX "|" pY + height*0.575 "|" targetW "|" height*0.05)
+    retrievedMap := Gdip_BitmapFromScreen(x "|" y "|" w "|" h)
+    ; retrievedMap := Gdip_BitmapFromScreen(pX + startX "|" pY + height*0.575 "|" targetW "|" height*0.05)
     effect := Gdip_CreateEffect(5,-60,80)
     Gdip_BitmapApplyEffect(retrievedMap,effect)
     playMap := Gdip_ResizeBitmap(retrievedMap,30,30,0)
@@ -2071,16 +2067,23 @@ isPlayButtonOpen(){
             whitePixels += compareColors(pixelColor,0xffffff) < 32
         }
     }
+    logMessage("Black Pixels: " blackPixels, 1)
+    logMessage("White Pixels: " whitePixels, 1)
 
     Gdip_DisposeEffect(effect)
     Gdip_DisposeBitmap(playMap)
     Gdip_DisposeBitmap(retrievedMap)
-    
-    if (whitePixels > 30 && blackPixels > 30){
-        ratio := whitePixels/blackPixels
 
-        return (ratio > 0.35) && (ratio < 0.65)
+    if (whitePixels > 0 && blackPixels > 100) {
+        return 1
     }
+    
+    ; if (whitePixels > 30 && blackPixels > 30){
+    ;     ratio := whitePixels/blackPixels
+    ;     logMessage("ratio: " ratio)
+
+    ;     return (ratio > 0.35) && (ratio < 0.65)
+    ; }
     return 0
 }
 
@@ -2096,15 +2099,16 @@ ClickPlay() {
     if (!isPlayButtonOpen()){ ; Check again after 2 seconds
         return
     }
+
+    updateStatus("Game Loaded")
     logMessage("[ClickPlay] Play button detected")
 
     StopPaths()
-
     getRobloxPos(pX,pY,width,height)
     
     ; Click Play
-    ClickMouse(pX + (width*0.5), pY + (height*0.6))
-    Sleep, 5000
+    ClickMouse(pX + (width*0.5), pY + (height*0.85))
+    Sleep, 10000
 
     ; Skip existing aura prompt
     ClickMouse(pX + (width*0.6), pY + (height*0.85))
@@ -2112,9 +2116,9 @@ ClickPlay() {
     ; Enable Auto Roll
     ClickMouse(pX + (width*0.35), pY + (height*0.95))
 
-    if (!running) {
-        startMacro()
-    }
+    ; if (!running) {
+    ;     startMacro()
+    ; }
 }
 
 ; Clear RAM by restarting Roblox
@@ -2138,11 +2142,8 @@ ClearRAM() {
 
 ; Enable Auto Roll - OCR detect if Auto Roll is OFF and click to enable
 enableAutoRoll() {
-    if (containsText(570, 1000, 200, 50, "OFF")){
-        MouseMove, 570 + 200*0.5, 1000 + 50*0.5
-        Sleep, 300
-        MouseClick
-        Sleep, 250
+    if (containsText(pX + (width*0.35)-100, pY + (height*0.95)-25, 200, 50, "OFF")) {
+        ClickMouse(pX + (width*0.35), pY + (height*0.95))
     }
 }
 
@@ -2215,16 +2216,25 @@ FileGetSize(filePath) {
 containsText(x, y, width, height, text) {
     ; Potential improvement by ignoring non-alphanumeric characters
 
-    if (!options.OCREnabled) {
+    if (!options.OCREnabled) { ; Can't use without OCR
         return 0
+    } else {
+        getRobloxPos(pX, pY, pW, pH)
+        if (pW <> 1920 || pH <> 1080 || A_ScreenDPI <> 96) { ; "Temporary" to avoid issues with hardcoded coordinates
+            return 0
+        }
     }
 
-    ; Highlight(x-5, y-5, width+10, height+10, 5000)
+    ; Highlight(x-10, y-10, width+20, height+20, 2000)
     
     try {
         pbm := Gdip_BitmapFromScreen(x "|" y "|" width "|" height)
         pbm := Gdip_ResizeBitmap(pbm,1500,1500,true)
         ocrText := ocrFromBitmap(pbm)
+        if (!ocrText) {
+            return 0
+        }
+
         StringLower, ocrText, ocrText
         StringLower, text, text
         if (!InStr(ocrText, text)) { ; Reduce logging by only saving when not found
@@ -2399,7 +2409,7 @@ attemptReconnect(failed := 0){
             rHwnd := GetRobloxHWND()
             if (rHwnd){
                 WinActivate, ahk_id %rHwnd%
-                updateStatus("Reconnecting, Roblox Opened")
+                updateStatus("Roblox Opened")
                 Sleep, 3000
                 break
             }
@@ -2420,8 +2430,7 @@ attemptReconnect(failed := 0){
             }
             
             if (valid){
-                ; Click Play
-                ClickMouse(pX + (width/2), pY + height*0.6)
+                ClickPlay()
                 break
             }
 
@@ -2432,17 +2441,7 @@ attemptReconnect(failed := 0){
             Sleep 1000
         }
 
-        updateStatus("Reconnecting, Game Loaded")
-        Sleep, 5000
-        getRobloxPos(pX,pY,width,height)
-
-        ; Skip existing aura prompt
-        ClickMouse(pX + (width*0.6), pY + (height*0.85))
-
-        ; Enable Auto Roll
-        ClickMouse(pX + (width*0.35), pY + (height*0.95))
-
-        options.LastRobloxRestart := getUnixTime()
+        options.LastRobloxRestart := getUnixTime() ; Reset timer
         updateStatus("Reconnect Complete")
         success := 1
         break
@@ -2566,7 +2565,7 @@ mainLoop(){
     ; Checks to avoid idling
     ClickPlay()
     enableAutoRoll()
-    
+
     if (!initialized){
         updateStatus("Initializing")
         initialize()
