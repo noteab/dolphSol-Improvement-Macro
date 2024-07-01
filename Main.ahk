@@ -110,8 +110,7 @@ global potionIndex := {0:"None"
     ,5:"Haste Potion II"
     ,6:"Haste Potion III"
     ,7:"Heavenly Potion I"
-    ,8:"Heavenly Potion II"
-    ,9:"Universe Potion I"}
+    ,8:"Heavenly Potion II"}
 
 global craftingInfo := {"Gilded Coin":{slot:13,addSlots:1,maxes:[1],attempts:5,addedAttempts:1}
     ,"Fortune Potion I":{slot:1,subSlot:1,addSlots:4,maxes:[5,1,5,1],attempts:2}
@@ -121,8 +120,7 @@ global craftingInfo := {"Gilded Coin":{slot:13,addSlots:1,maxes:[1],attempts:5,a
     ,"Haste Potion II":{slot:2,subSlot:2,addSlots:5,maxes:[1,10,10,15,2],attempts:2}
     ,"Haste Potion III":{slot:2,subSlot:3,addSlots:5,maxes:[1,20,15,25,4],attempts:2}
     ,"Heavenly Potion I":{slot:3,subSlot:1,addSlots:4,maxes:[100,50,20,1],attempts:2}
-    ,"Heavenly Potion II":{slot:3,subSlot:2,addSlots:5,maxes:[2,125,75,50,1],attempts:2}
-    ,"Universe Potion I":{slot:4,subSlot:1,addSlots:3,maxes:[10,15,2],attempts:2}}
+    ,"Heavenly Potion II":{slot:3,subSlot:2,addSlots:5,maxes:[2,125,75,50,1],attempts:2}}
 
 global rarityIndex := {0:"None"
     ,1:"1/1k+"
@@ -2754,7 +2752,7 @@ CreateMainUI() {
     Gui Add, CheckBox, vCraftGildedCoinCheckBox x37 y98 w190 h22 +0x2, % " Gilded Coin"
 
     ; Potion Crafting Settings
-    potionSlotOptions := "None||Fortune Potion I|Haste Potion I|Heavenly Potion I|Universe Potion I|Fortune Potion II|Haste Potion II|Heavenly Potion II|Fortune Potion III|Haste Potion III"
+    potionSlotOptions := "None||Fortune Potion I|Fortune Potion II|Fortune Potion III|Haste Potion I|Haste Potion II|Haste Potion III|Heavenly Potion I|Heavenly Potion II"
     Gui Font, s10 w600
     Gui Add, GroupBox, x252 y40 w231 h170 vPotionCraftingGroup -Theme +0x50000007, Potion Crafting
     Gui Font, s9 norm
@@ -3068,7 +3066,7 @@ AddItemEntry(idx, entry, xPos, yPos) {
     OutputDebug, % "Adding entry " idx " at yPos " yPos
 
     ; Concatenate item names for the dropdown list
-    UsableItems := ["Strange Controller", "Biome Randomizer", "Lucky", "Speed", "Fortune Potion I", "Fortune Potion II", "Fortune Potion III", "Haste Potion I", "Haste Potion II", "Haste Potion III", "Heavenly Potion I", "Heavenly Potion II", "Universe Potion"]
+    UsableItems := ["Strange Controller", "Biome Randomizer", "Lucky", "Speed", "Fortune Potion I", "Fortune Potion II", "Fortune Potion III", "Haste Potion I", "Haste Potion II", "Haste Potion III", "Heavenly Potion I", "Heavenly Potion II"]
     itemList := "|"
     for each, item in UsableItems {
         itemList .= item "|"
