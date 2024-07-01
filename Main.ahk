@@ -2896,6 +2896,7 @@ CreateMainUI() {
     Gui Add, CheckBox, gOCREnabledCheckBoxClick vOCREnabledCheckBox x32 y60 w400 h22 +0x2 Section, % " Enable OCR for Self-Correction (Requires English-US PC Language)"
     ; TODO: OCR Compatibility Check - Installed and Enabled?
 	
+	Gui Add, Button, gOCRHelpClick vOCRHelpButton x457 y50 w23 h23, ?
 
     Gui Add, Button, gShowBiomeSettings vBiomeButton x16 y100 w128, Configure Biomes
     Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x16 y+5 w128, Item Scheduler
@@ -3802,6 +3803,8 @@ OCREnabledCheckBoxClick:
     Gui mainUI:Default
     GuiControlGet, v,, OCREnabledCheckBox
     if (v) {
+		MsgBox, 0, OCR Warning, % "Warning: OCR will only work with Roblox in fullscreen."
+		
         options.OCREnabled := 0
         currentLanguage := getCurrentLanguage()
         if (currentLanguage = "English") {
@@ -3879,6 +3882,10 @@ WebhookHelpClick:
 RollDetectionHelpClick:
     MsgBox, 0, Roll Detection, % "Section for detecting rolled auras through the registered star color (if 10k+). Any 10k+ auras that can be sent will be sent to the webhook, with the option to ping if the rarity is above the minimum.`n`nFor minimum settings, the number determines the lowest possible rarity the webhook will send/ping for. Values of 0 will disable the option completely. Values under 10,000 will toggle all 1k+ rolls, due to them being near undetectable.`n`nAura Images can be toggled to show the wiki-based images of your rolled auras in the webhook. WARNING: After some testing, this has proven to show some lag, leading to some send delay issues. Use at your own risk!"
     return
+
+OCRHelpClick:
+    MsgBox, 0, OCR, % "place holder"
+	return
 
 ; gui close buttons
 mainUIGuiClose:
