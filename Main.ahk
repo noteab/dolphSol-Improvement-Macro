@@ -2498,9 +2498,9 @@ checkDisconnect(wasChecked := 0){
         }
         return 0
     } else if ((windowWidth > 0) && !WinExist("Roblox Crash")) {
-        hW := windowWidth/2
-		pBMScreen := Gdip_BitmapFromScreen(windowX+(hW/2) "|" windowY+(hW) "|" hW "|1")
+		pBMScreen := Gdip_BitmapFromScreen(windowX+(windowWidth/4) "|" windowY+(windowHeight/2) "|" windowWidth/2 "|1")
         matches := 0
+        hW := windowWidth/2
 		Loop %hW% {
             matches += (compareColors(Gdip_GetPixelColor(pBMScreen,A_Index-1,0,1),0x393b3d) < 8)
             if (matches >= 128) {
