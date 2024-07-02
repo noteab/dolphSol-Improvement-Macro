@@ -3187,7 +3187,7 @@ SaveItemSchedulerSettings() {
         idx++
     }
 
-    ; Save settings to config file
+    ; Save settings to global options
     for i, entry in ItemSchedulerEntries {
         options["ISEntry" i] := entry.Enabled "," entry.ItemName "," entry.Quantity "," entry.Frequency "," entry.TimeUnit
     }
@@ -3906,7 +3906,7 @@ RollDetectionHelpClick:
     return
 
 OCRHelpClick:
-    MsgBox, 0, OCR, % "place holder"
+    MsgBox, 0, OCR, % "OCR allows the macro to respond to events instead of blindly pressing keys and moving the mouse. Currently requires Roblox to be ran at 1920x1080 resolution and 100% scale."
 	return
 
 ; gui close buttons
