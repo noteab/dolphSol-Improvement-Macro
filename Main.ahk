@@ -2527,6 +2527,17 @@ RemoveTooltip(interval) {
     SetTimer, ClearToolTip, % -interval * 1000
 }
 
+; Closes all "instance already running" alerts
+CloseBSAlerts() {
+    WinGet, id, List, Bloxstrap ahk_exe Bloxstrap.exe
+    Loop, %id% {
+        this_id := id%A_Index%
+        PostMessage, 0x0112, 0xF060,,, % "ahk_id" this_id ; 0x0112 = WM_SYSCOMMAND, 0xF060 = SC_CLOSE
+
+        logMessage("[Bloxstrap Alert] Closed popup " this_id, 1)
+    }
+}
+
 /*
 testPath := mainDir "images\test.png"
 OutputDebug, testPath
@@ -2590,6 +2601,7 @@ mainLoop(){
     ; Checks to avoid idling
     ; ClickPlay()
     ; enableAutoRoll()
+    CloseBSAlerts()
 
     if (!initialized){
         updateStatus("Initializing")
