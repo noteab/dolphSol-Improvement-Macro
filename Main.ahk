@@ -3142,7 +3142,7 @@ SaveItemSchedulerSettings() {
     ; Flush entries from options to avoid leaving deleted entries
     for i, v in options {
         if (InStr(i, "ISEntry", 1) = 1) {
-            options.Delete("ISEntry" i)
+            options.Delete(i)
         }
     }
 
