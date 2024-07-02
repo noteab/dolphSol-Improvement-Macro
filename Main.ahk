@@ -384,7 +384,7 @@ updateStaticData(){
             updateYesClicked()
     }
     if (sData.announcement){
-        ;MsgBox, 0,Macro Announcement,% sData.announcement
+        ; MsgBox, 0,Macro Announcement,% sData.announcement
     }
 
     ; Load aura names from JSON
@@ -403,29 +403,29 @@ updateStaticData(){
 ; data loading
 loadData(){
     global
-    logMessage("[loadData] Loading config data from " configPath)
+    logMessage("[loadData] Loading config data")
 
     savedRetrieve := getINIData(configPath)
     if (!savedRetrieve){
         logMessage("[loadData] Unable to retrieve config data, Resetting to defaults.")
-        MsgBox, Unable to retrieve config data, your settings have been set to their defaults.
+        MsgBox, % "Unable to retrieve config data, your settings have been set to their defaults."
         savedRetrieve := {}
-    } else {
-        logMessage("[loadData] Successfully retrieved config data:")
-        for i,v in savedRetrieve {
+    } else { ; Commented out to avoid log spam
+        ; logMessage("[loadData] Successfully retrieved config data:")
+        ; for i,v in savedRetrieve {
             
-            ; Don't log Aura Webhook settings
-            if (InStr(i, "wh" , 1) = 1) {
-                continue
-            }
+        ;     ; Don't log Aura Webhook settings
+        ;     if (InStr(i, "wh" , 1) = 1) {
+        ;         continue
+        ;     }
 
-            ; Don't log private data
-            if (i = "PrivateServerId" || i = "WebhookLink") {
-                logMessage(i ": *hidden*", 1)
-                continue ; don't log these
-            }
-            logMessage(i ": " v, 1)
-        }
+        ;     ; Don't log private data
+        ;     if (i = "PrivateServerId" || i = "WebhookLink") {
+        ;         logMessage(i ": *hidden*", 1)
+        ;         continue ; don't log these
+        ;     }
+        ;     logMessage(i ": " v, 1)
+        ; }
     }
 
     local newOptions := {}
@@ -467,7 +467,7 @@ loadData(){
         if (savedRetrieve.HasKey(key)) {
             options[key] := savedRetrieve[key]
         } else {
-            options[key] := "Message"
+            options[key] := "Message" ; Set default
         }
         ; logMessage("[loadData] Biome: " biome " - " options[key])
     }
@@ -887,7 +887,6 @@ initialize() {
     if (!disableAlignment) {
         alignCamera()
     }
-    ; enableAutoRoll()
 }
 
 resetZoom(){
@@ -2032,12 +2031,41 @@ closeRoblox(){
     WinClose, % "Roblox Crash"
 }
 
-playBitMap := Gdip_CreateBitmapFromFile(imgDir . "play.png")
-isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
-
-    global playBitMap
+isGameNameVisible() {
     getRobloxPos(pX,pY,width,height)
 
+    ; Game Logo/Name
+    x := pX + (width * 0.25)
+    y := pY + (height * 0.05)
+    w := width // 5
+    h := height // 5
+
+    colors := [0xD356FF, 0x8528FF, 0x140E46, 0x000000] ; Lavender, Purple, Dark Blue, Black
+    variation := 10
+
+    foundColors := 0
+
+    ; Search for each color in the defined area
+    for color in colors {
+        PixelSearch, FoundX, FoundY, x, y, x + w, y + h, color, 10, Fast RGB
+        if (ErrorLevel = 0) {
+            foundColors++
+            ; OutputDebug, % "Color found: " color " at " FoundX ", " FoundY
+        } else {
+            ; OutputDebug, % "Color not found: " color
+        }
+    }
+
+    logMessage("[GameName] Colors found: " foundColors " out of " colors.Length())
+    return foundColors = colors.Length()
+}
+
+playBitMap := Gdip_CreateBitmapFromFile(imgDir . "play.png")
+isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
+    
+    return isGameNameVisible() ; Avoid code below broken in Era 8
+    
+    getRobloxPos(pX,pY,width,height)
     targetW := height * 0.3833
     startX := width * 0.5 - targetW * 0.55
     x := pX + startX
@@ -2045,15 +2073,14 @@ isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
     w := targetW * 1.1
     h := height * 0.1
 
-    if (options.OCREnabled) { ; TODO: can be used directly in ClickPlay() to save time
-        if (containsText(x, y, w, h, "Play")) { ; Era 7 = 890, 610, 140, 80
+    if (options.OCREnabled) { ; TODO: Test if can be used directly in ClickPlay() to save time
+        if (containsText(x, y, w, h, "Play") || containsText(x, y, w, h, "Ploy")) { ; Era 7 = 890, 610, 140, 80
             return 1
         }
         return 0
     }
 
     retrievedMap := Gdip_BitmapFromScreen(x "|" y "|" w "|" h)
-    ; retrievedMap := Gdip_BitmapFromScreen(pX + startX "|" pY + height*0.575 "|" targetW "|" height*0.05)
     effect := Gdip_CreateEffect(5,-60,80)
     Gdip_BitmapApplyEffect(retrievedMap,effect)
     playMap := Gdip_ResizeBitmap(retrievedMap,30,30,0)
@@ -2076,17 +2103,13 @@ isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
     Gdip_DisposeEffect(effect)
     Gdip_DisposeBitmap(playMap)
     Gdip_DisposeBitmap(retrievedMap)
-
-    if (whitePixels > 0 && blackPixels > 100) {
-        return 1
-    }
     
-    ; if (whitePixels > 30 && blackPixels > 30){
-    ;     ratio := whitePixels/blackPixels
-    ;     logMessage("ratio: " ratio)
+    if (whitePixels > 30 && blackPixels > 30){
+        ratio := whitePixels/blackPixels
+        logMessage("ratio: " ratio)
 
-    ;     return (ratio > 0.35) && (ratio < 0.65)
-    ; }
+        return (ratio > 0.35) && (ratio < 0.65)
+    }
     return 0
 }
 
@@ -2115,8 +2138,9 @@ ClickPlay() {
 
     ; Skip existing aura prompt
     ClickMouse(pX + (width*0.6), pY + (height*0.85))
+    Sleep, 2000
     
-    ; Enable Auto Roll
+    ; Enable Auto Roll - Completely removed from Initialize() to avoid toggling when macro is restarted, but game is not
     ClickMouse(pX + (width*0.35), pY + (height*0.95))
 
     ; if (!running) {
@@ -2413,7 +2437,7 @@ attemptReconnect(failed := 0){
             if (rHwnd){
                 WinActivate, ahk_id %rHwnd%
                 updateStatus("Roblox Opened")
-                Sleep, 3000
+                Sleep, 5000
                 break
             }
             if (A_Index == 240){
@@ -2566,7 +2590,7 @@ mainLoop(){
     WinActivate, ahk_id %robloxId%
 
     ; Checks to avoid idling
-    ClickPlay()
+    ; ClickPlay()
     ; enableAutoRoll()
 
     if (!initialized){
