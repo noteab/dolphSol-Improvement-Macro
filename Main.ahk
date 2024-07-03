@@ -212,7 +212,8 @@ loadData() ; Load config data
 ; Disable OCR mode if resolution isn't supported
 ; Now enabling the mode will notify of requirements
 if (options.OCREnabled) {
-    if (A_ScreenWidth <> 1920 || A_ScreenHeight <> 1080 || A_ScreenDPI <> 96) {
+    getRobloxPos(pX, pY, pW, pH)
+    if not (pW = 1920 && pH = 1080 && A_ScreenDPI = 96) {
         options.OCREnabled := 0
     }
 }
@@ -3837,8 +3838,6 @@ OCREnabledCheckBoxClick:
     Gui mainUI:Default
     GuiControlGet, v,, OCREnabledCheckBox
     if (v) {
-		MsgBox, 0, OCR Warning, % "Warning: OCR will only work with Roblox in fullscreen."
-		
         options.OCREnabled := 0
         currentLanguage := getCurrentLanguage()
         if (currentLanguage = "English") {
@@ -3855,7 +3854,13 @@ OCREnabledCheckBoxClick:
                 MsgBox, 0, OCR Error, % "A monitor resolution of 1920x1080 with a 100% scale is required for OCR at this time.`n"
                                       . "We will continue working to support more configurations."
             } else {
-                return
+                getRobloxPos(pX, pY, pW, pH)
+                if not (pW = 1920 && pH = 1080 && A_ScreenDPI = 96) { ; Disable if Roblox isnt in fullscreen
+                    MsgBox, 0, Another Error, % "Roblox must be in fullscreen to use OCR."
+                    options.OCREnabled := 0
+                } else {
+                    return
+                }
             }
         } else {
             MsgBox, 0, OCR Language Error, % "Unable to use OCR. Please set your language to English-US in your PC settings and restart to enable OCR."
