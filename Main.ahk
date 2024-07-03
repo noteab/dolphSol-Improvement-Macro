@@ -163,6 +163,7 @@ global options := {"DoingObby":1
     ,"AutoEquipX":-0.415
     ,"AutoEquipY":-0.438
     ,"PrivateServerId":""
+    ,"isOwnPrivateServer":1 ; Determines side button positions
     ,"WebhookEnabled":0
     ,"WebhookLink":""
     ,"WebhookImportantOnly":0
@@ -180,6 +181,7 @@ global options := {"DoingObby":1
     ,"RestartRobloxEnabled":0   ; Amraki
     ,"RestartRobloxInterval":1  ; Amraki
     ,"LastRobloxRestart":0      ; Amraki
+    ,"RobloxUpdatedUI":2 ; Default to "New"
 
     ; Crafting
     ,"ItemCraftingEnabled":0
@@ -1436,6 +1438,8 @@ clamp(x,mn,mx){
 global menuBarOffset := 20 ;10 pixels from left edge
 
 getMenuButtonPosition(num, ByRef posX := "", ByRef posY := ""){ ; num is 1-7, 1 being top, 7 only existing if you are the private server owner
+    num := options["isOwnPrivateServer"] ? num : num + 1
+    
     getRobloxPos(rX, rY, width, height)
 
     menuBarVSpacing := 10.5*(height/1080)
@@ -2928,9 +2932,7 @@ CreateMainUI() {
     Gui Add, GroupBox, x16 y40 w467 h50 vGeneralEnhancementsGroup -Theme +0x50000007, General
     Gui Font, s9 norm
     Gui Add, CheckBox, gOCREnabledCheckBoxClick vOCREnabledCheckBox x32 y60 w400 h22 +0x2 Section, % " Enable OCR for Self-Correction (Requires English-US PC Language)"
-    ; TODO: OCR Compatibility Check - Installed and Enabled?
-	
-	Gui Add, Button, gOCRHelpClick vOCRHelpButton x457 y50 w23 h23, ?
+    Gui Add, Button, gOCRHelpClick vOCRHelpButton x457 y50 w23 h23, ?
 
     Gui Add, Button, gShowBiomeSettings vBiomeButton x16 y100 w128, Configure Biomes
     Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x16 y+5 w128, Item Scheduler
