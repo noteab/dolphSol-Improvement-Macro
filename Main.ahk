@@ -113,8 +113,7 @@ global potionIndex := {0:"None"
     ,7:"Heavenly Potion I"
     ,8:"Heavenly Potion II"}
 
-global craftingInfo := {"Gilded Coin":{slot:13,addSlots:1,maxes:[1],attempts:5,addedAttempts:1}
-    ,"Fortune Potion I":{slot:1,subSlot:1,addSlots:4,maxes:[5,1,5,1],attempts:2}
+global craftingInfo := {"Fortune Potion I":{slot:1,subSlot:1,addSlots:4,maxes:[5,1,5,1],attempts:2}
     ,"Fortune Potion II":{slot:1,subSlot:2,addSlots:5,maxes:[1,10,5,10,2],attempts:2}
     ,"Fortune Potion III":{slot:1,subSlot:3,addSlots:5,maxes:[1,15,10,15,5],attempts:2}
     ,"Haste Potion I":{slot:2,subSlot:1,addSlots:4,maxes:[10,5,10,1],attempts:2}
@@ -186,7 +185,6 @@ global options := {"DoingObby":1
     ; Crafting
     ,"ItemCraftingEnabled":0
     ,"CraftingInterval":10
-    ,"CraftingGildedCoin":1
     ,"LastCraftSession":0
     ,"PotionCraftingEnabled":0
     ,"PotionCraftingSlot1":0
@@ -216,6 +214,12 @@ loadData() ; Load config data
 if (options.OCREnabled) {
     if (A_ScreenWidth <> 1920 || A_ScreenHeight <> 1080 || A_ScreenDPI <> 96) {
         options.OCREnabled := 0
+    }
+}
+
+if (options.ItemCraftingEnabled) {
+    if (options.ItemCraftingEnabled = 1) {
+        options.ItemCraftingEnabled := 0
     }
 }
 
@@ -1834,25 +1838,6 @@ handleCrafting(craftLocation := 0, retryCount := 0){
             return
         }
 
-        updateStatus("Crafting Coins")
-        if (options.CraftingGildedCoin){
-            info := craftingInfo["Gilded Coin"]
-            loopCount := info.attempts + Floor(info.addedAttempts*options.CraftingInterval) ; Why is CraftingInterval used here?
-            ; logMessage("Crafting count: " loopCount " = " info.attempts " + Floor(" info.addedAttempts " * " options.CraftingInterval ")")
-            clickCraftingSlot(info.slot)
-            Sleep, 200
-            Loop %loopCount% {
-                craftingClickAdd(info.addSlots,info.maxes,1)
-                Sleep, 200
-
-                ; Check for "can't craft" popup
-                if (options.OCREnabled && containsText(1580, 815, 170, 30, "can't craft")) {
-                    logMessage("Can't Craft popup detected")
-                    break
-                }
-            }
-        }
-
         ; Click the "Close" button
         MouseMove, % rX + rW*0.175, % rY + rH*0.05
         Sleep, 200
@@ -2795,11 +2780,9 @@ CreateMainUI() {
     Gui Font, s10 w600
     Gui Add, GroupBox, x16 y40 w231 h110 vItemCraftingGroup -Theme +0x50000007, Item Crafting
     Gui Font, s9 norm
-    Gui Add, CheckBox, vItemCraftingCheckBox x32 y58 w190 h22 +0x2, % " Automatic Item Crafting"
+    Gui Add, CheckBox, vItemCraftingCheckBox x32 y58 w190 h22 +Disabled, % " Automatic Item Crafting"
     Gui Font, s9 w600
     Gui Add, GroupBox, x21 y80 w221 h65 vItemCraftingOptionsGroup -Theme +0x50000007, Crafting Options
-    Gui Font, s9 norm
-    Gui Add, CheckBox, vCraftGildedCoinCheckBox x37 y98 w190 h22 +0x2, % " Gilded Coin"
 
     ; Potion Crafting Settings
     potionSlotOptions := "None||Fortune Potion I|Fortune Potion II|Fortune Potion III|Haste Potion I|Haste Potion II|Haste Potion III|Heavenly Potion I|Heavenly Potion II"
@@ -3327,7 +3310,6 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"CraftingIntervalUpDown":"CraftingInterval"
     ,"ItemCraftingCheckBox":"ItemCraftingEnabled"
     ,"InvScreenshotinterval":"ScreenshotInterval"
-    ,"CraftGildedCoinCheckBox":"CraftingGildedCoin"
     ,"PotionCraftingCheckBox":"PotionCraftingEnabled"
     ,"PotionAutoAddCheckBox":"PotionAutoAddEnabled"          ; Amraki
     ,"PotionAutoAddIntervalUpDown":"PotionAutoAddInterval"   ; Amraki
