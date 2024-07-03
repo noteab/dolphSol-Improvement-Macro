@@ -1252,13 +1252,17 @@ walkToPotionCrafting(){
 ; End of paths
 
 closeChat(){
+    offsetX := 75
+    offsetY := 12
+    ; if (options.RobloxUpdatedUI = 2) {
+    ;     offsetX := 138
+    ;     offsetY := 53
+    ; }
+
     getRobloxPos(pX,pY,width,height)
-    PixelGetColor, chatCheck, % pX + 75, % pY + 12, RGB
+    PixelGetColor, chatCheck, % pX + offsetX, % pY + offsetY, RGB
     if (compareColors(chatCheck,0xffffff) < 16){ ; is chat open??
-        MouseMove, % pX + 75, % pY + 12
-        Sleep, 300
-        MouseClick
-        Sleep, 100
+        ClickMouse(pX + offsetX, pY + offsetY)
     }
 }
 
@@ -2937,6 +2941,17 @@ CreateMainUI() {
     Gui Add, Button, gShowBiomeSettings vBiomeButton x16 y100 w128, Configure Biomes
     Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x16 y+5 w128, Item Scheduler
 
+    ; Roblox UI style to determine Chat button position
+    Gui Font, s10 w600
+    Gui Add, Text, x400 y150, Roblox UI
+    Gui Font, s9 norm
+    
+    ; options["RobloxUpdatedUI"]
+    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y170, Old
+    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio2, New
+    GuiControl,, RobloxUpdatedUIRadio1, % (options["RobloxUpdatedUI"] = 1) ? 1 : 0
+    GuiControl,, RobloxUpdatedUIRadio2, % (options["RobloxUpdatedUI"] = 2) ? 1 : 0
+
     Gui Show, % "w500 h254 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Macro " version
 
     ; status bar
@@ -3833,6 +3848,11 @@ WebhookRollImageCheckBoxClick:
     if (v){
         MsgBox, 0, Aura Roll Image Warning, % "Warning: Currently, the aura image display for the webhook is fairly unstable, and may cause random delays in webhook sends due to image loading. Enable at your own risk."
     }
+    return
+
+GetRobloxVersion:
+    Gui, Submit, NoHide
+    options["RobloxUpdatedUI"] := (RobloxUpdatedUIRadio1 = 1) ? 1 : 2
     return
 
 OCREnabledCheckBoxClick:
