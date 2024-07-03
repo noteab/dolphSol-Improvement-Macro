@@ -163,7 +163,7 @@ global options := {"DoingObby":1
     ,"AutoEquipX":-0.415
     ,"AutoEquipY":-0.438
     ,"PrivateServerId":""
-    ,"isOwnPrivateServer":1 ; Determines side button positions
+    ,"InOwnPrivateServer":1 ; Determines side button positions
     ,"WebhookEnabled":0
     ,"WebhookLink":""
     ,"WebhookImportantOnly":0
@@ -1442,7 +1442,7 @@ clamp(x,mn,mx){
 global menuBarOffset := 20 ;10 pixels from left edge
 
 getMenuButtonPosition(num, ByRef posX := "", ByRef posY := ""){ ; num is 1-7, 1 being top, 7 only existing if you are the private server owner
-    num := options["isOwnPrivateServer"] ? num : num + 1
+    num := options["InOwnPrivateServer"] ? num : num + 1
     
     getRobloxPos(rX, rY, width, height)
 
@@ -2750,6 +2750,7 @@ CreateMainUI() {
     Gui Add, Button, gStartClick vStartButton x8 y224 w80 h23 -Tabstop, F1 - Start
     Gui Add, Button, gPauseClick vPauseButton x96 y224 w80 h23 -Tabstop, F2 - Pause
     Gui Add, Button, gStopClick vStopButton x184 y224 w80 h23 -Tabstop, F3 - Stop
+    Gui Add, CheckBox, vOwnPrivateServerCheckBox x350 y224 h23 +0x2, % "In your own PS?"
     Gui Font, s11 Norm, Segoe UI
     Gui Add, Picture, gDiscordServerClick w26 h20 x462 y226, % mainDir "images\discordIcon.png"
 
@@ -3328,6 +3329,7 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"PotionCraftingCheckBox":"PotionCraftingEnabled"
     ,"PotionAutoAddCheckBox":"PotionAutoAddEnabled"          ; Amraki
     ,"PotionAutoAddIntervalUpDown":"PotionAutoAddInterval"   ; Amraki
+    ,"OwnPrivateServerCheckBox":"InOwnPrivateServer"
     ,"ReconnectCheckBox":"ReconnectEnabled"
     ,"RestartRobloxCheckBox":"RestartRobloxEnabled"          ; Amraki
     ,"RestartRobloxIntervalUpDown":"RestartRobloxInterval"   ; Amraki
