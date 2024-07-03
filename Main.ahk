@@ -1253,15 +1253,17 @@ walkToPotionCrafting(){
 
 closeChat(){
     offsetX := 75
-    offsetY := 12
-    ; if (options.RobloxUpdatedUI = 2) {
-    ;     offsetX := 138
-    ;     offsetY := 53
-    ; }
+    offsetY := 25 ; Changed from 12
+    if (options["RobloxUpdatedUI"] = 2) {
+        offsetX := 138
+        offsetY := 53
+    }
 
     getRobloxPos(pX,pY,width,height)
     PixelGetColor, chatCheck, % pX + offsetX, % pY + offsetY, RGB
-    if (compareColors(chatCheck,0xffffff) < 16){ ; is chat open??
+    isWhite := compareColors(chatCheck,0xffffff) < 16
+    isGray := compareColors(chatCheck,0xc3c3c3) < 16
+    if (isWhite || isGray){ ; is chat open??
         ClickMouse(pX + offsetX, pY + offsetY)
     }
 }
