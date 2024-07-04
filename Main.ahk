@@ -1890,7 +1890,7 @@ screenshotInventories(){ ; from all closed
     ssMap := Gdip_BitmapFromScreen(topLeft[1] "|" topLeft[2] "|" totalSize[1] "|" totalSize[2])
     Gdip_SaveBitmapToFile(ssMap,ssPath)
     Gdip_DisposeBitmap(ssMap)
-    try webhookPost({files:[ssPath],embedImage:"attachment://ss.jpg",embedTitle: "Aura Storage Screenshot"})
+    try webhookPost({files:[ssPath],embedImage:"attachment://ss.jpg",embedTitle: "Aura Storage"})
 
     Sleep, 200
     clickMenuButton(3)
@@ -1907,10 +1907,27 @@ screenshotInventories(){ ; from all closed
     ssMap := Gdip_BitmapFromScreen(topLeft[1] "|" topLeft[2] "|" totalSize[1] "|" totalSize[2])
     Gdip_SaveBitmapToFile(ssMap,ssPath)
     Gdip_DisposeBitmap(ssMap)
-    try webhookPost({files:[ssPath],embedImage:"attachment://ss.jpg",embedTitle: "Item Inventory Screenshot"})
+    try webhookPost({files:[ssPath],embedImage:"attachment://ss.jpg",embedTitle: "Item Inventory"})
 
     Sleep, 200
-    clickMenuButton(3)
+    clickMenuButton(5)
+    Sleep, 200
+
+    waitForInvVisible()
+
+    itemButton := getPositionFromAspectRatioUV(0.564405, -0.451327, storageAspectRatio)
+    MouseMove, % itemButton[1], % itemButton[2]
+    Sleep, 200
+    MouseClick
+    Sleep, 200
+
+    ssMap := Gdip_BitmapFromScreen(topLeft[1] "|" topLeft[2] "|" totalSize[1] "|" totalSize[2])
+    Gdip_SaveBitmapToFile(ssMap,ssPath)
+    Gdip_DisposeBitmap(ssMap)
+    try webhookPost({files:[ssPath],embedImage:"attachment://ss.jpg",embedTitle: "Quests"})
+
+    Sleep, 200
+    clickMenuButton(5)
     Sleep, 200
 }
 
@@ -2605,6 +2622,11 @@ mainLoop(){
     }
 
     mouseActions()
+
+    Sleep, 250
+
+    ; Reset to spawn before taking screenshots or using items
+    reset()
     
     Sleep, 250
 
@@ -2612,11 +2634,6 @@ mainLoop(){
         options.LastInvScreenshot := getUnixTime()
         screenshotInventories()
     }
-
-    Sleep, 250
-
-    ; Reset to spawn before using items
-    reset()
 
     Sleep, 250
 
