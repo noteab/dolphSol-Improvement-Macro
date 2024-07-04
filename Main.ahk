@@ -2620,7 +2620,7 @@ mainLoop(){
     WinActivate, ahk_id %robloxId%
 
     ; Checks to avoid idling
-    ClickPlay()
+    ; ClickPlay()
     ; enableAutoRoll()
     CloseBSAlerts()
 
