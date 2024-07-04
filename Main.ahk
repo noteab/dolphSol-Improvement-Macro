@@ -2066,7 +2066,9 @@ isGameNameVisible() {
             ; OutputDebug, % "Color not found: " color
         }
     }
-
+    if (foundColors = colors.Length()) {
+        Highlight(x, y, w, h, 2500) ; Temporary for debug
+    }
     logMessage("[GameName] Colors found: " foundColors " out of " colors.Length())
     return foundColors = colors.Length()
 }
@@ -2074,7 +2076,13 @@ isGameNameVisible() {
 playBitMap := Gdip_CreateBitmapFromFile(imgDir . "play.png")
 isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
     
-    return isGameNameVisible() ; Avoid code below broken in Era 8
+    ; Check again after delay to avoid false positives
+    if (isGameNameVisible()) {
+        Sleep, 2000
+        return isGameNameVisible()
+    }
+
+    return 0 ; Avoid code below broken in Era 8
     
     getRobloxPos(pX,pY,width,height)
     targetW := height * 0.3833
@@ -2612,7 +2620,7 @@ mainLoop(){
     WinActivate, ahk_id %robloxId%
 
     ; Checks to avoid idling
-    ; ClickPlay()
+    ClickPlay()
     ; enableAutoRoll()
     CloseBSAlerts()
 
