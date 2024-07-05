@@ -1260,8 +1260,8 @@ closeChat(){
     offsetX := 75
     offsetY := 25 ; Changed from 12
     if (options["RobloxUpdatedUI"] = 2) {
-        offsetX := 138
-        offsetY := 53
+        offsetX := 144
+        offsetY := 40
     }
 
     getRobloxPos(pX,pY,width,height)
