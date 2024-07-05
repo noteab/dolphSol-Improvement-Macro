@@ -1360,6 +1360,12 @@ getRobloxPos(ByRef x := "", ByRef y := "", ByRef width := "", ByRef height := ""
     y := NumGet(&buf,4,"Int")
     width := NumGet(&buf,8,"Int")
     height := NumGet(&buf,12,"Int")
+
+    ; What to do if Roblox isn't open
+    if (macroStarted && !width) {
+        attemptReconnect()
+        return
+    }
 }
 
 ; screen stuff
@@ -1934,7 +1940,7 @@ screenshotInventories(){ ; from all closed
 ; Simplify frequent code
 ClickMouse(posX, posY) {
     MouseMove, % posX, % posY
-    Sleep, 200
+    Sleep, 500
     MouseClick
     Sleep, 200
 
@@ -2058,33 +2064,26 @@ isGameNameVisible() {
 
     ; Search for each color in the defined area
     for color in colors {
-        PixelSearch, FoundX, FoundY, x, y, x + w, y + h, color, 10, Fast RGB
+        PixelSearch, FoundX, FoundY, x, y, x + w, y + h, color, variation, RGB
         if (ErrorLevel = 0) {
             foundColors++
-            ; OutputDebug, % "Color found: " color " at " FoundX ", " FoundY
+            logMessage("Color " color " found at " FoundX ", " FoundY)
         } else {
-            ; OutputDebug, % "Color not found: " color
+            ; OutputDebug, % "Color " color " not found"
         }
     }
     if (foundColors = colors.Length()) {
-        Highlight(x, y, w, h, 2500) ; Temporary for debug
+        logMessage("[GameName] Colors found: " foundColors " out of " colors.Length())
+        ;Highlight(x, y, w, h, 2500) ; Temporary for debug
+        return 1
     }
-    logMessage("[GameName] Colors found: " foundColors " out of " colors.Length())
-    return foundColors = colors.Length()
+    return 0
 }
 
-playBitMap := Gdip_CreateBitmapFromFile(imgDir . "play.png")
+; playBitMap := Gdip_CreateBitmapFromFile(imgDir . "play.png")
 isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
-    
-    ; Check again after delay to avoid false positives
-    if (isGameNameVisible()) {
-        Sleep, 2000
-        return isGameNameVisible()
-    }
-
-    return 0 ; Avoid code below broken in Era 8
-    
     getRobloxPos(pX,pY,width,height)
+
     targetW := height * 0.3833
     startX := width * 0.5 - targetW * 0.55
     x := pX + startX
@@ -2092,12 +2091,20 @@ isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
     w := targetW * 1.1
     h := height * 0.1
 
-    if (options.OCREnabled) { ; TODO: Test if can be used directly in ClickPlay() to save time
-        if (containsText(x, y, w, h, "Play") || containsText(x, y, w, h, "Ploy")) { ; Era 7 = 890, 610, 140, 80
+    if (options.OCREnabled) {
+        if (containsText(x, y, w, h, "Play") || containsText(x, y, w, h, "Ploy")) { ; Add commonly detected misspelling
             return 1
         }
-        return 0
+        ; return 0 ; Commented out to allow secondary check below
     }
+
+    ; Check again after delay to avoid false positives
+    if (isGameNameVisible()) {
+        Sleep, 5000
+        return isGameNameVisible()
+    }
+
+    return 0 ; Avoid code below broken in Era 8
 
     retrievedMap := Gdip_BitmapFromScreen(x "|" y "|" w "|" h)
     effect := Gdip_CreateEffect(5,-60,80)
@@ -2264,18 +2271,19 @@ containsText(x, y, width, height, text) {
 
     if (!options.OCREnabled) { ; Can't use without OCR
         return 0
-    } else {
-        getRobloxPos(pX, pY, pW, pH)
-        if (pW <> 1920 || pH <> 1080 || A_ScreenDPI <> 96) { ; "Temporary" to avoid issues with hardcoded coordinates
-            return 0
-        }
-    }
+    } 
+    ; else {
+    ;     getRobloxPos(pX, pY, pW, pH)
+    ;     if (pW <> 1920 || pH <> 1080 || A_ScreenDPI <> 96) { ; "Temporary" to avoid issues with hardcoded coordinates
+    ;         return 0
+    ;     }
+    ; }
 
     ; Highlight(x-10, y-10, width+20, height+20, 2000)
     
     try {
         pbm := Gdip_BitmapFromScreen(x "|" y "|" width "|" height)
-        pbm := Gdip_ResizeBitmap(pbm,1500,1500,true)
+        pbm := Gdip_ResizeBitmap(pbm,500,500,true)
         ocrText := ocrFromBitmap(pbm)
         if (!ocrText) {
             return 0
@@ -2456,7 +2464,7 @@ attemptReconnect(failed := 0){
             if (rHwnd){
                 WinActivate, ahk_id %rHwnd%
                 updateStatus("Roblox Opened")
-                Sleep, 5000
+                ; Sleep, 5000
                 break
             }
             if (A_Index == 240){
@@ -3887,18 +3895,18 @@ OCREnabledCheckBoxClick:
                 MsgBox, 0, OCR Error, % "A monitor resolution of 1920x1080 with a 100% scale is required for OCR at this time.`n"
                                       . "We will continue working to support more configurations."
             } else {
-                getRobloxPos(pX, pY, pW, pH)
-                if not (pW = 1920 && pH = 1080 && A_ScreenDPI = 96) { ; Disable if Roblox isnt in fullscreen
-                    MsgBox, 0, Another Error, % "Roblox must be in fullscreen to use OCR."
-                    options.OCREnabled := 0
-                } else {
-                    return
-                }
+                ; getRobloxPos(pX, pY, pW, pH)
+                ; if not (pW = 1920 && pH = 1080 && A_ScreenDPI = 96) { ; Disable if Roblox isnt in fullscreen
+                ;     MsgBox, 0, Another Error, % "Roblox must be in fullscreen to use OCR."
+                ;     options.OCREnabled := 0
+                ; } else {
+                ;     return
+                ; }
             }
         } else {
             MsgBox, 0, OCR Language Error, % "Unable to use OCR. Please set your language to English-US in your PC settings and restart to enable OCR."
         }
-        GuiControl, , OCREnabledCheckBox, 0
+        ; GuiControl, , OCREnabledCheckBox, 0
     }
     return
 
