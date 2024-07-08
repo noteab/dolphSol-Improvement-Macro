@@ -1130,6 +1130,7 @@ runPath(pathName,voidPoints,noCenter = 0){
         
         DetectHiddenWindows, On
         Run, % """" . A_AhkPath . """ """ . targetDir . """"
+        pathRuntime := A_TickCount
 
         stopped := 0
 
@@ -1188,6 +1189,8 @@ runPath(pathName,voidPoints,noCenter = 0){
             Sleep, 225
             voidCooldown := Max(0,voidCooldown-1)
         }
+        ; elapsedTime := (A_TickCount - pathRuntime)//1000
+        ; logMessage("[runPath] " pathName " completed in " elapsedTime " seconds")
 
         if (stopped){
             WinClose, % targetDir
@@ -1211,7 +1214,7 @@ searchForItems(){
 
     options.CollectionLoops += 1
 
-    logMessage("[searchForItems] Items collected")
+    ; logMessage("[searchForItems] Items collected")
 }
 
 doObby(){
@@ -1360,6 +1363,12 @@ getRobloxPos(ByRef x := "", ByRef y := "", ByRef width := "", ByRef height := ""
     y := NumGet(&buf,4,"Int")
     width := NumGet(&buf,8,"Int")
     height := NumGet(&buf,12,"Int")
+
+    ; What to do if Roblox isn't open
+    if (macroStarted && !width) {
+        attemptReconnect()
+        return
+    }
 
     ; What to do if Roblox isn't open
     if (macroStarted && !width) {
@@ -1566,21 +1575,19 @@ ShowMousePos() {
 }
 
 isCraftingMenuOpen() {
-    if (!options.OCREnabled) {
-        ; return 1 ; Assume it's open
+    ; if (options.OCREnabled) {
+    if (containsText(250, 30, 200, 75, "Close")) {
+        return 1
+    }
+        ; Don't return 0 so it uses backup non-ocr check
+    ; }
 
-        convertScreenCoordinates(290, 40, closeX, closeY)
-        PixelSearch, blackX, blackY, closeX, closeY, closeX+100, closeY+40, 0x060A09, 16, Fast RGB
-        PixelSearch, whiteX, whiteY, closeX, closeY, closeX+100, closeY+40, 0xFFFFFF, 16, Fast RGB
-        if (blackX && whiteX) {
-            logMessage("Close button found")
-            return 1
-        }
-    } else {
-        ; OCR - Check for "Close" button
-        if (containsText(250, 30, 200, 75, "Close")) {
-            return 1
-        }
+    convertScreenCoordinates(290, 40, closeX, closeY)
+    PixelSearch, blackX, blackY, closeX, closeY, closeX+100, closeY+40, 0x060A09, 16, Fast RGB
+    PixelSearch, whiteX, whiteY, closeX, closeY, closeX+100, closeY+40, 0xFFFFFF, 16, Fast RGB
+    if (blackX && whiteX) {
+        logMessage("Close button found")
+        return 1
     }
 
     return 0
@@ -1948,7 +1955,8 @@ ClickMouse(posX, posY) {
 }
 
 useItem(itemName, useAmount := 1) {
-    updateStatus("Using item: " itemName)
+    updateStatus("Using items")
+    logMessage("Using item: " itemName, 1)
 
     ; Open Inventory
     clickMenuButton(3)
@@ -2064,17 +2072,16 @@ isGameNameVisible() {
 
     ; Search for each color in the defined area
     for color in colors {
-        PixelSearch, FoundX, FoundY, x, y, x + w, y + h, color, variation, RGB
+        PixelSearch, FoundX, FoundY, x, y, x + w, y + h, color, variation, Fast RGB
         if (ErrorLevel = 0) {
             foundColors++
-            logMessage("Color " color " found at " FoundX ", " FoundY)
-        } else {
-            ; OutputDebug, % "Color " color " not found"
+            logMessage("[GameName] Color " color " found at " FoundX ", " FoundY)
+            Highlight(FoundX-5, FoundY-5, 10, 10, 5000, "Yellow") ; Temporary for debug
         }
     }
     if (foundColors = colors.Length()) {
         logMessage("[GameName] Colors found: " foundColors " out of " colors.Length())
-        ;Highlight(x, y, w, h, 2500) ; Temporary for debug
+        Highlight(x, y, w, h, 2500) ; Temporary for debug
         return 1
     }
     return 0
@@ -2091,12 +2098,12 @@ isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
     w := targetW * 1.1
     h := height * 0.1
 
-    if (options.OCREnabled) {
-        if (containsText(x, y, w, h, "Play") || containsText(x, y, w, h, "Ploy")) { ; Add commonly detected misspelling
-            return 1
-        }
-        ; return 0 ; Commented out to allow secondary check below
+    ; if (options.OCREnabled) {
+    if (containsText(x, y, w, h, "Play") || containsText(x, y, w, h, "Ploy")) { ; Add commonly detected misspelling
+        return 1
     }
+        ; return 0 ; Commented out to allow secondary check below
+    ; }
 
     ; Check again after delay to avoid false positives
     if (isGameNameVisible()) {
@@ -2157,6 +2164,11 @@ ClickPlay() {
 
     StopPaths()
     getRobloxPos(pX,pY,width,height)
+
+    rHwnd := GetRobloxHWND()
+    if (rHwnd) {
+        WinActivate, ahk_id %rHwnd%
+    }
     
     ; Click Play
     ClickMouse(pX + (width*0.5), pY + (height*0.85))
@@ -2269,9 +2281,9 @@ FileGetSize(filePath) {
 containsText(x, y, width, height, text) {
     ; Potential improvement by ignoring non-alphanumeric characters
 
-    if (!options.OCREnabled) { ; Can't use without OCR
-        return 0
-    } 
+    ; if (!options.OCREnabled) { ; Can't use without OCR
+    ;     return 0 ; TODO: Use -1 to indicate error instead of implying text isn't in search area
+    ; } 
     ; else {
     ;     getRobloxPos(pX, pY, pW, pH)
     ;     if (pW <> 1920 || pH <> 1080 || A_ScreenDPI <> 96) { ; "Temporary" to avoid issues with hardcoded coordinates
@@ -2296,9 +2308,9 @@ containsText(x, y, width, height, text) {
         }
         Gdip_DisposeBitmap(pbm)
         return InStr(ocrText, text)
-    } catch {
-        logMessage("[containsText] Error Searching: " text, 1)
-        return 0
+    } catch e {
+        logMessage("[containsText] Error searching '" text "': `n" e, 1)
+        return -1
     }
 }
 
@@ -2464,6 +2476,7 @@ attemptReconnect(failed := 0){
             if (rHwnd){
                 WinActivate, ahk_id %rHwnd%
                 updateStatus("Roblox Opened")
+                logMessage("Detected Roblox opened at loop " A_Index, 1)
                 ; Sleep, 5000
                 break
             }
@@ -2518,15 +2531,17 @@ checkDisconnect(wasChecked := 0){
     logMessage("[checkDisconnect] Checking for disconnect")
     getRobloxPos(windowX, windowY, windowWidth, windowHeight)
 
-    if (options.OCREnabled) {
-        if (containsText(890, 425, 135, 25, "Disconnected")) { ; 1025, 450
-            logMessage("[checkDisconnect] 'Disconnected' popup found with OCR")
-            updateStatus("Roblox Disconnected")
-            options.Disconnects += 1
-            return 1
-        }
-        return 0
-    } else if ((windowWidth > 0) && !WinExist("Roblox Crash")) {
+    ; if (options.OCREnabled) {
+    if (containsText(890, 425, 135, 25, "Disconnected")) { ; 1025, 450
+        logMessage("[checkDisconnect] 'Disconnected' popup found with OCR")
+        updateStatus("Roblox Disconnected")
+        options.Disconnects += 1
+        return 1
+    }
+        ; return 0 ; Commented out to allow secondary check below
+    ; }
+
+    if ((windowWidth > 0) && !WinExist("Roblox Crash")) {
 		pBMScreen := Gdip_BitmapFromScreen(windowX+(windowWidth/4) "|" windowY+(windowHeight/2) "|" windowWidth/2 "|1")
         matches := 0
         hW := windowWidth/2
@@ -2663,8 +2678,8 @@ mainLoop(){
             ; Update the NextRunTime for the next scheduled run
             frequencyInSeconds := entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600)
             nextRunTime := currentUnixTime + frequencyInSeconds
-            FormatTime, t, nextRunTime, "hh:mm:ss tt"
-            logMessage("[Scheduler] " entry.ItemName " next run: " t " (" frequencyInSeconds " seconds)", 1)
+            ; FormatTime, t, nextRunTime, "hh:mm:ss tt"
+            ; logMessage("[Scheduler] " entry.ItemName " next run: " t " (" frequencyInSeconds " seconds)", 1)
 
             entry.NextRunTime := nextRunTime
         }
@@ -4023,8 +4038,13 @@ return
     Enter::Return
 #If
 
+F4::
+    Gui mainUI:Show
+    return
+
 F5:: ; For debugging/testing
     disableAlignment := !disableAlignment
     ToolTip, % disableAlignment ? "Initial Align Disabled" : "Initial Align Enabled"
     SetTimer, ClearToolTip, -5000
     return
+
