@@ -1236,6 +1236,7 @@ walkToJakesShop(){
 }
 
 walkToPotionCrafting(){
+    sleep, 2000
     walkSend("w","Down")
     walkSend("a","Down")
     walkSleep(3800)
@@ -1768,7 +1769,8 @@ handleCrafting(craftLocation := 0, retryCount := 0){
     }
 
     if (options.PotionCraftingEnabled && craftLocation != 2){
-        ;align() is this even needed?
+        ; align() is this even needed?
+        reset()
         updateStatus("Walking to Stella's Cave (Crafting)")
         walkToPotionCrafting()
         Sleep, % (StellaPortalDelay && StellaPortalDelay > 0) ? StellaPortalDelay : 0
@@ -1842,10 +1844,10 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         Sleep, 200
         MouseClick
 
-        alignCamera()
+        ; alignCamera()
     }
     if (options.ItemCraftingEnabled && craftLocation != 1){
-        align()
+        ; align()
         updateStatus("Walking to Jake's Shop (Crafting)")
         walkToJakesShop()
         Sleep, 100
@@ -1871,10 +1873,10 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         Sleep, 200
         MouseClick
 
-        alignCamera()
+        ; alignCamera()
     }
 
-    reset()
+    ; reset()
 }
 
 ; Click Auto Add if not enabled
@@ -2665,7 +2667,7 @@ mainLoop(){
     Sleep, 250
 
     ; Reset to spawn before taking screenshots or using items
-    reset()
+    ; reset()
     
     Sleep, 250
 
@@ -2703,7 +2705,8 @@ mainLoop(){
     }
     
     if (options.DoingObby && (A_TickCount - lastObby) >= (obbyCooldown*1000)){
-        align()
+        ; align()
+        reset()
         obbyRun()
 
         ; MouseGetPos, mouseX, mouseY
@@ -2722,7 +2725,7 @@ mainLoop(){
         }
         if (!hasBuff)
         {
-            align()
+            ; align()
             updateStatus("Obby Failed, Retrying")
             lastObby := A_TickCount - obbyCooldown*1000
             obbyRun()
