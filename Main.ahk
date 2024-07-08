@@ -1237,21 +1237,48 @@ walkToJakesShop(){
 
 walkToPotionCrafting(){
     walkSend("w","Down")
-    walkSleep(2300)
-    jump()
-    walkSleep(300 + 100*(!options.VIP))
+    walkSend("a","Down")
+    walkSleep(3800)
+    walkSend("a","Up")
+    walkSleep(675)
     walkSend("w","Up")
-    press("a",9500)
-    walkSend("d","Down")
+    walkSend("a","Down")
+    walkSleep(777)
     jump()
-    walkSleep(900)
-    walkSend("d","Up")
-    Send {Space Down}
+    walkSend("w","Down")
+    walkSleep(200)
+    walkSend("w","Up")
+    walkSend("a","Down")
+    walkSleep(800)
     walkSend("s","Down")
-    walkSleep(2000)
-    Send {Space Up}
-    walkSleep(3000)
+    walkSleep(235)
     walkSend("s","Up")
+    walkSleep(1225)
+    jump()
+    walkSleep(350)
+    walkSend("a","Up")
+    walkSend("a","Down")
+    walkSleep(2500)
+    press("s",500)
+    walkSend("a","Up")
+    walkSend("s","Down")
+    walkSleep(100)
+    jump()
+    walkSleep(800)
+    walkSend("a","Down")
+    walkSleep(400)
+    jump()
+    walkSleep(200)
+    walkSend("s","Up")
+    walkSleep(500)
+    jump()
+    walkSleep(740)
+    walkSend("a","up")
+    walkSleep(200)
+    walkSend("s","down")
+    walkSleep(3050)
+    walkSend("s","up")
+    Sleep, 200
 }
 
 ; End of paths
@@ -1741,7 +1768,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
     }
 
     if (options.PotionCraftingEnabled && craftLocation != 2){
-        align()
+        ;align() is this even needed?
         updateStatus("Walking to Stella's Cave (Crafting)")
         walkToPotionCrafting()
         Sleep, % (StellaPortalDelay && StellaPortalDelay > 0) ? StellaPortalDelay : 0
