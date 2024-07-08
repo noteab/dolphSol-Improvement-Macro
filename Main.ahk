@@ -1372,12 +1372,6 @@ getRobloxPos(ByRef x := "", ByRef y := "", ByRef width := "", ByRef height := ""
         attemptReconnect()
         return
     }
-
-    ; What to do if Roblox isn't open
-    if (macroStarted && !width) {
-        attemptReconnect()
-        return
-    }
 }
 
 ; screen stuff
