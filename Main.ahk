@@ -889,7 +889,10 @@ global running := 0
 initialize() {
     initialized := 1
 
-    if (!disableAlignment) {
+    if (disableAlignment) {
+        ; Re-enable for reconnects
+        disableAlignment := false
+    } else {
         alignCamera()
     }
 }
@@ -1967,28 +1970,32 @@ useItem(itemName, useAmount := 1) {
     ClickMouse(itemTab[1], itemTab[2])
 
     ; Search for item
-    convertScreenCoordinates(850, 330, clickPosX, clickPosY)
-    ClickMouse(clickPosX, clickPosY)
+    ;convertScreenCoordinates(850, 330, clickPosX, clickPosY)
+    searchBar := getPositionFromAspectRatioUV(0.56, -0.39, storageAspectRatio)
+    ClickMouse(searchBar[1], searchBar[2])
     Send, % itemName
     Sleep, 200
 
     ; Select item
-    convertScreenCoordinates(860, 400, clickPosX, clickPosY)
-    ClickMouse(clickPosX, clickPosY)
+    ;convertScreenCoordinates(860, 400, clickPosX, clickPosY)
+    selectItem := getPositionFromAspectRatioUV(-0.18, -0.25, storageAspectRatio)
+    ClickMouse(selectItem[1], selectItem[2])
 
     ; Update quantity - Must be done each time to reset amount from previous item
-    convertScreenCoordinates(590, 590, clickPosX, clickPosY)
-    ClickMouse(clickPosX, clickPosY)
+    ;convertScreenCoordinates(590, 590, clickPosX, clickPosY)
+    updateQuantity:= getPositionFromAspectRatioUV(-0.70, 0.12, storageAspectRatio)
+    ClickMouse(updateQuantity[1], updateQuantity[2])
     Send, % useAmount
     Sleep, 200
 
     ; Click Use
-    convertScreenCoordinates(700, 590, clickPosX, clickPosY)
-    ClickMouse(clickPosX, clickPosY)
+    ;convertScreenCoordinates(700, 590, clickPosX, clickPosY)
+    clickUse:= getPositionFromAspectRatioUV(-0.46, 0.12, storageAspectRatio)
+    ClickMouse(clickUse[1], clickUse[2])
 
     ; Clear search result
-    convertScreenCoordinates(850, 330, clickPosX, clickPosY)
-    ClickMouse(clickPosX, clickPosY)
+    ;convertScreenCoordinates(850, 330, clickPosX, clickPosY)
+    ClickMouse(searchBar[1], searchBar[2])
 
     ; Close inventory
     clickMenuButton(3)
