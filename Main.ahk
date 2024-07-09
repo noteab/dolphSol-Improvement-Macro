@@ -889,7 +889,10 @@ global running := 0
 initialize() {
     initialized := 1
 
-    if (!disableAlignment) {
+    if (disableAlignment) {
+        ; Re-enable for reconnects
+        disableAlignment := false
+    } else {
         alignCamera()
     }
 }
