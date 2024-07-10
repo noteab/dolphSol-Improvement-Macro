@@ -69,7 +69,7 @@
             "mutations": [
                 {
                     "name": "Aquatic Flame",
-                    "image": "",
+                    "image": "https://static.wikia.nocookie.net/sol-rng/images/7/7f/Aqua_flame_new_gif.gif",
                     "rarity": 4000000,
                     "cornerColor":3289650,
                     "requirements": {
@@ -159,7 +159,7 @@
             "mutations": [
                 {
                     "name": "Stormal : Hurricane",
-                    "image": "",
+                    "image": "https://static.wikia.nocookie.net/sol-rng/images/0/04/Stormal_Hurricane_Curation.gif",
                     "rarity": 13500000,
                     "biome": {"name": "Windy", "factor":3},
                     "cornerColor":263172,
@@ -192,7 +192,7 @@
         },
         "495104": {
             "name": "Undead : Devil",
-            "image": "",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/f/f9/UndeadDevilAura.gif",
             "rarity": 12000
         },
         "616503": {
@@ -207,7 +207,7 @@
             "mutations": [
                 {
                     "name": "BOUNDED : UNBOUND",
-                    "image": "",
+                    "image": "https://static.wikia.nocookie.net/sol-rng/images/6/65/Unbound_E7_Collection2.gif",
                     "rarity": 2000000,
                     "cornerColor":3289650,
                     "requirements": {
@@ -223,7 +223,7 @@
             "mutations": [
                 {
                     "name": "CELESTIAL : DIVINE",
-                    "image": "",
+                    "image": "https://static.wikia.nocookie.net/sol-rng/images/c/c4/CelestialDivineCollection.gif",
                     "rarity": 7000000,
                     "cornerColor":2297906,
                     "requirements": {
@@ -354,7 +354,7 @@
         },
         "8328728": {
             "name": "BLOODLUST",
-            "image": "",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/f/f9/BloodlustInCollection.gif",
             "rarity": 300000000,
             "biome": {"name": "Hell", "factor":6},
             "cornerColor": 327680
