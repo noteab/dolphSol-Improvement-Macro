@@ -2874,14 +2874,14 @@ CreateMainUI() {
     Gui Add, UpDown, vInvScreenshotinterval Range1-1440
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x356 y40 w128 h50 vStatusOtherGroup -Theme +0x50000007, Other
+    Gui Add, GroupBox, x356 y40 w127 h50 vStatusOtherGroup -Theme +0x50000007, Other
     Gui Font, s9 norm
     Gui Add, CheckBox, vStatusBarCheckBox x366 y63 w110 h20 +0x2, % " Enable Status Bar"
 
     Gui Font, s9 w600
-    Gui Add, GroupBox, x356 y90 w128 h120 vRollDetectionGroup -Theme +0x50000007, Roll Detection
+    Gui Add, GroupBox, x356 y90 w127 h120 vRollDetectionGroup -Theme +0x50000007, Roll Detection
     Gui Font, s8 norm
-    Gui Add, Button, gRollDetectionHelpClick vRollDetectionHelpButton x458 y99 w23 h23, ?
+    Gui Add, Button, gRollDetectionHelpClick vRollDetectionHelpButton x457 y99 w23 h23, ?
     Gui Add, Text, vWebhookRollSendHeader x365 y110 w110 h16 BackgroundTrans, % "Send Minimum:"
     Gui Add, Edit, vWebhookRollSendInput x370 y126 w102 h18, 10000
     Gui Add, Text, vWebhookRollPingHeader x365 y146 w110 h16 BackgroundTrans, % "Ping Minimum:"
@@ -2895,31 +2895,33 @@ CreateMainUI() {
 ; settings tab
     Gui Tab, 4
     Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y40 w467 h65 vGeneralSettingsGroup -Theme +0x50000007, General
+    Gui Add, GroupBox, x16 y40 w258 h170 vGeneralSettingsGroup -Theme +0x50000007, General
     Gui Font, s9 norm
     Gui Add, CheckBox, vVIPCheckBox x32 y58 w150 h22 +0x2, % " VIP Gamepass Owned"
-    Gui Add, CheckBox, vAzertyCheckBox x222 y58 w200 h22 +0x2, % " AZERTY Keyboard Layout"
-    Gui Add, Text, x222 y82 w200 h18, % "Collection Back Button Y Offset:"
-    Gui Add, Edit, x396 y81 w50 h18
+    Gui Add, CheckBox, vAzertyCheckBox x32 y78 w200 h22 +0x2, % " AZERTY Keyboard Layout"
+    Gui Add, Text, x32 y101 w200 h22, % "Collection Back Button Y Offset:"
+    Gui Add, Edit, x206 y100 w50 h18
     Gui Add, UpDown, vBackOffsetUpDown Range-500-500, 0
-    Gui Add, Button, vImportSettingsButton gImportSettingsClick x30 y80 w130 h20, Import Settings
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y105 w467 h105 vReconnectSettingsGroup -Theme +0x50000007, Reconnect
+    Gui Add, GroupBox, x280 y40 w203 h138 vReconnectSettingsGroup -Theme +0x50000007, Reconnect
     Gui Font, s9 norm
 
     ; Enable Reconnect
-    Gui Add, CheckBox, x32 y127 w300 h16 +0x2 vReconnectCheckBox Section, % "Enable Reconnect (Will reconnect if you disconnect)"
+    Gui Add, CheckBox, x296 y61 w150 h16 +0x2 vReconnectCheckBox Section, % "Enable Reconnect"
 
     ; Restart Roblox
-    Gui Add, CheckBox, x32 y147 h16 +0x2 vRestartRobloxCheckBox Section, Restart Roblox every
-    Gui Add, Edit, ys wp w45 h18 vRestartRobloxIntervalInput Number, 1
+    Gui Add, CheckBox, x296 y81 h16 +0x2 vRestartRobloxCheckBox Section, Restart Roblox every
+    Gui Add, Edit, x296 y101 w45 h18 vRestartRobloxIntervalInput Number, 1
     Gui Add, UpDown, vRestartRobloxIntervalUpDown Range1-24, 1
-    Gui Add, Text, ys wp w130 h16 BackgroundTrans, % "hour(s) (Clears RAM)"
+    Gui Add, Text, x350 y102 w130 h16 BackgroundTrans, % "hour(s) (Clears RAM)"
 
     ; Private Server Link
-    Gui Add, Text, x26 y166 w100 h20 vPrivateServerInputHeader BackgroundTrans, Private Server Link:
-    Gui Add, Edit, x31 y185 w437 h20 vPrivateServerInput, % ""
+    Gui Add, Text, x290 y131 w100 h20 vPrivateServerInputHeader BackgroundTrans, Private Server Link:
+    Gui Add, Edit, x294 y148 w177 h20 vPrivateServerInput, % ""
+
+    ; Import 
+    Gui Add, Button, vImportSettingsButton gImportSettingsClick x317 y186 w130 h20, Import Settings
     
 ; credits tab
     Gui Tab, 5
