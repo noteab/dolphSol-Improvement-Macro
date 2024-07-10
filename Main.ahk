@@ -2168,9 +2168,8 @@ isPlayButtonVisible(){ ; Era 8 Play button: 750,860,420,110 (covers movement are
     h := height * 0.1
 
     if (containsText(x, y, w, h, "Play") || containsText(x, y, w, h, "Ploy")) { ; Add commonly detected misspelling
+        logMessage("[isPlayButtonVisible] Play button detected with OCR")
         return true
-    } else {
-        logMessage("[isPlayButtonVisible] Unable to locate 'Play' button text", 1)
     }
 
     ; Check again after delay to avoid false positives
@@ -2185,18 +2184,16 @@ isPlayButtonVisible(){ ; Era 8 Play button: 750,860,420,110 (covers movement are
         ratioSum += getPlayButtonColorRatio()
     }
     ratioAvg := ratioSum / 5
-    logMessage("[isPlayButtonVisible] Play Button Ratio: " ratioAvg " (Average of 5 checks)")
-    if (ratioAvg >= 0.9 && ratioAvg <= 0.12) {
+    if (ratioAvg >= 0.09 && ratioAvg <= 0.13) {
+        logMessage("[isPlayButtonVisible] Color Ratio: " ratioAvg " (Average of 5 checks)")
         return true
     }
     return false
 }
 
-; Checks if Play button is visible and clicks it
-; Necessary to avoid macro doing nothing after game updates
+; Assumes button was previously detected using isPlayButtonVisible()
 ClickPlay() {
     updateStatus("Game Loaded")
-    logMessage("[ClickPlay] Play button detected")
 
     StopPaths()
     getRobloxPos(pX,pY,width,height)
@@ -2216,10 +2213,6 @@ ClickPlay() {
     
     ; Enable Auto Roll - Completely removed from Initialize() to avoid toggling when macro is restarted, but game is not
     ClickMouse(pX + (width*0.35), pY + (height*0.95))
-
-    ; if (!running) {
-    ;     startMacro()
-    ; }
 }
 
 ; Clear RAM by restarting Roblox
