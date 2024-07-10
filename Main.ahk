@@ -30,7 +30,7 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 
 global version := "v1.4.0" ; Official version
-version := version " patched 06/30 by Amraki" ; Unofficial patch
+version := version " patched 07/10 by Amraki" ; Unofficial patch
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
