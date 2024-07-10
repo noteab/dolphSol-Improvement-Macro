@@ -751,9 +751,9 @@ handlePause(){
 }
 
 StopPaths() {
-    logMessage("Paths running: " pathsRunning.Length())
+    global pathsRunning, camFollowMode
 
-    liftKeys()
+    logMessage("Paths running: " pathsRunning.Length())
 
     ; Close external AHK files
     DetectHiddenWindows, On
@@ -761,21 +761,23 @@ StopPaths() {
         logMessage("[StopPaths] Stopping path: " . v, 1)
         WinClose, % v
     }
+
+    liftKeys()
+    removeDim()
+
+    if (camFollowMode){
+        rotateCameraMode()
+    }
+
+    saveOptions()
 }
 
 PausePaths() {
+    global pathsRunning
+
     logMessage("Paths running: " pathsRunning.Length())
     if (pathsRunning.Length() = 0) {
         return
-    }
-
-    pauseDowns := []
-    for i,v in possibleDowns {
-        state := GetKeyState(v)
-        if (state){
-            pauseDowns.Push(v)
-            Send {%v% Up}
-        }
     }
 
     ; Send Pause to external AHK files
@@ -785,6 +787,18 @@ PausePaths() {
     for _, v in pathsRunning {
         logMessage("[PausePaths] Pausing path: " . v, 1)
         PostMessage, WM_COMMAND, ID_FILE_PAUSE,,, % v ahk_class AutoHotkey
+
+        hWnd := WinExist(v "ahk_class AutoHotkey")
+        logMessage("Paused: " JEE_AhkWinIsPaused(hWnd), 2)
+    }
+
+    pauseDowns := []
+    for i,v in possibleDowns {
+        state := GetKeyState(v)
+        if (state){
+            pauseDowns.Push(v)
+            Send {%v% Up}
+        }
     }
 }
 
@@ -2078,61 +2092,55 @@ isGameNameVisible() {
             foundColors++
             logMessage("[GameName] Color " color " found at " FoundX ", " FoundY)
             Highlight(FoundX-5, FoundY-5, 10, 10, 5000, "Yellow") ; Temporary for debug
+        } else {
+            return false
         }
     }
     if (foundColors = colors.Length()) {
         logMessage("[GameName] Colors found: " foundColors " out of " colors.Length())
         Highlight(x, y, w, h, 2500) ; Temporary for debug
-        return 1
+        return true
     }
-    return 0
+    return false
 }
 
-; playBitMap := Gdip_CreateBitmapFromFile(imgDir . "play.png")
-isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
+getPlayButtonColorRatio() {
     getRobloxPos(pX,pY,width,height)
 
-    targetW := height * 0.3833
+    ; Play Button Text
+    targetW := height * 0.15
     startX := width * 0.5 - targetW * 0.55
     x := pX + startX
     y := pY + height * 0.8
     w := targetW * 1.1
     h := height * 0.1
-
-    ; if (options.OCREnabled) {
-    if (containsText(x, y, w, h, "Play") || containsText(x, y, w, h, "Ploy")) { ; Add commonly detected misspelling
-        return 1
-    }
-        ; return 0 ; Commented out to allow secondary check below
-    ; }
-
-    ; Check again after delay to avoid false positives
-    if (isGameNameVisible()) {
-        Sleep, 5000
-        return isGameNameVisible()
-    }
-
-    return 0 ; Avoid code below broken in Era 8
+    ; OutputDebug, % x ", " y ", " w ", " h
+    ; Highlight(x, y, w, h, 5000)
 
     retrievedMap := Gdip_BitmapFromScreen(x "|" y "|" w "|" h)
+    ; Gdip_SaveBitmapToFile(retrievedMap, "retrievedMap.png")
     effect := Gdip_CreateEffect(5,-60,80)
     Gdip_BitmapApplyEffect(retrievedMap,effect)
-    playMap := Gdip_ResizeBitmap(retrievedMap,30,30,0)
+    ; Gdip_SaveBitmapToFile(retrievedMap, "retrievedMap_effect.png")
+    playMap := Gdip_ResizeBitmap(retrievedMap,32,32,0)
+    ; Gdip_SaveBitmapToFile(playMap, "playMap.png")
+    Gdip_GetImageDimensions(playMap, Width, Height)
+    ; OutputDebug, % "playMap dimensions: " Width "w x " Height "h"
 
     blackPixels := 0
     whitePixels := 0
 
-    Loop % 30 {
+    Loop, %Width% {
         tX := A_Index-1
-        Loop % 30 {
+        Loop, %Height% {
             tY := A_Index-1
             pixelColor := Gdip_GetPixel(playMap, tX, tY)
             blackPixels += compareColors(pixelColor,0x000000) < 32
             whitePixels += compareColors(pixelColor,0xffffff) < 32
         }
     }
-    logMessage("Black Pixels: " blackPixels, 1)
-    logMessage("White Pixels: " whitePixels, 1)
+    ; OutputDebug, % "Black Pixels: " blackPixels
+    ; OutputDebug, % "White Pixels: " whitePixels
 
     Gdip_DisposeEffect(effect)
     Gdip_DisposeBitmap(playMap)
@@ -2140,26 +2148,53 @@ isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
     
     if (whitePixels > 30 && blackPixels > 30){
         ratio := whitePixels/blackPixels
-        logMessage("ratio: " ratio)
+        OutputDebug, % "ratio: " ratio "`n"
 
-        return (ratio > 0.35) && (ratio < 0.65)
+        ; return (ratio > 0.35) && (ratio < 0.65)
+        return ratio
     }
     return 0
+}
+
+isPlayButtonVisible(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
+    getRobloxPos(pX,pY,width,height)
+
+    ; Play Button Area
+    targetW := height * 0.3833
+    startX := width * 0.5 - targetW * 0.55
+    x := pX + startX
+    y := pY + height * 0.8
+    w := targetW * 1.1
+    h := height * 0.1
+
+    if (containsText(x, y, w, h, "Play") || containsText(x, y, w, h, "Ploy")) { ; Add commonly detected misspelling
+        return true
+    } else {
+        logMessage("[isPlayButtonVisible] Unable to locate 'Play' button text", 1)
+    }
+
+    ; Check again after delay to avoid false positives
+    ; if (isGameNameVisible()) {
+    ;     Sleep, 5000
+    ;     return isGameNameVisible()
+    ; }
+
+    ; Compare after 5 checks to rule out false positives
+    ratioSum := 0
+    Loop, 5 {
+        ratioSum += getPlayButtonColorRatio()
+    }
+    ratioAvg := ratioSum / 5
+    logMessage("[isPlayButtonVisible] Play Button Ratio: " ratioAvg " (Average of 5 checks)")
+    if (ratioAvg >= 0.9 && ratioAvg <= 0.12) {
+        return true
+    }
+    return false
 }
 
 ; Checks if Play button is visible and clicks it
 ; Necessary to avoid macro doing nothing after game updates
 ClickPlay() {
-    if (!isPlayButtonOpen()){
-        return
-    }
-
-    Sleep, 2000
-    
-    if (!isPlayButtonOpen()){ ; Check again after 2 seconds
-        return
-    }
-
     updateStatus("Game Loaded")
     logMessage("[ClickPlay] Play button detected")
 
@@ -2298,17 +2333,20 @@ containsText(x, y, width, height, text) {
         pbm := Gdip_BitmapFromScreen(x "|" y "|" width "|" height)
         pbm := Gdip_ResizeBitmap(pbm,500,500,true)
         ocrText := ocrFromBitmap(pbm)
-        if (!ocrText) {
-            return 0
-        }
+        Gdip_DisposeBitmap(pbm)
 
+        if (!ocrText) {
+            return false
+        }
+        ocrText := RegExReplace(ocrText,"(\n|\r)+"," ")
         StringLower, ocrText, ocrText
         StringLower, text, text
-        if (!InStr(ocrText, text)) { ; Reduce logging by only saving when not found
-            logMessage("[containsText] Searching: " text "  |  Found: " RegExReplace(ocrText,"(\n|\r)+",""), 1)
+        textFound := InStr(ocrText, text)
+        if (!textFound) { ; Reduce logging by only saving when not found
+            logMessage("[containsText] Searching: " text "  |  Found: " ocrText, 1)
         }
-        Gdip_DisposeBitmap(pbm)
-        return InStr(ocrText, text)
+
+        return textFound > 0
     } catch e {
         logMessage("[containsText] Error searching '" text "': `n" e, 1)
         return -1
@@ -2454,7 +2492,8 @@ attemptReconnect(failed := 0){
     macroStarted := 0
     success := 0
     
-    stop(0, 1)
+    ; stop(0, 1)
+    StopPaths()
     closeRoblox()
 
     updateStatus("Reconnecting")
@@ -2474,15 +2513,15 @@ attemptReconnect(failed := 0){
 
         Loop 240 {
             rHwnd := GetRobloxHWND()
-            if (rHwnd){
+            if (rHwnd) {
                 WinActivate, ahk_id %rHwnd%
                 updateStatus("Roblox Opened")
-                logMessage("Detected Roblox opened at loop " A_Index, 1)
-                ; Sleep, 5000
+                logMessage("[attemptReconnect] Detected Roblox opened at loop " A_Index, 1)
                 break
             }
-            if (A_Index == 240){
+            if (A_Index == 240) { 
                 logMessage("[attemptReconnect] Unable to get Roblox HWND.")
+                Sleep, 10000
                 continue 2
             }
             Sleep 1000
@@ -2492,9 +2531,9 @@ attemptReconnect(failed := 0){
             getRobloxPos(pX,pY,width,height)
 
             valid := 0
-            if (isPlayButtonOpen()){
+            if (isPlayButtonVisible()){
                 Sleep, 2000
-                valid := isPlayButtonOpen()
+                valid := isPlayButtonVisible()
             }
             
             if (valid){
@@ -2502,7 +2541,7 @@ attemptReconnect(failed := 0){
                 break
             }
 
-            if (A_Index == 120 || !GetRobloxHWND()){
+            if (A_Index == 120 || !GetRobloxHWND()) {
                 logMessage("[attemptReconnect] Play button not found or Roblox closed.")
                 continue 2
             }
@@ -2522,6 +2561,7 @@ attemptReconnect(failed := 0){
             Sleep, 30000
             attemptReconnect(failed + 1)
         } else {
+            updateStatus("Reconnect Failed")
             logMessage("[attemptReconnect] Failed to reconnect after multiple attempts.")
             reconnecting := 0
         }
@@ -2644,9 +2684,13 @@ mainLoop(){
     WinActivate, ahk_id %robloxId%
 
     ; Checks to avoid idling
-    ; ClickPlay()
+    CloseBSAlerts() ; Prevent infinite Bloxstrap error popups
+    
+    if (isPlayButtonVisible()) {
+        ClickPlay()
+    }
     ; enableAutoRoll()
-    CloseBSAlerts()
+
 
     if (!initialized){
         updateStatus("Initializing")
