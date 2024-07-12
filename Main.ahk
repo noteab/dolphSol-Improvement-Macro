@@ -708,45 +708,28 @@ global paused := 0
 handlePause(){
     paused := !paused
     if (A_IsPaused){
+        ResumePaths()
+
         updateStatus("Macro Running")
         Gui, mainUI:+LastFoundExist
         WinSetTitle, % "dolphSol Macro " version " (Running)"
-        Gui mainUI:Show
 
         applyNewUIOptions()
         saveOptions()
         updateUIOptions()
 
-        WinActivate, ahk_id %robloxId%
-        for i,v in pauseDowns {
-            Send {%v% Down}
-        }
-
         Pause, Off ; Unpause the script
     } else {
+        PausePaths()
+
         updateStatus("Macro Paused")
         Gui, mainUI:+LastFoundExist
         WinSetTitle, % "dolphSol Macro " version " (Paused)"
-
-        pauseDowns := []
-        for i,v in possibleDowns {
-            state := GetKeyState(v)
-            if (state){
-                pauseDowns.Push(v)
-                Send {%v% Up}
-            }
-        }
+      
         updateUIOptions()
         Gui mainUI:Show
 
         Pause, On, 1 ; Pause the main thread
-    }
-
-    ; Toggle Pause for external macro files
-    WM_COMMAND := 0x0111
-    ID_FILE_PAUSE := 65403
-    for i,v in pathsRunning {
-        PostMessage, WM_COMMAND, ID_FILE_PAUSE,,, % v ahk_class AutoHotkey
     }
 }
 
@@ -760,6 +743,7 @@ StopPaths() {
     for _, v in pathsRunning {
         logMessage("[StopPaths] Stopping path: " . v, 1)
         WinClose, % v
+        pathsRunning.Remove(HasVal(pathsRunning,v))
     }
 
     liftKeys()
@@ -815,6 +799,9 @@ ResumePaths() {
     for i, v in pathsRunning {
         logMessage("[ResumePaths] Resuming path: " . v, 1)
         PostMessage, WM_COMMAND, ID_FILE_PAUSE,,, % v ahk_class AutoHotkey
+
+        hWnd := WinExist(v "ahk_class AutoHotkey")
+        logMessage("Paused: " JEE_AhkWinIsPaused(hWnd), 2)
     }
 
     ; Restore any previously paused key states
@@ -824,7 +811,7 @@ ResumePaths() {
     }
 }
 
-; JEE_ScriptIsPaused - Detects if an external script is paused (currently unused)
+; JEE_ScriptIsPaused - Detects if an external script is paused
 JEE_AhkWinIsPaused(hWnd) {
 	vDHW := A_DetectHiddenWindows
 	DetectHiddenWindows, On
@@ -3916,7 +3903,7 @@ PauseClick:
         return
     }
     ; MsgBox, 0,% "Pause",% "Please note that the pause feature isn't very stable currently. It is suggested to stop instead."
-    Pause
+    handlePause()
     return
 
 StopClick:
