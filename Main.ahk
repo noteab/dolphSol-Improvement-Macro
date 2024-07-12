@@ -2244,8 +2244,12 @@ ClearRAM() {
 
 ; Enable Auto Roll - OCR detect if Auto Roll is OFF and click to enable
 enableAutoRoll() {
-    if (containsText(pX + (width*0.35)-100, pY + (height*0.95)-25, 200, 50, "OFF")) {
-        ClickMouse(pX + (width*0.35), pY + (height*0.95))
+    getRobloxPos(pX,pY,width,height)
+
+    btnX := pX + (width*0.35)
+    btnY := pY + (height*0.95)
+    if (containsText(btnX - 100, btnY - 25, 200, 50, "OFF")) {
+        ClickMouse(btnX, btnY)
     }
 }
 
@@ -2317,16 +2321,6 @@ FileGetSize(filePath) {
 ; Check if area contains the specified text
 containsText(x, y, width, height, text) {
     ; Potential improvement by ignoring non-alphanumeric characters
-
-    ; if (!options.OCREnabled) { ; Can't use without OCR
-    ;     return 0 ; TODO: Use -1 to indicate error instead of implying text isn't in search area
-    ; } 
-    ; else {
-    ;     getRobloxPos(pX, pY, pW, pH)
-    ;     if (pW <> 1920 || pH <> 1080 || A_ScreenDPI <> 96) { ; "Temporary" to avoid issues with hardcoded coordinates
-    ;         return 0
-    ;     }
-    ; }
 
     ; Highlight(x-10, y-10, width+20, height+20, 2000)
     
@@ -2686,12 +2680,11 @@ mainLoop(){
 
     ; Checks to avoid idling
     CloseBSAlerts() ; Prevent infinite Bloxstrap error popups
+    enableAutoRoll()
     
     if (isPlayButtonVisible()) {
         ClickPlay()
     }
-    ; enableAutoRoll()
-
 
     if (!initialized){
         updateStatus("Initializing")
