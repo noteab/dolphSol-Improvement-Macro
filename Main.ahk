@@ -708,45 +708,28 @@ global paused := 0
 handlePause(){
     paused := !paused
     if (A_IsPaused){
+        ResumePaths()
+
         updateStatus("Macro Running")
         Gui, mainUI:+LastFoundExist
         WinSetTitle, % "dolphSol Macro " version " (Running)"
-        Gui mainUI:Show
 
         applyNewUIOptions()
         saveOptions()
         updateUIOptions()
 
-        WinActivate, ahk_id %robloxId%
-        for i,v in pauseDowns {
-            Send {%v% Down}
-        }
-
         Pause, Off ; Unpause the script
     } else {
+        PausePaths()
+
         updateStatus("Macro Paused")
         Gui, mainUI:+LastFoundExist
         WinSetTitle, % "dolphSol Macro " version " (Paused)"
-
-        pauseDowns := []
-        for i,v in possibleDowns {
-            state := GetKeyState(v)
-            if (state){
-                pauseDowns.Push(v)
-                Send {%v% Up}
-            }
-        }
+      
         updateUIOptions()
         Gui mainUI:Show
 
         Pause, On, 1 ; Pause the main thread
-    }
-
-    ; Toggle Pause for external macro files
-    WM_COMMAND := 0x0111
-    ID_FILE_PAUSE := 65403
-    for i,v in pathsRunning {
-        PostMessage, WM_COMMAND, ID_FILE_PAUSE,,, % v ahk_class AutoHotkey
     }
 }
 
@@ -760,6 +743,7 @@ StopPaths() {
     for _, v in pathsRunning {
         logMessage("[StopPaths] Stopping path: " . v, 1)
         WinClose, % v
+        pathsRunning.Remove(HasVal(pathsRunning,v))
     }
 
     liftKeys()
@@ -815,6 +799,9 @@ ResumePaths() {
     for i, v in pathsRunning {
         logMessage("[ResumePaths] Resuming path: " . v, 1)
         PostMessage, WM_COMMAND, ID_FILE_PAUSE,,, % v ahk_class AutoHotkey
+
+        hWnd := WinExist(v "ahk_class AutoHotkey")
+        logMessage("Paused: " JEE_AhkWinIsPaused(hWnd), 2)
     }
 
     ; Restore any previously paused key states
@@ -824,7 +811,7 @@ ResumePaths() {
     }
 }
 
-; JEE_ScriptIsPaused - Detects if an external script is paused (currently unused)
+; JEE_ScriptIsPaused - Detects if an external script is paused
 JEE_AhkWinIsPaused(hWnd) {
 	vDHW := A_DetectHiddenWindows
 	DetectHiddenWindows, On
@@ -1984,6 +1971,27 @@ screenshotInventories(){ ; from all closed
     Sleep, 200
 }
 
+ClaimQuests() {
+    updateStatus("Checking Quests")
+
+    ; Open Quest Menu
+    clickMenuButton(5)
+    waitForInvVisible()
+
+    btnX := 0.6393
+    btnYList := [0.0382, 0.1927, 0.3416]
+
+    for _, btnY in btnYList {
+        claimButton := getPositionFromAspectRatioUV(btnX, btnY, storageAspectRatio)
+        ClickMouse(claimButton[1], claimButton[2])
+        Sleep, 250
+    }
+
+    ; Close Quest Menu
+    clickMenuButton(5)
+    Sleep, 200
+}
+
 ; Simplify frequent code
 ClickMouse(posX, posY) {
     MouseMove, % posX, % posY
@@ -2265,8 +2273,12 @@ ClearRAM() {
 
 ; Enable Auto Roll - OCR detect if Auto Roll is OFF and click to enable
 enableAutoRoll() {
-    if (containsText(pX + (width*0.35)-100, pY + (height*0.95)-25, 200, 50, "OFF")) {
-        ClickMouse(pX + (width*0.35), pY + (height*0.95))
+    getRobloxPos(pX,pY,width,height)
+
+    btnX := pX + (width*0.35)
+    btnY := pY + (height*0.95)
+    if (containsText(btnX - 100, btnY - 25, 200, 50, "OFF")) {
+        ClickMouse(btnX, btnY)
     }
 }
 
@@ -2338,17 +2350,6 @@ FileGetSize(filePath) {
 ; Check if area contains the specified text
 containsText(x, y, width, height, text) {
     ; Potential improvement by ignoring non-alphanumeric characters
-
-    ; if (!options.OCREnabled) { ; Can't use without OCR
-    ;     return 0 ; TODO: Use -1 to indicate error instead of implying text isn't in search area
-    ; } 
-    ; else {
-    ;     getRobloxPos(pX, pY, pW, pH)
-    ;     if (pW <> 1920 || pH <> 1080 || A_ScreenDPI <> 96) { ; "Temporary" to avoid issues with hardcoded coordinates
-    ;         return 0
-    ;     }
-    ; }
-
     ; Highlight(x-10, y-10, width+20, height+20, 2000)
     
     try {
@@ -2711,8 +2712,8 @@ mainLoop(){
     if (isPlayButtonVisible()) {
         ClickPlay()
     }
-    ; enableAutoRoll()
-
+	
+    enableAutoRoll() ; Check after ClickPlay to make sure not left off due to lag, etc
 
     if (!initialized){
         updateStatus("Initializing")
@@ -2726,8 +2727,13 @@ mainLoop(){
     ; Reset to spawn before taking screenshots or using items
     ; reset()
     
-    Sleep, 250
+    ; Attempt to claim quests every 10 minutes
+    if (!lastClaim || A_TickCount - lastClaim > 600000) {
+        ClaimQuests()
+        lastClaim := A_TickCount
+    }
 
+    ; Take Screenshots - Aura Storage, Item Inventory, Quests
     if (options.InvScreenshotsEnabled && getUnixTime()-options.LastInvScreenshot >= (options.ScreenshotInterval*60)) {
         options.LastInvScreenshot := getUnixTime()
         screenshotInventories()
@@ -3920,7 +3926,7 @@ PauseClick:
         return
     }
     ; MsgBox, 0,% "Pause",% "Please note that the pause feature isn't very stable currently. It is suggested to stop instead."
-    Pause
+    handlePause()
     return
 
 StopClick:
