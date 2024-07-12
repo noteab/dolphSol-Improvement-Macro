@@ -79,7 +79,7 @@ collect(num){
     if (!options["ItemSpot" . num]){
         return
     }
-    Loop, 10
+    Loop, 5
     {
         Send {f}
         Sleep, 100
