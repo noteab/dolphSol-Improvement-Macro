@@ -1955,11 +1955,8 @@ screenshotInventories(){ ; from all closed
 
     waitForInvVisible()
 
-    itemButton := getPositionFromAspectRatioUV(0.564405, -0.451327, storageAspectRatio)
-    MouseMove, % itemButton[1], % itemButton[2]
-    Sleep, 200
-    MouseClick
-    Sleep, 200
+    dailyTab := getPositionFromAspectRatioUV(0.5185, -0.4389, storageAspectRatio)
+    ClickMouse(dailyTab[1], dailyTab[2])
 
     ssMap := Gdip_BitmapFromScreen(topLeft[1] "|" topLeft[2] "|" totalSize[1] "|" totalSize[2])
     Gdip_SaveBitmapToFile(ssMap,ssPath)
@@ -1977,6 +1974,9 @@ ClaimQuests() {
     ; Open Quest Menu
     clickMenuButton(5)
     waitForInvVisible()
+
+    dailyTab := getPositionFromAspectRatioUV(0.5185, -0.4389, storageAspectRatio)
+    ClickMouse(dailyTab[1], dailyTab[2])
 
     btnX := 0.6393
     btnYList := [0.0382, 0.1927, 0.3416]
