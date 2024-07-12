@@ -2680,11 +2680,12 @@ mainLoop(){
 
     ; Checks to avoid idling
     CloseBSAlerts() ; Prevent infinite Bloxstrap error popups
-    enableAutoRoll()
     
     if (isPlayButtonVisible()) {
         ClickPlay()
     }
+
+    enableAutoRoll() ; Check after ClickPlay to make sure not left off due to lag, etc
 
     if (!initialized){
         updateStatus("Initializing")
