@@ -206,7 +206,7 @@ global options := {"DoingObby":1
 global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode="
 
 ; Must be called in correct order
-updateStaticData() ; Get latest data for update check, aura names, etc.
+; updateStaticData() ; Get latest data for update check, aura names, etc.
 loadData() ; Load config data
 
 ; Disable OCR mode if resolution isn't supported
@@ -365,7 +365,7 @@ writeToINI(path,object,header){
 }
 
 updateStaticData(){
-    url := "https://raw.githubusercontent.com/BuilderDolphin/dolphSol-Macro/main/lib/staticData.json"
+    url := "https://raw.githubusercontent.com/Amraki/dolphSol-Macro/Update-staticData/lib/staticData.json"
 
     WinHttp := ComObjCreate("WinHttp.WinHttpRequest.5.1")
     WinHttp.Open("GET", url, false)
