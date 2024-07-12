@@ -21,31 +21,6 @@
                 }
             ]
         },
-        "7881162": {
-            "name": "Corrosive",
-            "image": "https://static.wikia.nocookie.net/sol-rng/images/9/94/Corrosive.gif",
-            "rarity": 12000,
-            "cornerColor": 0,
-            "mutations": [
-                {
-                    "name": "Astral [From Corruption]",
-                    "image": "https://static.wikia.nocookie.net/sol-rng/images/c/ca/Astral_gif.gif",
-                    "rarity": 267200,
-                    "requirements": {
-                        "is100k": 1
-                    }
-                },
-                {
-                    "name": "Astral",
-                    "image": "https://static.wikia.nocookie.net/sol-rng/images/c/ca/Astral_gif.gif",
-                    "rarity": 1336000,
-                    "cornerColor": 0,
-                    "requirements": {
-                        "is1m": 1
-                    }
-                }
-            ]
-        },
         "16728645": {
             "name": "Rage : Heated",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/1/14/RageHeatedAura.gif",
@@ -124,6 +99,12 @@
                 }
             ]
         },
+        "5466879": {
+            "name": "Starlight",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/2/22/StarlightCollection.gif",
+            "rarity": 50000,
+            "biome": {"name": "Starfall", "factor":10}
+        },
         "16754944": {
             "name": "Flushed : Lobotomy",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/8/84/Flushed_Lobotomy_Collection.png",
@@ -139,11 +120,6 @@
             "image": "https://static.wikia.nocookie.net/sol-rng/images/1/1e/PermafrostAura.gif",
             "rarity": 73500,
             "biome": {"name": "Snowy", "factor":3}
-        },
-        "5466879": {
-            "name": "Starlight",
-            "image": "https://static.wikia.nocookie.net/sol-rng/images/2/22/StarlightCollection.gif",
-            "rarity": 50000
         },
         "11035135": {
             "name": "Hazard : Rays",
@@ -216,6 +192,11 @@
                 }
             ]
         },
+        "7881162": {
+            "name": "Astral",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/c/ca/Astral_gif.gif",
+            "rarity": 267200
+        },
         "9937663": {
             "name": "Celestial",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/6/60/CelestialAura.gif",
@@ -253,6 +234,12 @@
             "image": "https://static.wikia.nocookie.net/sol-rng/images/f/ff/UndefinedAuraNight.gif",
             "rarity": 1111000
         },
+        "7880906": {
+            "name": "Astral",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/c/ca/Astral_gif.gif",
+            "rarity": 1336000,
+            "cornerColor": 1117213
+        },
         "5399551": {
             "name": "Gravitational",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/6/62/Gravitationalgif.gif",
@@ -288,12 +275,10 @@
             "name": "Twilight",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/4/4d/RobloxPlayerBeta_1Wn7Ej3k18.gif",
             "rarity": 6000000,
-            "biome": {"name": "Night", "factor":10},
             "mutations": [
                 {
                     "name": "Twilight : Iridescent Memory",
                     "image": "https://static.wikia.nocookie.net/sol-rng/images/f/fc/Twilight_-_Iridescent_Memory_Collection.gif",
-                    "biome": {"name": "Night", "factor":10},
                     "rarity": 60000000,
                     "cornerColor":2367282,
                     "requirements": {
@@ -351,6 +336,13 @@
             "image": "https://static.wikia.nocookie.net/sol-rng/images/4/43/RobloxPlayerBeta_Ie55pSxe44.gif",
             "rarity": 50000000,
             "cornerColor": 3184771
+        },
+        "3643574": {
+            "name": "Sailor : Flying Dutchman",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/e/e4/Sailor_Flying_Dutchman_Collection_E8.gif",
+            "rarity": 80000000,
+            "biome": {"name": "Rainy", "factor":4},
+            "cornerColor": 792595
         },
         "8328728": {
             "name": "BLOODLUST",
