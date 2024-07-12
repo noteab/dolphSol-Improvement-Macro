@@ -688,11 +688,15 @@ determine1mStar(ByRef starMap){
     return starPixels/totalPixels >= 0.13
 }
 
-handleRollPost(bypass,auraInfo,starMap,originalCorners){
+handleRollPost(bypass,auraInfo,starMap,originalCorners) {
     Gdip_SaveBitmapToFile(starMap,ssPath)
-    if (auraInfo && sendMinimum && sendMinimum <= auraInfo.rarity){
-        ; Convert the aura name to a valid variable name
-        sAuraName := RegExReplace(auraInfo.name, "[^a-zA-Z0-9]+", "_") ; Replace with underscores
+
+    if (auraInfo && sendMinimum && sendMinimum <= auraInfo.rarity) {
+        ; Remove 'From {biome}' text, if present
+        sAuraName := RegExReplace(auraInfo.name, "\s\[From\s\w+\]", "")
+
+        ; Convert to name used in config
+        sAuraName := RegExReplace(sAuraName, "[^a-zA-Z0-9]+", "_") ; Replace with underscores
         sAuraName := RegExReplace(sAuraName, "\_$", "") ; Remove any trailing underscores
 
         if (options["wh" . sAuraName]) {

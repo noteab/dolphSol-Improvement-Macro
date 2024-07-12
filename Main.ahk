@@ -30,7 +30,7 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 
 global version := "v1.4.0" ; Official version
-version := version " patched 06/30 by Amraki" ; Unofficial patch
+version := version " patched 07/10 by Amraki" ; Unofficial patch
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -365,7 +365,7 @@ writeToINI(path,object,header){
 }
 
 updateStaticData(){
-    url := "https://raw.githubusercontent.com/BuilderDolphin/dolphSol-Macro/main/lib/staticData.json"
+    url := "https://raw.githubusercontent.com/Amraki/dolphSol-Macro/Amraki-Patch/lib/staticData.json"
 
     WinHttp := ComObjCreate("WinHttp.WinHttpRequest.5.1")
     WinHttp.Open("GET", url, false)
@@ -751,9 +751,9 @@ handlePause(){
 }
 
 StopPaths() {
-    logMessage("Paths running: " pathsRunning.Length())
+    global pathsRunning, camFollowMode
 
-    liftKeys()
+    logMessage("Paths running: " pathsRunning.Length())
 
     ; Close external AHK files
     DetectHiddenWindows, On
@@ -761,21 +761,23 @@ StopPaths() {
         logMessage("[StopPaths] Stopping path: " . v, 1)
         WinClose, % v
     }
+
+    liftKeys()
+    removeDim()
+
+    if (camFollowMode){
+        rotateCameraMode()
+    }
+
+    saveOptions()
 }
 
 PausePaths() {
+    global pathsRunning
+
     logMessage("Paths running: " pathsRunning.Length())
     if (pathsRunning.Length() = 0) {
         return
-    }
-
-    pauseDowns := []
-    for i,v in possibleDowns {
-        state := GetKeyState(v)
-        if (state){
-            pauseDowns.Push(v)
-            Send {%v% Up}
-        }
     }
 
     ; Send Pause to external AHK files
@@ -785,6 +787,18 @@ PausePaths() {
     for _, v in pathsRunning {
         logMessage("[PausePaths] Pausing path: " . v, 1)
         PostMessage, WM_COMMAND, ID_FILE_PAUSE,,, % v ahk_class AutoHotkey
+
+        hWnd := WinExist(v "ahk_class AutoHotkey")
+        logMessage("Paused: " JEE_AhkWinIsPaused(hWnd), 2)
+    }
+
+    pauseDowns := []
+    for i,v in possibleDowns {
+        state := GetKeyState(v)
+        if (state){
+            pauseDowns.Push(v)
+            Send {%v% Up}
+        }
     }
 }
 
@@ -1133,6 +1147,7 @@ runPath(pathName,voidPoints,noCenter = 0){
         
         DetectHiddenWindows, On
         Run, % """" . A_AhkPath . """ """ . targetDir . """"
+        pathRuntime := A_TickCount
 
         stopped := 0
 
@@ -1191,6 +1206,8 @@ runPath(pathName,voidPoints,noCenter = 0){
             Sleep, 225
             voidCooldown := Max(0,voidCooldown-1)
         }
+        ; elapsedTime := (A_TickCount - pathRuntime)//1000
+        ; logMessage("[runPath] " pathName " completed in " elapsedTime " seconds")
 
         if (stopped){
             WinClose, % targetDir
@@ -1214,7 +1231,7 @@ searchForItems(){
 
     options.CollectionLoops += 1
 
-    logMessage("[searchForItems] Items collected")
+    ; logMessage("[searchForItems] Items collected")
 }
 
 doObby(){
@@ -1391,6 +1408,12 @@ getRobloxPos(ByRef x := "", ByRef y := "", ByRef width := "", ByRef height := ""
     y := NumGet(&buf,4,"Int")
     width := NumGet(&buf,8,"Int")
     height := NumGet(&buf,12,"Int")
+
+    ; What to do if Roblox isn't open
+    if (macroStarted && !width) {
+        attemptReconnect()
+        return
+    }
 }
 
 ; screen stuff
@@ -1591,21 +1614,19 @@ ShowMousePos() {
 }
 
 isCraftingMenuOpen() {
-    if (!options.OCREnabled) {
-        ; return 1 ; Assume it's open
+    ; if (options.OCREnabled) {
+    if (containsText(250, 30, 200, 75, "Close")) {
+        return 1
+    }
+        ; Don't return 0 so it uses backup non-ocr check
+    ; }
 
-        convertScreenCoordinates(290, 40, closeX, closeY)
-        PixelSearch, blackX, blackY, closeX, closeY, closeX+100, closeY+40, 0x060A09, 16, Fast RGB
-        PixelSearch, whiteX, whiteY, closeX, closeY, closeX+100, closeY+40, 0xFFFFFF, 16, Fast RGB
-        if (blackX && whiteX) {
-            logMessage("Close button found")
-            return 1
-        }
-    } else {
-        ; OCR - Check for "Close" button
-        if (containsText(250, 30, 200, 75, "Close")) {
-            return 1
-        }
+    convertScreenCoordinates(290, 40, closeX, closeY)
+    PixelSearch, blackX, blackY, closeX, closeY, closeX+100, closeY+40, 0x060A09, 16, Fast RGB
+    PixelSearch, whiteX, whiteY, closeX, closeY, closeX+100, closeY+40, 0xFFFFFF, 16, Fast RGB
+    if (blackX && whiteX) {
+        logMessage("Close button found")
+        return 1
     }
 
     return 0
@@ -1966,7 +1987,7 @@ screenshotInventories(){ ; from all closed
 ; Simplify frequent code
 ClickMouse(posX, posY) {
     MouseMove, % posX, % posY
-    Sleep, 200
+    Sleep, 500
     MouseClick
     Sleep, 200
 
@@ -1974,7 +1995,8 @@ ClickMouse(posX, posY) {
 }
 
 useItem(itemName, useAmount := 1) {
-    updateStatus("Using item: " itemName)
+    updateStatus("Using items")
+    logMessage("Using item: " itemName, 1)
 
     ; Open Inventory
     clickMenuButton(3)
@@ -2094,66 +2116,60 @@ isGameNameVisible() {
 
     ; Search for each color in the defined area
     for color in colors {
-        PixelSearch, FoundX, FoundY, x, y, x + w, y + h, color, 10, Fast RGB
+        PixelSearch, FoundX, FoundY, x, y, x + w, y + h, color, variation, Fast RGB
         if (ErrorLevel = 0) {
             foundColors++
-            ; OutputDebug, % "Color found: " color " at " FoundX ", " FoundY
+            logMessage("[GameName] Color " color " found at " FoundX ", " FoundY)
+            Highlight(FoundX-5, FoundY-5, 10, 10, 5000, "Yellow") ; Temporary for debug
         } else {
-            ; OutputDebug, % "Color not found: " color
+            return false
         }
     }
     if (foundColors = colors.Length()) {
+        logMessage("[GameName] Colors found: " foundColors " out of " colors.Length())
         Highlight(x, y, w, h, 2500) ; Temporary for debug
+        return true
     }
-    logMessage("[GameName] Colors found: " foundColors " out of " colors.Length())
-    return foundColors = colors.Length()
+    return false
 }
 
-playBitMap := Gdip_CreateBitmapFromFile(imgDir . "play.png")
-isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
-    
-    ; Check again after delay to avoid false positives
-    if (isGameNameVisible()) {
-        Sleep, 2000
-        return isGameNameVisible()
-    }
-
-    return 0 ; Avoid code below broken in Era 8
-    
+getPlayButtonColorRatio() {
     getRobloxPos(pX,pY,width,height)
-    targetW := height * 0.3833
+
+    ; Play Button Text
+    targetW := height * 0.15
     startX := width * 0.5 - targetW * 0.55
     x := pX + startX
     y := pY + height * 0.8
     w := targetW * 1.1
     h := height * 0.1
-
-    if (options.OCREnabled) { ; TODO: Test if can be used directly in ClickPlay() to save time
-        if (containsText(x, y, w, h, "Play") || containsText(x, y, w, h, "Ploy")) { ; Era 7 = 890, 610, 140, 80
-            return 1
-        }
-        return 0
-    }
+    ; OutputDebug, % x ", " y ", " w ", " h
+    ; Highlight(x, y, w, h, 5000)
 
     retrievedMap := Gdip_BitmapFromScreen(x "|" y "|" w "|" h)
+    ; Gdip_SaveBitmapToFile(retrievedMap, "retrievedMap.png")
     effect := Gdip_CreateEffect(5,-60,80)
     Gdip_BitmapApplyEffect(retrievedMap,effect)
-    playMap := Gdip_ResizeBitmap(retrievedMap,30,30,0)
+    ; Gdip_SaveBitmapToFile(retrievedMap, "retrievedMap_effect.png")
+    playMap := Gdip_ResizeBitmap(retrievedMap,32,32,0)
+    ; Gdip_SaveBitmapToFile(playMap, "playMap.png")
+    Gdip_GetImageDimensions(playMap, Width, Height)
+    ; OutputDebug, % "playMap dimensions: " Width "w x " Height "h"
 
     blackPixels := 0
     whitePixels := 0
 
-    Loop % 30 {
+    Loop, %Width% {
         tX := A_Index-1
-        Loop % 30 {
+        Loop, %Height% {
             tY := A_Index-1
             pixelColor := Gdip_GetPixel(playMap, tX, tY)
             blackPixels += compareColors(pixelColor,0x000000) < 32
             whitePixels += compareColors(pixelColor,0xffffff) < 32
         }
     }
-    logMessage("Black Pixels: " blackPixels, 1)
-    logMessage("White Pixels: " whitePixels, 1)
+    ; OutputDebug, % "Black Pixels: " blackPixels
+    ; OutputDebug, % "White Pixels: " whitePixels
 
     Gdip_DisposeEffect(effect)
     Gdip_DisposeBitmap(playMap)
@@ -2161,31 +2177,60 @@ isPlayButtonOpen(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
     
     if (whitePixels > 30 && blackPixels > 30){
         ratio := whitePixels/blackPixels
-        logMessage("ratio: " ratio)
+        OutputDebug, % "ratio: " ratio "`n"
 
-        return (ratio > 0.35) && (ratio < 0.65)
+        ; return (ratio > 0.35) && (ratio < 0.65)
+        return ratio
     }
     return 0
 }
 
-; Checks if Play button is visible and clicks it
-; Necessary to avoid macro doing nothing after game updates
+isPlayButtonVisible(){ ; Era 8 Play button: 750,860,420,110 (covers movement area)
+    getRobloxPos(pX,pY,width,height)
+
+    ; Play Button Area
+    targetW := height * 0.3833
+    startX := width * 0.5 - targetW * 0.55
+    x := pX + startX
+    y := pY + height * 0.8
+    w := targetW * 1.1
+    h := height * 0.1
+
+    if (containsText(x, y, w, h, "Play") || containsText(x, y, w, h, "Ploy")) { ; Add commonly detected misspelling
+        logMessage("[isPlayButtonVisible] Play button detected with OCR")
+        return true
+    }
+
+    ; Check again after delay to avoid false positives
+    ; if (isGameNameVisible()) {
+    ;     Sleep, 5000
+    ;     return isGameNameVisible()
+    ; }
+
+    ; Compare after 5 checks to rule out false positives
+    ratioSum := 0
+    Loop, 5 {
+        ratioSum += getPlayButtonColorRatio()
+    }
+    ratioAvg := ratioSum / 5
+    if (ratioAvg >= 0.09 && ratioAvg <= 0.13) {
+        logMessage("[isPlayButtonVisible] Color Ratio: " ratioAvg " (Average of 5 checks)")
+        return true
+    }
+    return false
+}
+
+; Assumes button was previously detected using isPlayButtonVisible()
 ClickPlay() {
-    if (!isPlayButtonOpen()){
-        return
-    }
-
-    Sleep, 2000
-    
-    if (!isPlayButtonOpen()){ ; Check again after 2 seconds
-        return
-    }
-
     updateStatus("Game Loaded")
-    logMessage("[ClickPlay] Play button detected")
 
     StopPaths()
     getRobloxPos(pX,pY,width,height)
+
+    rHwnd := GetRobloxHWND()
+    if (rHwnd) {
+        WinActivate, ahk_id %rHwnd%
+    }
     
     ; Click Play
     ClickMouse(pX + (width*0.5), pY + (height*0.85))
@@ -2197,10 +2242,6 @@ ClickPlay() {
     
     ; Enable Auto Roll - Completely removed from Initialize() to avoid toggling when macro is restarted, but game is not
     ClickMouse(pX + (width*0.35), pY + (height*0.95))
-
-    ; if (!running) {
-    ;     startMacro()
-    ; }
 }
 
 ; Clear RAM by restarting Roblox
@@ -2298,35 +2339,39 @@ FileGetSize(filePath) {
 containsText(x, y, width, height, text) {
     ; Potential improvement by ignoring non-alphanumeric characters
 
-    if (!options.OCREnabled) { ; Can't use without OCR
-        return 0
-    } else {
-        getRobloxPos(pX, pY, pW, pH)
-        if (pW <> 1920 || pH <> 1080 || A_ScreenDPI <> 96) { ; "Temporary" to avoid issues with hardcoded coordinates
-            return 0
-        }
-    }
+    ; if (!options.OCREnabled) { ; Can't use without OCR
+    ;     return 0 ; TODO: Use -1 to indicate error instead of implying text isn't in search area
+    ; } 
+    ; else {
+    ;     getRobloxPos(pX, pY, pW, pH)
+    ;     if (pW <> 1920 || pH <> 1080 || A_ScreenDPI <> 96) { ; "Temporary" to avoid issues with hardcoded coordinates
+    ;         return 0
+    ;     }
+    ; }
 
     ; Highlight(x-10, y-10, width+20, height+20, 2000)
     
     try {
         pbm := Gdip_BitmapFromScreen(x "|" y "|" width "|" height)
-        pbm := Gdip_ResizeBitmap(pbm,1500,1500,true)
+        pbm := Gdip_ResizeBitmap(pbm,500,500,true)
         ocrText := ocrFromBitmap(pbm)
-        if (!ocrText) {
-            return 0
-        }
+        Gdip_DisposeBitmap(pbm)
 
+        if (!ocrText) {
+            return false
+        }
+        ocrText := RegExReplace(ocrText,"(\n|\r)+"," ")
         StringLower, ocrText, ocrText
         StringLower, text, text
-        if (!InStr(ocrText, text)) { ; Reduce logging by only saving when not found
-            logMessage("[containsText] Searching: " text "  |  Found: " RegExReplace(ocrText,"(\n|\r)+",""), 1)
+        textFound := InStr(ocrText, text)
+        if (!textFound) { ; Reduce logging by only saving when not found
+            logMessage("[containsText] Searching: " text "  |  Found: " ocrText, 1)
         }
-        Gdip_DisposeBitmap(pbm)
-        return InStr(ocrText, text)
-    } catch {
-        logMessage("[containsText] Error Searching: " text, 1)
-        return 0
+
+        return textFound > 0
+    } catch e {
+        logMessage("[containsText] Error searching '" text "': `n" e, 1)
+        return -1
     }
 }
 
@@ -2469,7 +2514,8 @@ attemptReconnect(failed := 0){
     macroStarted := 0
     success := 0
     
-    stop(0, 1)
+    ; stop(0, 1)
+    StopPaths()
     closeRoblox()
 
     updateStatus("Reconnecting")
@@ -2489,14 +2535,15 @@ attemptReconnect(failed := 0){
 
         Loop 240 {
             rHwnd := GetRobloxHWND()
-            if (rHwnd){
+            if (rHwnd) {
                 WinActivate, ahk_id %rHwnd%
                 updateStatus("Roblox Opened")
-                Sleep, 5000
+                logMessage("[attemptReconnect] Detected Roblox opened at loop " A_Index, 1)
                 break
             }
-            if (A_Index == 240){
+            if (A_Index == 240) { 
                 logMessage("[attemptReconnect] Unable to get Roblox HWND.")
+                Sleep, 10000
                 continue 2
             }
             Sleep 1000
@@ -2506,9 +2553,9 @@ attemptReconnect(failed := 0){
             getRobloxPos(pX,pY,width,height)
 
             valid := 0
-            if (isPlayButtonOpen()){
+            if (isPlayButtonVisible()){
                 Sleep, 2000
-                valid := isPlayButtonOpen()
+                valid := isPlayButtonVisible()
             }
             
             if (valid){
@@ -2516,7 +2563,7 @@ attemptReconnect(failed := 0){
                 break
             }
 
-            if (A_Index == 120 || !GetRobloxHWND()){
+            if (A_Index == 120 || !GetRobloxHWND()) {
                 logMessage("[attemptReconnect] Play button not found or Roblox closed.")
                 continue 2
             }
@@ -2536,6 +2583,7 @@ attemptReconnect(failed := 0){
             Sleep, 30000
             attemptReconnect(failed + 1)
         } else {
+            updateStatus("Reconnect Failed")
             logMessage("[attemptReconnect] Failed to reconnect after multiple attempts.")
             reconnecting := 0
         }
@@ -2546,15 +2594,17 @@ checkDisconnect(wasChecked := 0){
     logMessage("[checkDisconnect] Checking for disconnect")
     getRobloxPos(windowX, windowY, windowWidth, windowHeight)
 
-    if (options.OCREnabled) {
-        if (containsText(890, 425, 135, 25, "Disconnected")) { ; 1025, 450
-            logMessage("[checkDisconnect] 'Disconnected' popup found with OCR")
-            updateStatus("Roblox Disconnected")
-            options.Disconnects += 1
-            return 1
-        }
-        return 0
-    } else if ((windowWidth > 0) && !WinExist("Roblox Crash")) {
+    ; if (options.OCREnabled) {
+    if (containsText(890, 425, 135, 25, "Disconnected")) { ; 1025, 450
+        logMessage("[checkDisconnect] 'Disconnected' popup found with OCR")
+        updateStatus("Roblox Disconnected")
+        options.Disconnects += 1
+        return 1
+    }
+        ; return 0 ; Commented out to allow secondary check below
+    ; }
+
+    if ((windowWidth > 0) && !WinExist("Roblox Crash")) {
 		pBMScreen := Gdip_BitmapFromScreen(windowX+(windowWidth/4) "|" windowY+(windowHeight/2) "|" windowWidth/2 "|1")
         matches := 0
         hW := windowWidth/2
@@ -2656,9 +2706,13 @@ mainLoop(){
     WinActivate, ahk_id %robloxId%
 
     ; Checks to avoid idling
-    ; ClickPlay()
+    CloseBSAlerts() ; Prevent infinite Bloxstrap error popups
+    
+    if (isPlayButtonVisible()) {
+        ClickPlay()
+    }
     ; enableAutoRoll()
-    CloseBSAlerts()
+
 
     if (!initialized){
         updateStatus("Initializing")
@@ -2691,8 +2745,8 @@ mainLoop(){
             ; Update the NextRunTime for the next scheduled run
             frequencyInSeconds := entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600)
             nextRunTime := currentUnixTime + frequencyInSeconds
-            FormatTime, t, nextRunTime, "hh:mm:ss tt"
-            logMessage("[Scheduler] " entry.ItemName " next run: " t " (" frequencyInSeconds " seconds)", 1)
+            ; FormatTime, t, nextRunTime, "hh:mm:ss tt"
+            ; logMessage("[Scheduler] " entry.ItemName " next run: " t " (" frequencyInSeconds " seconds)", 1)
 
             entry.NextRunTime := nextRunTime
         }
@@ -2904,14 +2958,14 @@ CreateMainUI() {
     Gui Add, UpDown, vInvScreenshotinterval Range1-1440
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x356 y40 w128 h50 vStatusOtherGroup -Theme +0x50000007, Other
+    Gui Add, GroupBox, x356 y40 w127 h50 vStatusOtherGroup -Theme +0x50000007, Other
     Gui Font, s9 norm
     Gui Add, CheckBox, vStatusBarCheckBox x366 y63 w110 h20 +0x2, % " Enable Status Bar"
 
     Gui Font, s9 w600
-    Gui Add, GroupBox, x356 y90 w128 h120 vRollDetectionGroup -Theme +0x50000007, Roll Detection
+    Gui Add, GroupBox, x356 y90 w127 h120 vRollDetectionGroup -Theme +0x50000007, Roll Detection
     Gui Font, s8 norm
-    Gui Add, Button, gRollDetectionHelpClick vRollDetectionHelpButton x458 y99 w23 h23, ?
+    Gui Add, Button, gRollDetectionHelpClick vRollDetectionHelpButton x457 y99 w23 h23, ?
     Gui Add, Text, vWebhookRollSendHeader x365 y110 w110 h16 BackgroundTrans, % "Send Minimum:"
     Gui Add, Edit, vWebhookRollSendInput x370 y126 w102 h18, 10000
     Gui Add, Text, vWebhookRollPingHeader x365 y146 w110 h16 BackgroundTrans, % "Ping Minimum:"
@@ -2925,31 +2979,33 @@ CreateMainUI() {
 ; settings tab
     Gui Tab, 4
     Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y40 w467 h65 vGeneralSettingsGroup -Theme +0x50000007, General
+    Gui Add, GroupBox, x16 y40 w258 h170 vGeneralSettingsGroup -Theme +0x50000007, General
     Gui Font, s9 norm
     Gui Add, CheckBox, vVIPCheckBox x32 y58 w150 h22 +0x2, % " VIP Gamepass Owned"
-    Gui Add, CheckBox, vAzertyCheckBox x222 y58 w200 h22 +0x2, % " AZERTY Keyboard Layout"
-    Gui Add, Text, x222 y82 w200 h18, % "Collection Back Button Y Offset:"
-    Gui Add, Edit, x396 y81 w50 h18
+    Gui Add, CheckBox, vAzertyCheckBox x32 y78 w200 h22 +0x2, % " AZERTY Keyboard Layout"
+    Gui Add, Text, x32 y101 w200 h22, % "Collection Back Button Y Offset:"
+    Gui Add, Edit, x206 y100 w50 h18
     Gui Add, UpDown, vBackOffsetUpDown Range-500-500, 0
-    Gui Add, Button, vImportSettingsButton gImportSettingsClick x30 y80 w130 h20, Import Settings
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y105 w467 h105 vReconnectSettingsGroup -Theme +0x50000007, Reconnect
+    Gui Add, GroupBox, x280 y40 w203 h138 vReconnectSettingsGroup -Theme +0x50000007, Reconnect
     Gui Font, s9 norm
 
     ; Enable Reconnect
-    Gui Add, CheckBox, x32 y127 w300 h16 +0x2 vReconnectCheckBox Section, % "Enable Reconnect (Will reconnect if you disconnect)"
+    Gui Add, CheckBox, x296 y61 w150 h16 +0x2 vReconnectCheckBox Section, % "Enable Reconnect"
 
     ; Restart Roblox
-    Gui Add, CheckBox, x32 y147 h16 +0x2 vRestartRobloxCheckBox Section, Restart Roblox every
-    Gui Add, Edit, ys wp w45 h18 vRestartRobloxIntervalInput Number, 1
+    Gui Add, CheckBox, x296 y81 h16 +0x2 vRestartRobloxCheckBox Section, Restart Roblox every
+    Gui Add, Edit, x296 y101 w45 h18 vRestartRobloxIntervalInput Number, 1
     Gui Add, UpDown, vRestartRobloxIntervalUpDown Range1-24, 1
-    Gui Add, Text, ys wp w130 h16 BackgroundTrans, % "hour(s) (Clears RAM)"
+    Gui Add, Text, x350 y102 w130 h16 BackgroundTrans, % "hour(s) (Clears RAM)"
 
     ; Private Server Link
-    Gui Add, Text, x26 y166 w100 h20 vPrivateServerInputHeader BackgroundTrans, Private Server Link:
-    Gui Add, Edit, x31 y185 w437 h20 vPrivateServerInput, % ""
+    Gui Add, Text, x290 y131 w100 h20 vPrivateServerInputHeader BackgroundTrans, Private Server Link:
+    Gui Add, Edit, x294 y148 w177 h20 vPrivateServerInput, % ""
+
+    ; Import 
+    Gui Add, Button, vImportSettingsButton gImportSettingsClick x317 y186 w130 h20, Import Settings
     
 ; credits tab
     Gui Tab, 5
@@ -3924,18 +3980,18 @@ OCREnabledCheckBoxClick:
                 MsgBox, 0, OCR Error, % "A monitor resolution of 1920x1080 with a 100% scale is required for OCR at this time.`n"
                                       . "We will continue working to support more configurations."
             } else {
-                getRobloxPos(pX, pY, pW, pH)
-                if not (pW = 1920 && pH = 1080 && A_ScreenDPI = 96) { ; Disable if Roblox isnt in fullscreen
-                    MsgBox, 0, Another Error, % "Roblox must be in fullscreen to use OCR."
-                    options.OCREnabled := 0
-                } else {
-                    return
-                }
+                ; getRobloxPos(pX, pY, pW, pH)
+                ; if not (pW = 1920 && pH = 1080 && A_ScreenDPI = 96) { ; Disable if Roblox isnt in fullscreen
+                ;     MsgBox, 0, Another Error, % "Roblox must be in fullscreen to use OCR."
+                ;     options.OCREnabled := 0
+                ; } else {
+                ;     return
+                ; }
             }
         } else {
             MsgBox, 0, OCR Language Error, % "Unable to use OCR. Please set your language to English-US in your PC settings and restart to enable OCR."
         }
-        GuiControl, , OCREnabledCheckBox, 0
+        ; GuiControl, , OCREnabledCheckBox, 0
     }
     return
 
@@ -4052,8 +4108,13 @@ return
     Enter::Return
 #If
 
+F4::
+    Gui mainUI:Show
+    return
+
 F5:: ; For debugging/testing
     disableAlignment := !disableAlignment
     ToolTip, % disableAlignment ? "Initial Align Disabled" : "Initial Align Enabled"
     SetTimer, ClearToolTip, -5000
     return
+
