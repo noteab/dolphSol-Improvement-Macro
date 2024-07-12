@@ -1955,6 +1955,27 @@ screenshotInventories(){ ; from all closed
     Sleep, 200
 }
 
+ClaimQuests() {
+    updateStatus("Checking Quests")
+
+    ; Open Quest Menu
+    clickMenuButton(5)
+    waitForInvVisible()
+
+    btnX := 0.6393
+    btnYList := [0.0382, 0.1927, 0.3416]
+
+    for _, btnY in btnYList {
+        claimButton := getPositionFromAspectRatioUV(btnX, btnY, storageAspectRatio)
+        ClickMouse(claimButton[1], claimButton[2])
+        Sleep, 250
+    }
+
+    ; Close Quest Menu
+    clickMenuButton(5)
+    Sleep, 200
+}
+
 ; Simplify frequent code
 ClickMouse(posX, posY) {
     MouseMove, % posX, % posY
@@ -2697,8 +2718,13 @@ mainLoop(){
     ; Reset to spawn before taking screenshots or using items
     reset()
     
-    Sleep, 250
+    ; Attempt to claim quests every 10 minutes
+    if (!lastClaim || A_TickCount - lastClaim > 600000) {
+        ClaimQuests()
+        lastClaim := A_TickCount
+    }
 
+    ; Take Screenshots - Aura Storage, Item Inventory, Quests
     if (options.InvScreenshotsEnabled && getUnixTime()-options.LastInvScreenshot >= (options.ScreenshotInterval*60)) {
         options.LastInvScreenshot := getUnixTime()
         screenshotInventories()
