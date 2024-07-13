@@ -30,7 +30,7 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 
 global version := "v1.4.0" ; Official version
-version := version " patched 07/10 by Amraki" ; Unofficial patch
+version := version " patched 07/13" ; Unofficial patch
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -159,6 +159,7 @@ global options := {"DoingObby":1
     ,"BackOffset":0
     ,"ReconnectEnabled":1
     ,"AutoEquipEnabled":0
+    ,"AutoEquipAura":""
     ,"AutoEquipX":-0.415
     ,"AutoEquipY":-0.438
     ,"PrivateServerId":""
@@ -1295,30 +1296,6 @@ mouseActions(){
     openP2 := getPositionFromAspectRatioUV(0.718,0.689,1135/1015)
     ClickMouse(openP[1], openP2[2])
 
-    ; re equip
-    if (options.AutoEquipEnabled){
-        logMessage("Re-equipping user selected aura")
-        closeChat()
-        alreadyOpen := checkInvOpen()
-
-        if (!alreadyOpen){
-            clickMenuButton(1)
-        }
-        Sleep, 100
-        sPos := getPositionFromAspectRatioUV(options.AutoEquipX,options.AutoEquipY,storageAspectRatio)
-        MouseMove, % sPos[1], % sPos[2]
-        Sleep, 300
-        MouseClick
-        Sleep, 100
-        ePos := getPositionFromAspectRatioUV(storageEquipUV[1],storageEquipUV[2],storageAspectRatio)
-        MouseMove, % ePos[1], % ePos[2]
-        Sleep, 300
-        MouseClick
-        Sleep, 100
-        clickMenuButton(1)
-        Sleep, 250
-    }
-
     if (options.ExtraRoblox){ ; for afking my 3rd alt lol
         MouseMove, 2150, 700
         Sleep, 300
@@ -1488,6 +1465,8 @@ clickMenuButton(num){
 ; storage ratio: w1649 : h952
 global storageAspectRatio := 952/1649
 global storageEquipUV := [-0.625,0.0423] ; equip button
+global storageSearchUV := [-0.2833,-0.4074]
+global storageSearchResultUV := [-0.3, -0.32]
 
 getUV(x,y,oX,oY,width,height){
     return [((x-oX)*2 - width)/height,((y-oY)*2 - height)/height]
@@ -1971,6 +1950,42 @@ ClickMouse(posX, posY) {
     Sleep, 200
 
     ; Highlight(posX-5, posY-5, 10, 10, 5000) ; Highlight for 5 seconds
+}
+
+EquipAura(auraName := "") {
+    if (auraName = "") {
+        return
+    }
+
+    closeChat()
+    alreadyOpen := checkInvOpen()
+    if (!alreadyOpen){
+        clickMenuButton(1)
+        Sleep, 100
+    }
+
+    ; Search
+    posBtn := getPositionFromAspectRatioUV(storageSearchUV[1], storageSearchUV[2], storageAspectRatio)
+    ClickMouse(posBtn[1], posBtn[2])
+    SendInput, % auraName
+    Sleep, 500
+
+    ; Search Result
+    posBtn := getPositionFromAspectRatioUV(storageSearchResultUV[1], storageSearchResultUV[2], storageAspectRatio)
+    ClickMouse(posBtn[1], posBtn[2])
+    Sleep, 500
+
+    ; Equip
+    posBtn := getPositionFromAspectRatioUV(storageEquipUV[1], storageEquipUV[2], storageAspectRatio)
+    ClickMouse(posBtn[1], posBtn[2])
+    Sleep, 100
+
+    ; Clear Search - Necessary for screenshot
+    posBtn := getPositionFromAspectRatioUV(storageSearchUV[1], storageSearchUV[2], storageAspectRatio)
+    ClickMouse(posBtn[1], posBtn[2])
+
+    Sleep, 100
+    clickMenuButton(1)
 }
 
 useItem(itemName, useAmount := 1) {
@@ -2687,6 +2702,11 @@ mainLoop(){
 
     enableAutoRoll() ; Check after ClickPlay to make sure not left off due to lag, etc
 
+    ; Equip preferred aura
+    if (options.AutoEquipEnabled) {
+        EquipAura(options.AutoEquipAura)
+    }
+
     if (!initialized){
         updateStatus("Initializing")
         initialize()
@@ -2851,7 +2871,7 @@ CreateMainUI() {
     Gui Add, GroupBox, x252 y40 w231 h70 vAutoEquipGroup -Theme +0x50000007, Auto Equip
     Gui Font, s9 norm
     Gui Add, CheckBox, vAutoEquipCheckBox x268 y61 w190 h22 +0x2, % " Enable Auto Equip"
-    Gui Add, Button, gAutoEquipSlotSelectClick vAutoEquipSlotSelectButton x268 y83 w115 h22, Select Storage Slot
+    Gui Add, Button, gAutoEquipSearchClick x268 y83 w115 h22, Configure Search
     Gui Add, Button, gAutoEquipHelpClick vAutoEquipHelpButton x457 y50 w23 h23, ?
 
     Gui Font, s10 w600
@@ -3908,8 +3928,12 @@ StopClick:
     Reload
     return
 
-AutoEquipSlotSelectClick:
-    startAutoEquipSelection()
+AutoEquipSearchClick:
+    defaultAura := options.AutoEquipAura ? options.AutoEquipAura : "Quartz"
+    InputBox, auraName, Auto Equip Aura, % "Enter aura name to be used for search.`nThe first result will be equipped so be specific.",,,,,,,, % defaultAura
+    if (!ErrorLevel && auraName != "") {
+        options.AutoEquipAura := auraName
+    }
     return
 
 DiscordServerClick:
@@ -4010,7 +4034,7 @@ ObbyHelpClick:
     return
 
 AutoEquipHelpClick:
-    MsgBox, 0, Auto Equip, % "Section for automatically equipping a specified aura every macro round. This is important for equipping auras without walk animations, which may interfere with the macro. This defaults to your first storage slot if not selected. Enabling this will close your chat window due to it possibly getting in the way of the storage button.`n`nUse the Select Storage Slot button to select a slot in your Aura Storage to automatically equip. Right click when selecting to cancel.`n`nThis feature is HIGHLY RECOMMENDED to be used on a non-animation aura for best optimization."
+    MsgBox, 0, Auto Equip, % "Section for automatically equipping a specified aura every macro round. This is important for equipping auras without walk animations, which may interfere with the macro.`n`nThis feature is HIGHLY RECOMMENDED to be used on a non-animation aura for best optimization."
     return
 
 CollectHelpClick:
