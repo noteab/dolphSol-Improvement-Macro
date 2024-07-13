@@ -2001,31 +2001,26 @@ useItem(itemName, useAmount := 1) {
     ClickMouse(itemTab[1], itemTab[2])
 
     ; Search for item
-    ;convertScreenCoordinates(850, 330, clickPosX, clickPosY)
     searchBar := getPositionFromAspectRatioUV(0.56, -0.39, storageAspectRatio)
     ClickMouse(searchBar[1], searchBar[2])
     Send, % itemName
     Sleep, 200
 
     ; Select item
-    ;convertScreenCoordinates(860, 400, clickPosX, clickPosY)
     selectItem := getPositionFromAspectRatioUV(-0.18, -0.25, storageAspectRatio)
     ClickMouse(selectItem[1], selectItem[2])
 
     ; Update quantity - Must be done each time to reset amount from previous item
-    ;convertScreenCoordinates(590, 590, clickPosX, clickPosY)
     updateQuantity:= getPositionFromAspectRatioUV(-0.70, 0.12, storageAspectRatio)
     ClickMouse(updateQuantity[1], updateQuantity[2])
     Send, % useAmount
     Sleep, 200
 
     ; Click Use
-    ;convertScreenCoordinates(700, 590, clickPosX, clickPosY)
     clickUse:= getPositionFromAspectRatioUV(-0.46, 0.12, storageAspectRatio)
     ClickMouse(clickUse[1], clickUse[2])
 
     ; Clear search result
-    ;convertScreenCoordinates(850, 330, clickPosX, clickPosY)
     ClickMouse(searchBar[1], searchBar[2])
 
     ; Close inventory
@@ -3193,7 +3188,7 @@ ShowItemSchedulerSettings() {
 
     ; Add button to add new entry and Highlight Coordinates
     Gui Add, Button, x%xPos% y%yPos% w100 h25 gAddNewItemEntry vAddNewItemEntryButton, New Entry
-    Gui Add, Button, x+50 wp w150 h25 gHighlightItemCoordinates vHighlightItemCoordinatesButton, Show Inventory Clicks
+    Gui Add, Button, x+50 wp w150 h25 gHighlightItemCoordinates vHighlightItemCoordinatesButton, Test Mouse Clicks (Highlight)
     yPos += 30
 
     ; Create headers
@@ -3401,16 +3396,20 @@ HighlightItemCoordinates() {
     ; For user to test accuracy
 
     ; 850, 330 Search box
-    Highlight(850-5, 330-5, 10, 10, 5000)
+    searchBar := getPositionFromAspectRatioUV(0.56, -0.39, storageAspectRatio)
+    Highlight(searchBar[1]-5, searchBar[2]-5, 10, 10, 5000)
 
     ; 860, 400 1st search result
-    Highlight(860-5, 400-5, 10, 10, 5000)
+    selectItem := getPositionFromAspectRatioUV(-0.18, -0.25, storageAspectRatio)
+    Highlight(selectItem[1]-5, selectItem[2]-5, 10, 10, 5000)
 
     ; 590, 600 Quantity box
-    Highlight(590-5, 600-5, 10, 10, 5000)
+    updateQuantity:= getPositionFromAspectRatioUV(-0.70, 0.12, storageAspectRatio)
+    Highlight(updateQuantity[1]-5, updateQuantity[1]-5, 10, 10, 5000)
 
     ; 700, 600 Use button
-    Highlight(700-5, 600-5, 10, 10, 5000)
+    clickUse:= getPositionFromAspectRatioUV(-0.46, 0.12, storageAspectRatio)
+    Highlight(clickUse[1]-5, clickUse[2]-5, 10, 10, 5000)
 }
 /*
     End Item Scheduler Section
