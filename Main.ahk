@@ -182,6 +182,7 @@ global options := {"DoingObby":1
     ,"RestartRobloxInterval":1  ; Amraki
     ,"LastRobloxRestart":0      ; Amraki
     ,"RobloxUpdatedUI":2 ; Default to "New"
+    ,"ClaimDailyQuests":0       ; Stewart
 
     ; Crafting
     ,"ItemCraftingEnabled":0
@@ -2715,7 +2716,7 @@ mainLoop(){
     reset()
     
     ; Attempt to claim quests every 10 minutes
-    if (!lastClaim || A_TickCount - lastClaim > 600000) {
+    if (options.ClaimDailyQuests && !lastClaim || A_TickCount - lastClaim > 1800000) {
         ClaimQuests()
         lastClaim := A_TickCount
     }
@@ -2900,8 +2901,8 @@ CreateMainUI() {
     Gui Font, s9 norm
     Gui Add, CheckBox, vPotionCraftingCheckBox x268 y58 w200 h22 +0x2, % " Automatic Potion Crafting"
     Gui Add, CheckBox, vPotionAutoAddCheckBox x268 y78 w200 h22 +0x2, % " Use Auto Add (Cycles Slots)"
-    Gui Add, CheckBox, v8 x268 y98 w200 h22 +0x2, % " "
-    Gui Add, CheckBox, v9 x268 y118 w200 h22 +0x2, % " "
+    ; Gui Add, CheckBox, v8 x268 y98 w200 h22 +0x2, % " "
+    ; Gui Add, CheckBox, v9 x268 y118 w200 h22 +0x2, % " "
     
     ; Potion Crafting Slots
     Gui Font, s9 w600
@@ -2977,14 +2978,14 @@ CreateMainUI() {
     Gui Font, s9 norm
     Gui Add, CheckBox, vVIPCheckBox x32 y58 w150 h22 +0x2, % " VIP Gamepass Owned"
     Gui Add, CheckBox, vAzertyCheckBox x32 y78 w200 h22 +0x2, % " AZERTY Keyboard Layout"
-    Gui Add, CheckBox, v1 x32 y98 w200 h22 +0x2, % " Auto Claim Daily Quests"
-    Gui Add, CheckBox, v2 x32 y118 w200 h22 +0x2, % " "
-    Gui Add, CheckBox, v3 x32 y138 w200 h22 +0x2, % " "
-    Gui Add, CheckBox, v4 x32 y158 w200 h22 +0x2, % " "
-    Gui Add, CheckBox, v5 x32 y178 w200 h22 +0x2, % " "
-    Gui Add, CheckBox, v6 x32 y198 w200 h22 +0x2, % " "
-    Gui Add, Text, x32 y221 w200 h22, % "Collection Back Button Y Offset:"
-    Gui Add, Edit, x206 y220 w50 h18
+    Gui Add, CheckBox, vClaimDailyQuestsCheckBox x32 y98 w200 h22 +0x2, % " Auto Claim Daily Quests (30 min)"
+    ; Gui Add, CheckBox, v2 x32 y118 w200 h22 +0x2, % " "
+    ; Gui Add, CheckBox, v3 x32 y138 w200 h22 +0x2, % " "
+    ; Gui Add, CheckBox, v4 x32 y158 w200 h22 +0x2, % " "
+    ; Gui Add, CheckBox, v5 x32 y178 w200 h22 +0x2, % " "
+    ; Gui Add, CheckBox, v6 x32 y198 w200 h22 +0x2, % " "
+    Gui Add, Text, x32 y121 w200 h22, % "Collection Back Button Y Offset:" ; 220
+    Gui Add, Edit, x206 y120 w50 h18                                       ; 221
     Gui Add, UpDown, vBackOffsetUpDown Range-500-500, 0
 
     Gui Font, s10 w600
@@ -2993,13 +2994,13 @@ CreateMainUI() {
 
     ; Reconnect Options
     Gui Add, CheckBox, x296 y61 w150 h16 +0x2 vReconnectCheckBox Section, % " Enable Reconnect"
-    Gui Add, CheckBox, x296 y81 w150 h16 +0x2 v7 Section, % " Reconnect at Daily Reset"
+    ; Gui Add, CheckBox, x296 y81 w150 h16 +0x2 vQuestReconnectCheckBox Section, % " Reconnect at Daily Reset"
 
     ; Restart Roblox
-    Gui Add, CheckBox, x296 y101 h16 +0x2 vRestartRobloxCheckBox Section, % " Restart Roblox every"
-    Gui Add, Edit, x296 y121 w45 h18 vRestartRobloxIntervalInput Number, 1
+    Gui Add, CheckBox, x296 y81 h16 +0x2 vRestartRobloxCheckBox Section, % " Restart Roblox every"
+    Gui Add, Edit, x296 y101 w45 h18 vRestartRobloxIntervalInput Number, 1
     Gui Add, UpDown, vRestartRobloxIntervalUpDown Range1-24, 1
-    Gui Add, Text, x350 y122 w130 h16 BackgroundTrans, % "hour(s) (Clears RAM)"
+    Gui Add, Text, x350 y102 w130 h16 BackgroundTrans, % "hour(s) (Clears RAM)"
 
     ; Private Server Link
     Gui Add, Text, x290 y171 w100 h20 vPrivateServerInputHeader BackgroundTrans, Private Server Link:
@@ -3448,6 +3449,7 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"WebhookUserIDInput":"DiscordUserID"
     ,"WebhookInventoryScreenshots":"InvScreenshotsEnabled"
     ,"StatusBarCheckBox":"StatusBarEnabled"
+    ,"ClaimDailyQuestsCheckBox":"ClaimDailyQuests"   ; Stewart
     ,"OCREnabledCheckBox":"OCREnabled"}              ; Amraki
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
