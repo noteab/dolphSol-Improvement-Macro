@@ -2003,7 +2003,7 @@ useItem(itemName, useAmount := 1) {
     ; Search for item
     searchBar := getPositionFromAspectRatioUV(0.56, -0.39, storageAspectRatio)
     ClickMouse(searchBar[1], searchBar[2])
-    Send, % itemName
+    SendInput, % itemName
     Sleep, 200
 
     ; Select item
@@ -2347,8 +2347,8 @@ containsText(x, y, width, height, text) {
         StringLower, ocrText, ocrText
         StringLower, text, text
         textFound := InStr(ocrText, text)
-        if (!textFound) { ; Reduce logging by only saving when not found
-            logMessage("[containsText] Searching: " text "  |  Found: " ocrText, 1)
+        if (textFound > 0) { ; Reduce logging by only saving when found
+            logMessage("[containsText] Searching: " text "  |  Found: '" ocrText "'", 1)
         }
 
         return textFound > 0
