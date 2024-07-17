@@ -852,6 +852,7 @@ press(k, duration := 50) {
     walkSleep(duration)
     walkSend(k,"Up")
 }
+
 press2(k, k2, duration := 50) {
     walkSend(k,"Down")
     walkSend(k2,"Down")
@@ -876,6 +877,7 @@ reset() {
 
     atSpawn := 1
 }
+
 jump() {
     press("Space")
 }
@@ -1265,21 +1267,33 @@ walkToPotionCrafting(){
 
 ; End of paths
 
-closeChat(){
-    offsetX := 75
-    offsetY := 25 ; Changed from 12
-    if (options["RobloxUpdatedUI"] = 2) {
-        offsetX := 144
-        offsetY := 40
+closeChat() {
+    Sleep, 100
+    Send, /
+    Sleep, 100
+    Send, {Enter}
+
+    getRobloxPos(rX, rY, rW, rH)
+
+    ; Old UI
+    if (options["RobloxUpdatedUI"] = 1) {
+        if (rW > 1440) {
+            MouseMove, % rX + rW*0.04, % rY + rH*0.02
+        } else {
+            MouseMove, % rX + rW*0.055, % rY + rH*0.02
+        }
+        
+    ; New UI
+    } else if (options["RobloxUpdatedUI"] = 2) {
+        if (rW > 1440) {
+            MouseMove, % rX + rW*0.06, % rY + rH*0.02
+        } else {
+            MouseMove, % rX + rW*0.085, % rY + rH*0.02
+        }
     }
 
-    getRobloxPos(pX,pY,width,height)
-    PixelGetColor, chatCheck, % pX + offsetX, % pY + offsetY, RGB
-    isWhite := compareColors(chatCheck,0xffffff) < 16
-    isGray := compareColors(chatCheck,0xc3c3c3) < 16
-    if (isWhite || isGray){ ; is chat open??
-        ClickMouse(pX + offsetX, pY + offsetY)
-    }
+    sleep, 100
+    MouseClick
 }
 
 checkInvOpen(){
