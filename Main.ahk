@@ -184,6 +184,7 @@ global options := {"DoingObby":1
     ,"LastRobloxRestart":0      ; Amraki
     ,"RobloxUpdatedUI":2 ; Default to "New"
     ,"ClaimDailyQuests":0       ; Stewart
+    ,"SearchSpecialAuras":0     ; Stewart
 
     ; Crafting
     ,"ItemCraftingEnabled":0
@@ -1275,26 +1276,35 @@ closeChat() {
     Send, {Enter}
 
     getRobloxPos(rX, rY, rW, rH)
+    clickX := 0
+    clickY := rY + rH*0.02
+
+    if (!options.RobloxUpdatedUI) { ; Alternative syntax
+        return
+    }
 
     ; Old UI
     if (options["RobloxUpdatedUI"] = 1) {
         if (rW > 1440) {
-            MouseMove, % rX + rW*0.04, % rY + rH*0.02
+            clickX := rX + rW*0.04
         } else {
-            MouseMove, % rX + rW*0.055, % rY + rH*0.02
+            clickX := rX + rW*0.055
         }
         
     ; New UI
     } else if (options["RobloxUpdatedUI"] = 2) {
         if (rW > 1440) {
-            MouseMove, % rX + rW*0.06, % rY + rH*0.02
+            clickX := rX + rW*0.06
         } else {
-            MouseMove, % rX + rW*0.085, % rY + rH*0.02
+            clickX := rX + rW*0.085
         }
     }
 
-    sleep, 100
-    MouseClick
+    if (clickX > 0) {
+        MouseMove, % clickX, % clickY
+        sleep, 100
+        MouseClick
+    }
 }
 
 checkInvOpen(){
@@ -2862,7 +2872,7 @@ CreateMainUI() {
     Gui Add, Button, gStartClick vStartButton x8 y264 w80 h23 -Tabstop, F1 - Start
     Gui Add, Button, gPauseClick vPauseButton x96 y264 w80 h23 -Tabstop, F2 - Pause
     Gui Add, Button, gStopClick vStopButton x184 y264 w80 h23 -Tabstop, F3 - Stop
-    Gui Add, CheckBox, vOwnPrivateServerCheckBox x350 y264 h23 +0x2, % "In your own PS?"
+    Gui Add, CheckBox, vOwnPrivateServerCheckBox x300 y264 h23 +0x2, % "In your own Private Server?"
     Gui Font, s11 Norm, Segoe UI
     Gui Add, Picture, gDiscordServerClick w26 h20 x462 y266, % mainDir "images\discordIcon.png"
 
@@ -2882,7 +2892,7 @@ CreateMainUI() {
     Gui Add, GroupBox, x252 y40 w231 h70 vAutoEquipGroup -Theme +0x50000007, Auto Equip
     Gui Font, s9 norm
     Gui Add, CheckBox, vAutoEquipCheckBox x268 y61 w190 h22 +0x2, % " Enable Auto Equip"
-    Gui Add, Button, gAutoEquipSearchClick x268 y83 w115 h22, Configure Search
+    Gui Add, Button, +gShowAuraEquipSearch x268 y83 w115 h22, Configure Search
     Gui Add, Button, gAutoEquipHelpClick vAutoEquipHelpButton x457 y50 w23 h23, ?
 
     Gui Font, s10 w600
@@ -3065,11 +3075,11 @@ CreateMainUI() {
 
     ; Roblox UI style to determine Chat button position
     Gui Font, s10 w600
-    Gui Add, Text, x400 y150, Roblox UI
+    Gui Add, Text, x400 y190, Roblox UI
     Gui Font, s9 norm
     
     ; options["RobloxUpdatedUI"]
-    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y170, Old
+    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y210, Old
     Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio2, New
     GuiControl,, RobloxUpdatedUIRadio1, % (options["RobloxUpdatedUI"] = 1) ? 1 : 0
     GuiControl,, RobloxUpdatedUIRadio2, % (options["RobloxUpdatedUI"] = 2) ? 1 : 0
@@ -3128,6 +3138,23 @@ ShowAuraSettings() {
         }
     }
     Gui Show, % "w500", Aura Settings
+}
+
+ShowAuraEquipSearch() {
+    global
+    Gui, AuraSettings:New, +AlwaysOnTop +LabelAuraGui
+    Gui Font, s11 w300
+    Gui Add, Text, x16 y10 w300 h50, % "Enter aura name to be used for search.`nThe first result will be equipped so be specific."
+
+    searchSpecialAurasState := options.SearchSpecialAuras ? "Checked" : ""
+    Gui Add, CheckBox, vSearchSpecialAurasCheckBox x32 y70 w300 h22 %searchSpecialAurasState%, % "Search in Special Auras"
+
+    defaultAura := options.AutoEquipAura ? options.AutoEquipAura : "Quartz"
+    Gui Add, Edit, vAuraNameInput x32 y100 w300 h22, % defaultAura
+
+    Gui Add, Button, gSubmitAuraName x32 y140 w100 h30, Submit
+
+    Gui Show, % "w400 h194 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "Auto Equip Aura"
 }
 
 applyAuraSettings() {
@@ -3217,8 +3244,9 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"WebhookUserIDInput":"DiscordUserID"
     ,"WebhookInventoryScreenshots":"InvScreenshotsEnabled"
     ,"StatusBarCheckBox":"StatusBarEnabled"
-    ,"ClaimDailyQuestsCheckBox":"ClaimDailyQuests"   ; Stewart
-    ,"OCREnabledCheckBox":"OCREnabled"}              ; Amraki
+    ,"SearchSpecialAurasCheckBox":"SearchSpecialAuras"      ; Stewart
+    ,"ClaimDailyQuestsCheckBox":"ClaimDailyQuests"          ; Stewart
+    ,"OCREnabledCheckBox":"OCREnabled"}                     ; Amraki
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
     ,"WebhookRollPingInput":"WebhookRollPingMinimum"}
@@ -3706,11 +3734,13 @@ StopClick:
     Reload
     return
 
-AutoEquipSearchClick:
-    defaultAura := options.AutoEquipAura ? options.AutoEquipAura : "Quartz"
-    InputBox, auraName, Auto Equip Aura, % "Enter aura name to be used for search.`nThe first result will be equipped so be specific.",,,,,,,, % defaultAura
+SubmitAuraName:
+    Gui, AuraSettings:Submit, NoHide
     if (!ErrorLevel && auraName != "") {
-        options.AutoEquipAura := auraName
+        options.AutoEquipAura := AuraNameInput
+        options.SearchSpecialAuras := SearchSpecialAurasCheckBox
+        saveOptions()
+        Gui, AuraSettings:Destroy
     }
     return
 
