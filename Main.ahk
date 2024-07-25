@@ -1493,6 +1493,8 @@ global storageAspectRatio := 952/1649
 global storageEquipUV := [-0.625,0.0423] ; equip button
 global storageSearchUV := [-0.2833,-0.4074]
 global storageSearchResultUV := [-0.3, -0.32]
+global specialStorageSearchUV := [-0.2833,0.105]
+global specialStorageSearchResultUV := [-0.3, 0.2]
 
 getUV(x,y,oX,oY,width,height){
     return [((x-oX)*2 - width)/height,((y-oY)*2 - height)/height]
@@ -1991,23 +1993,37 @@ EquipAura(auraName := "") {
     }
 
     ; Search
-    posBtn := getPositionFromAspectRatioUV(storageSearchUV[1], storageSearchUV[2], storageAspectRatio)
+    if (options.SearchSpecialAuras) {
+        ; Click on the search input for special storage
+        posBtn := getPositionFromAspectRatioUV(specialStorageSearchUV[1], specialStorageSearchUV[2], storageAspectRatio)
+    } else {
+        ; Click on the search input for normal storage
+        posBtn := getPositionFromAspectRatioUV(StorageSearchUV[1], StorageSearchUV[2], storageAspectRatio)
+    }
     ClickMouse(posBtn[1], posBtn[2])
     SendInput, % auraName
     Sleep, 500
 
     ; Search Result
-    posBtn := getPositionFromAspectRatioUV(storageSearchResultUV[1], storageSearchResultUV[2], storageAspectRatio)
+    if (options.SearchSpecialAuras) {
+        posBtn := getPositionFromAspectRatioUV(specialStorageSearchResultUV[1], specialStorageSearchResultUV[2], storageAspectRatio)
+    } else {
+        posBtn := getPositionFromAspectRatioUV(StorageSearchResultUV[1], StorageSearchResultUV[2], storageAspectRatio)
+    }
     ClickMouse(posBtn[1], posBtn[2])
     Sleep, 500
 
     ; Equip
-    posBtn := getPositionFromAspectRatioUV(storageEquipUV[1], storageEquipUV[2], storageAspectRatio)
+    posBtn := getPositionFromAspectRatioUV(StorageEquipUV[1], storageEquipUV[2], storageAspectRatio)
     ClickMouse(posBtn[1], posBtn[2])
     Sleep, 100
 
     ; Clear Search - Necessary for screenshot
-    posBtn := getPositionFromAspectRatioUV(storageSearchUV[1], storageSearchUV[2], storageAspectRatio)
+    if (options.SearchSpecialAuras) {
+        posBtn := getPositionFromAspectRatioUV(specialStorageSearchUV[1], specialStorageSearchUV[2], storageAspectRatio)
+    } else {
+        posBtn := getPositionFromAspectRatioUV(StorageSearchUV[1], StorageSearchUV[2], storageAspectRatio)
+    }
     ClickMouse(posBtn[1], posBtn[2])
 
     Sleep, 100
@@ -3142,19 +3158,19 @@ ShowAuraSettings() {
 
 ShowAuraEquipSearch() {
     global
-    Gui, AuraSettings:New, +AlwaysOnTop +LabelAuraGui
+    Gui, AuraSearch:New, +AlwaysOnTop +LabelAuraSearchGui
     Gui Font, s11 w300
     Gui Add, Text, x16 y10 w300 h50, % "Enter aura name to be used for search.`nThe first result will be equipped so be specific."
 
     searchSpecialAurasState := options.SearchSpecialAuras ? "Checked" : ""
-    Gui Add, CheckBox, vSearchSpecialAurasCheckBox x32 y70 w300 h22 %searchSpecialAurasState%, % "Search in Special Auras"
+    Gui Add, CheckBox, vSearchSpecialAurasCheckBox x200 y148 w300 h22 %searchSpecialAurasState%, % "Search in Special Auras"
 
     defaultAura := options.AutoEquipAura ? options.AutoEquipAura : "Quartz"
-    Gui Add, Edit, vAuraNameInput x32 y100 w300 h22, % defaultAura
+    Gui Add, Edit, vAuraNameInput x8 y110 w382 h22, % defaultAura
 
-    Gui Add, Button, gSubmitAuraName x32 y140 w100 h30, Submit
+    Gui Add, Button, gSubmitAuraName x32 y144 w100 h30, Submit
 
-    Gui Show, % "w400 h194 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "Auto Equip Aura"
+    Gui Show, % "w400 h190 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "Auto Equip Aura"
 }
 
 applyAuraSettings() {
@@ -3735,12 +3751,12 @@ StopClick:
     return
 
 SubmitAuraName:
-    Gui, AuraSettings:Submit, NoHide
+    Gui, AuraSearch:Submit, NoHide
     if (!ErrorLevel && auraName != "") {
         options.AutoEquipAura := AuraNameInput
         options.SearchSpecialAuras := SearchSpecialAurasCheckBox
         saveOptions()
-        Gui, AuraSettings:Destroy
+        Gui, AuraSearch:Destroy
     }
     return
 
@@ -3870,6 +3886,11 @@ AuraGuiClose:
     applyAuraSettings() ; Update options with the new aura settings
     saveOptions()  ; Save the options to the config file
     Gui, AuraSettings:Destroy
+return
+
+AuraSearchGuiClose:
+    saveOptions()
+    Gui, AuraSearch:Destroy
 return
 
 BiomeGuiClose:
