@@ -3081,8 +3081,14 @@ ShowAuraSettings() {
     local columnCounter := 0
     local columnWidth := 240
 
+    ; Sort names
+    sortedNames := {}
+    for k, v in auraNames
+        sortedNames[v] := v
+    auraNames := sortedNames
+
     ; Create checkboxes for each aura
-    for index, auraName in auraNames {
+    for _, auraName in auraNames {
         ; Convert the aura name to a valid variable name
         sAuraName := RegExReplace(auraName, "[^a-zA-Z0-9]+", "_") ; Replace with underscore
         sAuraName := RegExReplace(sAuraName, "\_$", "") ; Remove any trailing underscore
@@ -3112,7 +3118,7 @@ applyAuraSettings() {
     Gui AuraSettings:Default  ; Ensure we are in the context of AuraSettings GUI
 
     ; Save aura settings with prefix
-    for index, auraName in auraNames {
+    for _, auraName in auraNames {
         sAuraName := RegExReplace(auraName, "[^a-zA-Z0-9]+", "_") ; Replace all non-alphanumeric characters with underscore
         sAuraName := RegExReplace(sAuraName, "\_$", "") ; Remove any trailing underscore
         
