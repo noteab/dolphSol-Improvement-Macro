@@ -594,6 +594,7 @@ determineBiome(){
     if (identifiedBiome && identifiedBiome != "Normal") {
         logMessage("[determineBiome] OCR result: " RegExReplace(ocrResult,"(\n|\r)+",""))
         logMessage("[determineBiome] Identified biome: " identifiedBiome)
+        Gdip_SaveBitmapToFile(pBM,ssPath)
     }
 
     Gdip_DisposeEffect(effect)
@@ -881,7 +882,7 @@ secondTick(){
         FormatTime, fTime, , HH:mm:ss
         if (biomeFinished && currentBiomeDisplayed){
             currentBiomeDisplayed := 0
-            webhookPost({embedContent: "[" fTime "]: Rare Biome Ended - " currentBiome})
+            webhookPost({embedContent: "[" fTime "]: Biome Ended - " currentBiome})
             currentBiome := "Normal"
         }
 
@@ -896,8 +897,8 @@ secondTick(){
             targetData := biomeData[currentBiome]
             if (targetData.display || targetData.ping){
                 currentBiomeDisplayed := 1
-
-                webhookPost({embedContent: "[" fTime "]: Rare Biome Started - " currentBiome, embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
+    
+                webhookPost({embedContent: "[" fTime "]: Biome Started - " currentBiome, files:[ssPath], embedImage:"attachment://ss.jpg", embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
             }
 
             currentBiomeTimer := getUnixTime() + targetData.duration + 5

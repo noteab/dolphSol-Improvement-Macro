@@ -28,9 +28,10 @@ CoordMode, Mouse, Screen
 #Include *i Gdip_All.ahk
 #Include *i Gdip_ImageSearch.ahk
 #Include *i jxon.ahk
+#Include *i ItemScheduler.ahk
 
 global version := "v1.4.0" ; Official version
-version := version " patched 07/10 by Amraki" ; Unofficial patch
+version := version " patched 07/13" ; Unofficial patch
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -159,6 +160,7 @@ global options := {"DoingObby":1
     ,"BackOffset":0
     ,"ReconnectEnabled":1
     ,"AutoEquipEnabled":0
+    ,"AutoEquipAura":""
     ,"AutoEquipX":-0.415
     ,"AutoEquipY":-0.438
     ,"PrivateServerId":""
@@ -1323,30 +1325,6 @@ mouseActions(){
     openP2 := getPositionFromAspectRatioUV(0.718,0.689,1135/1015)
     ClickMouse(openP[1], openP2[2])
 
-    ; re equip
-    if (options.AutoEquipEnabled){
-        logMessage("Re-equipping user selected aura")
-        closeChat()
-        alreadyOpen := checkInvOpen()
-
-        if (!alreadyOpen){
-            clickMenuButton(1)
-        }
-        Sleep, 100
-        sPos := getPositionFromAspectRatioUV(options.AutoEquipX,options.AutoEquipY,storageAspectRatio)
-        MouseMove, % sPos[1], % sPos[2]
-        Sleep, 300
-        MouseClick
-        Sleep, 100
-        ePos := getPositionFromAspectRatioUV(storageEquipUV[1],storageEquipUV[2],storageAspectRatio)
-        MouseMove, % ePos[1], % ePos[2]
-        Sleep, 300
-        MouseClick
-        Sleep, 100
-        clickMenuButton(1)
-        Sleep, 250
-    }
-
     if (options.ExtraRoblox){ ; for afking my 3rd alt lol
         MouseMove, 2150, 700
         Sleep, 300
@@ -1516,6 +1494,8 @@ clickMenuButton(num){
 ; storage ratio: w1649 : h952
 global storageAspectRatio := 952/1649
 global storageEquipUV := [-0.625,0.0423] ; equip button
+global storageSearchUV := [-0.2833,-0.4074]
+global storageSearchResultUV := [-0.3, -0.32]
 
 getUV(x,y,oX,oY,width,height){
     return [((x-oX)*2 - width)/height,((y-oY)*2 - height)/height]
@@ -2002,6 +1982,42 @@ ClickMouse(posX, posY) {
     ; Highlight(posX-5, posY-5, 10, 10, 5000) ; Highlight for 5 seconds
 }
 
+EquipAura(auraName := "") {
+    if (auraName = "") {
+        return
+    }
+
+    closeChat()
+    alreadyOpen := checkInvOpen()
+    if (!alreadyOpen){
+        clickMenuButton(1)
+        Sleep, 100
+    }
+
+    ; Search
+    posBtn := getPositionFromAspectRatioUV(storageSearchUV[1], storageSearchUV[2], storageAspectRatio)
+    ClickMouse(posBtn[1], posBtn[2])
+    SendInput, % auraName
+    Sleep, 500
+
+    ; Search Result
+    posBtn := getPositionFromAspectRatioUV(storageSearchResultUV[1], storageSearchResultUV[2], storageAspectRatio)
+    ClickMouse(posBtn[1], posBtn[2])
+    Sleep, 500
+
+    ; Equip
+    posBtn := getPositionFromAspectRatioUV(storageEquipUV[1], storageEquipUV[2], storageAspectRatio)
+    ClickMouse(posBtn[1], posBtn[2])
+    Sleep, 100
+
+    ; Clear Search - Necessary for screenshot
+    posBtn := getPositionFromAspectRatioUV(storageSearchUV[1], storageSearchUV[2], storageAspectRatio)
+    ClickMouse(posBtn[1], posBtn[2])
+
+    Sleep, 100
+    clickMenuButton(1)
+}
+
 useItem(itemName, useAmount := 1) {
     updateStatus("Using items")
     logMessage("Using item: " itemName, 1)
@@ -2015,31 +2031,26 @@ useItem(itemName, useAmount := 1) {
     ClickMouse(itemTab[1], itemTab[2])
 
     ; Search for item
-    ;convertScreenCoordinates(850, 330, clickPosX, clickPosY)
     searchBar := getPositionFromAspectRatioUV(0.56, -0.39, storageAspectRatio)
     ClickMouse(searchBar[1], searchBar[2])
-    Send, % itemName
+    SendInput, % itemName
     Sleep, 200
 
     ; Select item
-    ;convertScreenCoordinates(860, 400, clickPosX, clickPosY)
     selectItem := getPositionFromAspectRatioUV(-0.18, -0.25, storageAspectRatio)
     ClickMouse(selectItem[1], selectItem[2])
 
     ; Update quantity - Must be done each time to reset amount from previous item
-    ;convertScreenCoordinates(590, 590, clickPosX, clickPosY)
     updateQuantity:= getPositionFromAspectRatioUV(-0.70, 0.12, storageAspectRatio)
     ClickMouse(updateQuantity[1], updateQuantity[2])
     Send, % useAmount
     Sleep, 200
 
     ; Click Use
-    ;convertScreenCoordinates(700, 590, clickPosX, clickPosY)
     clickUse:= getPositionFromAspectRatioUV(-0.46, 0.12, storageAspectRatio)
     ClickMouse(clickUse[1], clickUse[2])
 
     ; Clear search result
-    ;convertScreenCoordinates(850, 330, clickPosX, clickPosY)
     ClickMouse(searchBar[1], searchBar[2])
 
     ; Close inventory
@@ -2365,8 +2376,8 @@ containsText(x, y, width, height, text) {
         StringLower, ocrText, ocrText
         StringLower, text, text
         textFound := InStr(ocrText, text)
-        if (!textFound) { ; Reduce logging by only saving when not found
-            logMessage("[containsText] Searching: " text "  |  Found: " ocrText, 1)
+        if (textFound > 0) { ; Reduce logging by only saving when found
+            logMessage("[containsText] Searching: " text "  |  Found: '" ocrText "'", 1)
         }
 
         return textFound > 0
@@ -2715,6 +2726,11 @@ mainLoop(){
 	
     enableAutoRoll() ; Check after ClickPlay to make sure not left off due to lag, etc
 
+    ; Equip preferred aura
+    if (options.AutoEquipEnabled) {
+        EquipAura(options.AutoEquipAura)
+    }
+
     if (!initialized){
         updateStatus("Initializing")
         initialize()
@@ -2880,7 +2896,7 @@ CreateMainUI() {
     Gui Add, GroupBox, x252 y40 w231 h70 vAutoEquipGroup -Theme +0x50000007, Auto Equip
     Gui Font, s9 norm
     Gui Add, CheckBox, vAutoEquipCheckBox x268 y61 w190 h22 +0x2, % " Enable Auto Equip"
-    Gui Add, Button, gAutoEquipSlotSelectClick vAutoEquipSlotSelectButton x268 y83 w115 h22, Select Storage Slot
+    Gui Add, Button, gAutoEquipSearchClick x268 y83 w115 h22, Configure Search
     Gui Add, Button, gAutoEquipHelpClick vAutoEquipHelpButton x457 y50 w23 h23, ?
 
     Gui Font, s10 w600
@@ -3181,249 +3197,6 @@ applyBiomeSettings() {
         ; logMessage("[applyBiomeSettings] Updating Biome Setting: " biome " - " options["Biome" . biome])
     }
 }
-
-/*
-    Start Item Scheduler Section
-*/
-; Create the Item Scheduler settings popup
-ShowItemSchedulerSettings() {
-    global
-
-    Gui ItemSchedulerSettings:New, +AlwaysOnTop +LabelItemSchedulerGui
-    ; Gui Font, s10 w600
-    ; Gui Add, Text, x16 y10 w300 h30, Auto Item Scheduler
-    Gui Font, s9 norm
-
-    ; Initialize position variables
-    startXPos := 16
-    startYPos := 10
-    xPos := startXPos
-    yPos := startYPos
-
-    ; Add button to add new entry and Highlight Coordinates
-    Gui Add, Button, x%xPos% y%yPos% w100 h25 gAddNewItemEntry vAddNewItemEntryButton, New Entry
-    Gui Add, Button, x+50 wp w150 h25 gHighlightItemCoordinates vHighlightItemCoordinatesButton, Show Inventory Clicks
-    yPos += 30
-
-    ; Create headers
-    Gui Add, Text, x%xPos% y%yPos% Section w50 h20, Enable
-    Gui Add, Text, x+30 yp w100 h20, Item
-    Gui Add, Text, x+-25 yp w50 h20, Quantity
-    Gui Add, Text, x+20 yp w50 h20, Frequency
-    yPos += 20
-
-    ; Create entries for each item usage configuration
-    xPos := 20
-    for index, entry in ItemSchedulerEntries {
-        ; OutputDebug, % "# Entries: " ItemSchedulerEntries.Length()
-        if (!entry) {
-            ; OutputDebug, % "*Item " index ": " entry.ItemName
-            break
-        }
-        ; OutputDebug, % "Item " index ": " entry.ItemName
-        AddItemEntry(index, entry, xPos, yPos)
-        yPos += 30
-    }
-
-    Gui Show, % "w430 h400", Auto Item Scheduler
-}
-
-; Function to add item entry to GUI
-AddItemEntry(idx, entry, xPos, yPos) {
-    global
-
-    OutputDebug, % "Adding entry " idx " at yPos " yPos
-
-    ; Concatenate item names for the dropdown list
-    UsableItems := ["Strange Controller", "Biome Randomizer", "Lucky", "Speed", "Fortune Potion I", "Fortune Potion II", "Fortune Potion III", "Haste Potion I", "Haste Potion II", "Haste Potion III", "Heavenly Potion I", "Heavenly Potion II"]
-    itemList := "|"
-    for each, item in UsableItems {
-        itemList .= item "|"
-    }
-
-    ; Add controls for the entry
-    Gui Add, CheckBox, % "vEnable" idx "CheckBox Section x" xPos " y" yPos " w30 h20 Checked" entry.Enabled, % idx
-    Gui Add, DropDownList, vItem%idx%DropDown x+ yp w115 h20 R10, % itemList
-    GuiControl, ChooseString, Item%idx%DropDown, % entry.ItemName
-    Gui Add, Edit, vQuantity%idx%Edit x+5 yp wp+10 w40 h20 Number, % entry.Quantity
-    Gui Add, Edit, vFrequency%idx%Edit x+5 yp w30 h20 Number, % entry.Frequency
-    Gui Add, DropDownList, vTimeUnit%idx%DropDown x+ yp w80 h20 R2, Minutes||Hours
-    Gui Add, Button, gDeleteItemEntry vDelete%idx% x+m yp w80 h20, Delete
-}
-
-; Function to add a new empty item entry
-AddNewItemEntry() {
-    ; Calculate yPos based on non-deleted entries
-    yPos := 60
-    for each, entry in ItemSchedulerEntries {
-        if (!entry.Deleted) {
-            yPos += 30
-        }
-    }
-
-    entry := {Enabled: 1
-        , ItemName: ""
-        , Quantity: 1
-        , Frequency: 1
-        , TimeUnit: "Minutes"}
-    
-    idx := ItemSchedulerEntries.Length() + 1
-    AddItemEntry(idx, entry, 20, yPos)
-    ItemSchedulerEntries.Push(entry)
-}
-
-; Function to save item settings
-SaveItemSchedulerSettings() {
-    global configPath, options, ItemSchedulerEntries
-
-    ; Clear current entries
-    ItemSchedulerEntries := []
-
-    ; Flush entries from options to avoid leaving deleted entries
-    for i, v in options {
-        if (InStr(i, "ISEntry", 1) = 1) {
-            options.Delete(i)
-        }
-    }
-
-    ; Save each entry's settings
-    Gui, ItemSchedulerSettings:Default
-    idx := 1
-    Loop {
-        ; OutputDebug, % "Saving index " idx
-
-        GuiControlGet, visible, Visible, Enable%idx%CheckBox
-        if (ErrorLevel) {
-            break
-        }
-
-        if (!visible) { ; Skip "deleted" entries - AHK v1 has no way to delete controls so they are hidden instead
-            idx++
-            continue
-        }
-
-        ; Retrieve values from the controls
-        GuiControlGet, enabled,, Enable%idx%CheckBox
-        GuiControlGet, itemName,, Item%idx%DropDown
-        GuiControlGet, quantity,, Quantity%idx%Edit
-        GuiControlGet, frequency,, Frequency%idx%Edit
-        GuiControlGet, timeUnit,, TimeUnit%idx%DropDown
-
-        ; OutputDebug, % "  Item: " itemName
-        ; OutputDebug, % "  Enabled: " enabled
-        ; OutputDebug, % "  Quantity: " quantity
-        ; OutputDebug, % "  Frequency: " frequency
-        ; OutputDebug, % "  Min/Hr: " timeUnit
-
-        entry := {Enabled: enabled
-            , ItemName: itemName
-            , Quantity: quantity
-            , Frequency: frequency
-            , TimeUnit: timeUnit}
-
-        ; Add the entry to the ItemSchedulerEntries array
-        ItemSchedulerEntries.Push(entry)
-
-        idx++
-    }
-
-    ; Save settings to global options
-    for i, entry in ItemSchedulerEntries {
-        options["ISEntry" i] := entry.Enabled "," entry.ItemName "," entry.Quantity "," entry.Frequency "," entry.TimeUnit
-    }
-}
-
-; Function to delete an item entry
-DeleteItemEntry() {
-    Gui, ItemSchedulerSettings:Default
-
-    ; Extract the index from the control's variable name
-    RegExMatch(A_GuiControl, "\d+", idx)
-
-    ; Mark the entry as deleted (keeps the array length consistent)
-    ItemSchedulerEntries[idx].Deleted := true
-
-    ; Hide the controls associated with the entry
-    GuiControl, Hide, Enable%idx%CheckBox
-    GuiControl, Hide, Item%idx%DropDown
-    GuiControl, Hide, Quantity%idx%Edit
-    GuiControl, Hide, Frequency%idx%Edit
-    GuiControl, Hide, TimeUnit%idx%DropDown
-    GuiControl, Hide, Delete%idx%
-
-    ; Reposition remaining controls
-    yPos := 60
-    for i, entry in ItemSchedulerEntries {
-        if (!entry.Deleted) {
-            ; Update the position of visible controls
-            GuiControl, Move, Enable%i%CheckBox, y%yPos%
-            GuiControl, Move, Item%i%DropDown, y%yPos%
-            GuiControl, Move, Quantity%i%Edit, y%yPos%
-            GuiControl, Move, Frequency%i%Edit, y%yPos%
-            GuiControl, Move, TimeUnit%i%DropDown, y%yPos%
-            GuiControl, Move, Delete%i%, y%yPos%
-
-            ; Force redraw to ensure no blurriness or overlap
-            GuiControl, MoveDraw, Enable%i%CheckBox
-            GuiControl, MoveDraw, Item%i%DropDown
-            GuiControl, MoveDraw, Quantity%i%Edit
-            GuiControl, MoveDraw, Frequency%i%Edit
-            GuiControl, MoveDraw, TimeUnit%i%DropDown
-            GuiControl, MoveDraw, Delete%i%
-            yPos += 30
-        }
-    }
-}
-
-LoadItemSchedulerOptions() {
-    global configPath, ItemSchedulerEntries
-
-    savedRetrieve := getINIData(configPath)
-    if (!savedRetrieve) {
-        logMessage("[LoadItemSchedulerOptions] Unable to read config.ini")
-        return
-    }
-
-    ItemSchedulerEntries := []
-    for i, v in savedRetrieve {
-        if (InStr(i, "ISEntry", 1) = 1) {
-            parts := StrSplit(v, ",")
-            entry := {Enabled: parts[1], ItemName: parts[2], Quantity: parts[3], Frequency: parts[4], TimeUnit: parts[5]}
-            entry.NextRunTime := getUnixTime() ; Run once on load. TODO: Add option to menu entries
-
-            if (entry.ItemName = "") {
-                continue
-            }
-            ItemSchedulerEntries.Push(entry)
-        }
-    }
-
-    ; Add entries to options - Handled in Save function which is only called when Scheduler is closed
-    for i, entry in ItemSchedulerEntries {
-        options["ISEntry" i] := entry.Enabled "," entry.ItemName "," entry.Quantity "," entry.Frequency "," entry.TimeUnit
-    }
-}
-
-; Function to highlight coordinates
-HighlightItemCoordinates() {
-    ; Highlight where mouse will click to automatically use items
-    ; For user to test accuracy
-
-    ; 850, 330 Search box
-    Highlight(850-5, 330-5, 10, 10, 5000)
-
-    ; 860, 400 1st search result
-    Highlight(860-5, 400-5, 10, 10, 5000)
-
-    ; 590, 600 Quantity box
-    Highlight(590-5, 600-5, 10, 10, 5000)
-
-    ; 700, 600 Use button
-    Highlight(700-5, 600-5, 10, 10, 5000)
-}
-/*
-    End Item Scheduler Section
-*/
 
 global directValues := {"ObbyCheckBox":"DoingObby"
     ,"AzertyCheckBox":"AzertyLayout"
@@ -3937,8 +3710,12 @@ StopClick:
     Reload
     return
 
-AutoEquipSlotSelectClick:
-    startAutoEquipSelection()
+AutoEquipSearchClick:
+    defaultAura := options.AutoEquipAura ? options.AutoEquipAura : "Quartz"
+    InputBox, auraName, Auto Equip Aura, % "Enter aura name to be used for search.`nThe first result will be equipped so be specific.",,,,,,,, % defaultAura
+    if (!ErrorLevel && auraName != "") {
+        options.AutoEquipAura := auraName
+    }
     return
 
 DiscordServerClick:
@@ -4039,7 +3816,7 @@ ObbyHelpClick:
     return
 
 AutoEquipHelpClick:
-    MsgBox, 0, Auto Equip, % "Section for automatically equipping a specified aura every macro round. This is important for equipping auras without walk animations, which may interfere with the macro. This defaults to your first storage slot if not selected. Enabling this will close your chat window due to it possibly getting in the way of the storage button.`n`nUse the Select Storage Slot button to select a slot in your Aura Storage to automatically equip. Right click when selecting to cancel.`n`nThis feature is HIGHLY RECOMMENDED to be used on a non-animation aura for best optimization."
+    MsgBox, 0, Auto Equip, % "Section for automatically equipping a specified aura every macro round. This is important for equipping auras without walk animations, which may interfere with the macro.`n`nThis feature is HIGHLY RECOMMENDED to be used on a non-animation aura for best optimization."
     return
 
 CollectHelpClick:
