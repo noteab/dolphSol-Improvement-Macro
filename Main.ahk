@@ -169,7 +169,7 @@ global options := {"DoingObby":1
     ,"WebhookLink":""
     ,"WebhookImportantOnly":0
     ,"DiscordUserID":""
-    ,"DiscordGlitchID":""       ; Amraki ; Used in status.ahk for biome ping in Discord - Defaults to DiscordUserID if not set
+    ,"DiscordGlitchID":"" ; Used in status.ahk for biome ping in Discord - Defaults to DiscordUserID if not set
     ,"WebhookRollSendMinimum":10000
     ,"WebhookRollPingMinimum":100000
     ,"WebhookAuraRollImages":0
@@ -178,10 +178,10 @@ global options := {"DoingObby":1
     ,"FirstTime":0
     ,"InvScreenshotsEnabled":1
     ,"LastInvScreenshot":0
-    ,"OCREnabled":0             ; Amraki
-    ,"RestartRobloxEnabled":0   ; Amraki
-    ,"RestartRobloxInterval":1  ; Amraki
-    ,"LastRobloxRestart":0      ; Amraki
+    ,"OCREnabled":0
+    ,"RestartRobloxEnabled":0
+    ,"RestartRobloxInterval":1
+    ,"LastRobloxRestart":0
     ,"RobloxUpdatedUI":2 ; Default to "New"
 
     ; Crafting
@@ -192,9 +192,9 @@ global options := {"DoingObby":1
     ,"PotionCraftingSlot1":0
     ,"PotionCraftingSlot2":0
     ,"PotionCraftingSlot3":0
-    ,"PotionAutoAddEnabled":0   ; Amraki
-    ,"PotionAutoAddInterval":10 ; Amraki
-    ,"LastPotionAutoAdd":0      ; Amraki
+    ,"PotionAutoAddEnabled":0
+    ,"PotionAutoAddInterval":10
+    ,"LastPotionAutoAdd":0
 
     ,"ExtraRoblox":0 ; mainly for me (builderdolphin) to run my 3rd acc on 2nd monitor, not used for anything else, not intended for public use unless yk what you're doing i guess
 
@@ -3180,12 +3180,12 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"ItemCraftingCheckBox":"ItemCraftingEnabled"
     ,"InvScreenshotinterval":"ScreenshotInterval"
     ,"PotionCraftingCheckBox":"PotionCraftingEnabled"
-    ,"PotionAutoAddCheckBox":"PotionAutoAddEnabled"          ; Amraki
-    ,"PotionAutoAddIntervalUpDown":"PotionAutoAddInterval"   ; Amraki
+    ,"PotionAutoAddCheckBox":"PotionAutoAddEnabled"
+    ,"PotionAutoAddIntervalUpDown":"PotionAutoAddInterval"
     ,"OwnPrivateServerCheckBox":"InOwnPrivateServer"
     ,"ReconnectCheckBox":"ReconnectEnabled"
-    ,"RestartRobloxCheckBox":"RestartRobloxEnabled"          ; Amraki
-    ,"RestartRobloxIntervalUpDown":"RestartRobloxInterval"   ; Amraki
+    ,"RestartRobloxCheckBox":"RestartRobloxEnabled"
+    ,"RestartRobloxIntervalUpDown":"RestartRobloxInterval"
     ,"WebhookCheckBox":"WebhookEnabled"
     ,"WebhookInput":"WebhookLink"
     ,"WebhookImportantOnlyCheckBox":"WebhookImportantOnly"
@@ -3193,7 +3193,7 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"WebhookUserIDInput":"DiscordUserID"
     ,"WebhookInventoryScreenshots":"InvScreenshotsEnabled"
     ,"StatusBarCheckBox":"StatusBarEnabled"
-    ,"OCREnabledCheckBox":"OCREnabled"}              ; Amraki
+    ,"OCREnabledCheckBox":"OCREnabled"}
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
     ,"WebhookRollPingInput":"WebhookRollPingMinimum"}
