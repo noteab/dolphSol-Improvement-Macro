@@ -186,6 +186,12 @@
             "image": "https://static.wikia.nocookie.net/sol-rng/images/c/ca/Astral_gif.gif",
             "rarity": 267200
         },
+        "7880906": {
+            "name": "Astral [BT]",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/c/ca/Astral_gif.gif",
+            "rarity": 1336000,
+            "cornerColor": 1117213
+        },
         "9937663": {
             "name": "Celestial",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/6/60/CelestialAura.gif",
@@ -217,12 +223,6 @@
             "name": "Magnetic : Reverse Polarity",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/c/c2/MagneticReversePolarityCollection.gif",
             "rarity": 1024000
-        },
-        "7880906": {
-            "name": "Astral",
-            "image": "https://static.wikia.nocookie.net/sol-rng/images/c/ca/Astral_gif.gif",
-            "rarity": 1336000,
-            "cornerColor": 1117213
         },
         "5399551": {
             "name": "Gravitational",
