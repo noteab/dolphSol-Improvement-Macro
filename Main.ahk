@@ -1248,12 +1248,11 @@ walkToPotionCrafting(){
     walkSend("w","Down")
     walkSleep(2300)
     jump()
-    walkSleep(300 + 100*(!options.VIP))
+    walkSleep(400 + 100*(!options.VIP))
     walkSend("w","Up")
     press("a",9500)
     walkSend("d","Down")
-    jump()
-    walkSleep(900)
+    walkSleep(1000)
     walkSend("d","Up")
     Send {Space Down}
     walkSend("s","Down")
@@ -1553,16 +1552,18 @@ ShowMousePos() {
 }
 
 isCraftingMenuOpen() {
-    ; if (options.OCREnabled) {
-    if (containsText(250, 30, 200, 75, "Close")) {
+    getRobloxPos(rX,rY,width,height)
+    centerPos := [width*0.182, height*0.06]
+    areaDims := [125, 50]
+    closeX := rX + centerPos[1] - (areaDims[1]/2)
+    closeY := rY + centerPos[2] - (areaDims[2]/2)
+
+    if (containsText(closeX, closeY, areaDims[1], areaDims[2], "Close")) {
         return 1
     }
-        ; Don't return 0 so it uses backup non-ocr check
-    ; }
 
-    convertScreenCoordinates(290, 40, closeX, closeY)
-    PixelSearch, blackX, blackY, closeX, closeY, closeX+100, closeY+40, 0x060A09, 16, Fast RGB
-    PixelSearch, whiteX, whiteY, closeX, closeY, closeX+100, closeY+40, 0xFFFFFF, 16, Fast RGB
+    PixelSearch, blackX, blackY, closeX, closeY, closeX+areaDims[1], closeY+areaDims[2], 0x060A09, 16, Fast RGB
+    PixelSearch, whiteX, whiteY, closeX, closeY, closeX+areaDims[1], closeY+areaDims[2], 0xFFFFFF, 16, Fast RGB
     if (blackX && whiteX) {
         logMessage("Close button found")
         return 1
@@ -1647,13 +1648,6 @@ craftingClickAdd(totalSlots, maxes := 0, isGear := 0) {
     Loop %totalSlots% {
         ; Skip crafting slot if already complete
         slotPosY := startY + slotSize*(A_Index-1)
-        ; PixelSearch, pX, pY, startX-5, slotPosY-5, startX+5, slotPosY+5, 0x158210, 8, Fast RGB
-        ; if (pX && pY) {
-        ; }
-
-        ; 6/23 - Incorrectly detecting gilded coin slot as completed
-        ; 0x178111 seems to work better. More testing needed to determine if stella and jake completed are different
-        ; Bypassing for now
         PixelGetColor, checkC, startX, slotPosY, RGB
         ; logMessage("Slot " slotI " Color: " checkC, 1)
         if (!isGear && compareColors(checkC, 0x178111) < 6) {
@@ -1667,13 +1661,11 @@ craftingClickAdd(totalSlots, maxes := 0, isGear := 0) {
             inputQty := Max(1, Floor(maxes[slotI] * fraction))
             ; logMessage("Crafting Slot " slotI " - Input Quantity: " inputQty " - Fraction: " fraction, 1)
 
-            MouseMove, % (slotI == 1) ? startX : startXAmt, % slotPosY
+            MouseMove, % startXAmt, % slotPosY
             Sleep, 200
-            ; MouseClick, WheelUp ; Test if this is still needed
-            ; Sleep, 200
             MouseClick
             Sleep, 200
-            Send % inputQty
+            SendInput, % inputQty
             Sleep, 200
 
             ; Click the "Add" button
@@ -1686,7 +1678,7 @@ craftingClickAdd(totalSlots, maxes := 0, isGear := 0) {
 
             ; Check if the crafting slot is complete
             PixelGetColor, checkC, startX, slotPosY, RGB
-            if (compareColors(checkC, craftingCompleteColor) < 20) {
+            if (compareColors(checkC, 0x178111) < 20) {
                 break
             }
 
@@ -1722,6 +1714,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         updateStatus("Crafting Failed. Fixing Camera...")
         Sleep, 2000
         alignCamera()
+        reset()
         Sleep, 500
         handleCrafting(0,retryCount+1)
         return
@@ -1743,13 +1736,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         walkSend("a","Up")
         walkSleep(500)
         press("f")
-        walkSleep(500)
-
-        ; Continue moving away from cauldron to avoid exiting menu early
-        walkSend("a","Down")
         walkSleep(1000)
-        walkSend("a","Up")
-        walkSleep(500)
 
         ; OCR - Check for "Close" button
         if (!isCraftingMenuOpen()) {
@@ -1842,15 +1829,17 @@ handleCrafting(craftLocation := 0, retryCount := 0){
 }
 
 ; Click Auto Add if not enabled
-enableAutoAdd(){
-    btnW := 60
-    btnH := 25
-    convertScreenCoordinates(1080, 670, autoX, autoY)
-    PixelSearch,,, autoX, autoY, autoX+btnW, autoY+btnH, 0x30FF20, 20, Fast RGB
+enableAutoAdd() {
+    getRobloxPos(rX,rY,width,height)
+    centerPos := [width*0.599, height*0.629]
+    areaDims := [100, 50]
+    autoX := rX + centerPos[1] - (areaDims[1]/2)
+    autoY := rY + centerPos[2] - (areaDims[2]/2)
 
+    PixelSearch,,, autoX, autoY, autoX+areaDims[1], autoY+areaDims[2], 0x30FF20, 16, Fast RGB
     if (ErrorLevel) {
-        ClickMouse(autoX+btnW/2, autoY+btnH/2)
-        logMessage("Enabled Auto Add", 1)
+        ClickMouse(rX + centerPos[1], rY + centerPos[2])
+        logMessage("Auto Add clicked", 1)
     } else { ; Skip if Auto Add is already enabled
         logMessage("Auto Add already enabled", 1)
     }
