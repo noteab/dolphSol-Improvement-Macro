@@ -169,7 +169,7 @@ global options := {"DoingObby":1
     ,"WebhookLink":""
     ,"WebhookImportantOnly":0
     ,"DiscordUserID":""
-    ,"DiscordGlitchID":""       ; Amraki ; Used in status.ahk for biome ping in Discord - Defaults to DiscordUserID if not set
+    ,"DiscordGlitchID":"" ; Used in status.ahk for biome ping in Discord - Defaults to DiscordUserID if not set
     ,"WebhookRollSendMinimum":10000
     ,"WebhookRollPingMinimum":100000
     ,"WebhookAuraRollImages":0
@@ -178,10 +178,10 @@ global options := {"DoingObby":1
     ,"FirstTime":0
     ,"InvScreenshotsEnabled":1
     ,"LastInvScreenshot":0
-    ,"OCREnabled":0             ; Amraki
-    ,"RestartRobloxEnabled":0   ; Amraki
-    ,"RestartRobloxInterval":1  ; Amraki
-    ,"LastRobloxRestart":0      ; Amraki
+    ,"OCREnabled":0
+    ,"RestartRobloxEnabled":0
+    ,"RestartRobloxInterval":1
+    ,"LastRobloxRestart":0
     ,"RobloxUpdatedUI":2 ; Default to "New"
 
     ; Crafting
@@ -192,9 +192,9 @@ global options := {"DoingObby":1
     ,"PotionCraftingSlot1":0
     ,"PotionCraftingSlot2":0
     ,"PotionCraftingSlot3":0
-    ,"PotionAutoAddEnabled":0   ; Amraki
-    ,"PotionAutoAddInterval":10 ; Amraki
-    ,"LastPotionAutoAdd":0      ; Amraki
+    ,"PotionAutoAddEnabled":0
+    ,"PotionAutoAddInterval":10
+    ,"LastPotionAutoAdd":0
 
     ,"ExtraRoblox":0 ; mainly for me (builderdolphin) to run my 3rd acc on 2nd monitor, not used for anything else, not intended for public use unless yk what you're doing i guess
 
@@ -1581,16 +1581,18 @@ ShowMousePos() {
 }
 
 isCraftingMenuOpen() {
-    ; if (options.OCREnabled) {
-    if (containsText(250, 30, 200, 75, "Close")) {
+    getRobloxPos(rX,rY,width,height)
+    centerPos := [width*0.182, height*0.06]
+    areaDims := [125, 50]
+    closeX := rX + centerPos[1] - (areaDims[1]/2)
+    closeY := rY + centerPos[2] - (areaDims[2]/2)
+
+    if (containsText(closeX, closeY, areaDims[1], areaDims[2], "Close")) {
         return 1
     }
-        ; Don't return 0 so it uses backup non-ocr check
-    ; }
 
-    convertScreenCoordinates(290, 40, closeX, closeY)
-    PixelSearch, blackX, blackY, closeX, closeY, closeX+100, closeY+40, 0x060A09, 16, Fast RGB
-    PixelSearch, whiteX, whiteY, closeX, closeY, closeX+100, closeY+40, 0xFFFFFF, 16, Fast RGB
+    PixelSearch, blackX, blackY, closeX, closeY, closeX+areaDims[1], closeY+areaDims[2], 0x060A09, 16, Fast RGB
+    PixelSearch, whiteX, whiteY, closeX, closeY, closeX+areaDims[1], closeY+areaDims[2], 0xFFFFFF, 16, Fast RGB
     if (blackX && whiteX) {
         logMessage("Close button found")
         return 1
@@ -1675,13 +1677,6 @@ craftingClickAdd(totalSlots, maxes := 0, isGear := 0) {
     Loop %totalSlots% {
         ; Skip crafting slot if already complete
         slotPosY := startY + slotSize*(A_Index-1)
-        ; PixelSearch, pX, pY, startX-5, slotPosY-5, startX+5, slotPosY+5, 0x158210, 8, Fast RGB
-        ; if (pX && pY) {
-        ; }
-
-        ; 6/23 - Incorrectly detecting gilded coin slot as completed
-        ; 0x178111 seems to work better. More testing needed to determine if stella and jake completed are different
-        ; Bypassing for now
         PixelGetColor, checkC, startX, slotPosY, RGB
         ; logMessage("Slot " slotI " Color: " checkC, 1)
         if (!isGear && compareColors(checkC, 0x178111) < 6) {
@@ -1695,13 +1690,11 @@ craftingClickAdd(totalSlots, maxes := 0, isGear := 0) {
             inputQty := Max(1, Floor(maxes[slotI] * fraction))
             ; logMessage("Crafting Slot " slotI " - Input Quantity: " inputQty " - Fraction: " fraction, 1)
 
-            MouseMove, % (slotI == 1) ? startX : startXAmt, % slotPosY
+            MouseMove, % startXAmt, % slotPosY
             Sleep, 200
-            ; MouseClick, WheelUp ; Test if this is still needed
-            ; Sleep, 200
             MouseClick
             Sleep, 200
-            Send % inputQty
+            SendInput, % inputQty
             Sleep, 200
 
             ; Click the "Add" button
@@ -1714,7 +1707,7 @@ craftingClickAdd(totalSlots, maxes := 0, isGear := 0) {
 
             ; Check if the crafting slot is complete
             PixelGetColor, checkC, startX, slotPosY, RGB
-            if (compareColors(checkC, craftingCompleteColor) < 20) {
+            if (compareColors(checkC, 0x178111) < 20) {
                 break
             }
 
@@ -1750,6 +1743,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         updateStatus("Crafting Failed. Fixing Camera...")
         Sleep, 2000
         alignCamera()
+        reset()
         Sleep, 500
         handleCrafting(0,retryCount+1)
         return
@@ -1772,13 +1766,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         walkSend("a","Up")
         walkSleep(500)
         press("f")
-        walkSleep(500)
-
-        ; Continue moving away from cauldron to avoid exiting menu early
-        walkSend("a","Down")
         walkSleep(1000)
-        walkSend("a","Up")
-        walkSleep(500)
 
         ; OCR - Check for "Close" button
         if (!isCraftingMenuOpen()) {
@@ -1871,15 +1859,17 @@ handleCrafting(craftLocation := 0, retryCount := 0){
 }
 
 ; Click Auto Add if not enabled
-enableAutoAdd(){
-    btnW := 60
-    btnH := 25
-    convertScreenCoordinates(1080, 670, autoX, autoY)
-    PixelSearch,,, autoX, autoY, autoX+btnW, autoY+btnH, 0x30FF20, 20, Fast RGB
+enableAutoAdd() {
+    getRobloxPos(rX,rY,width,height)
+    centerPos := [width*0.599, height*0.629]
+    areaDims := [100, 50]
+    autoX := rX + centerPos[1] - (areaDims[1]/2)
+    autoY := rY + centerPos[2] - (areaDims[2]/2)
 
+    PixelSearch,,, autoX, autoY, autoX+areaDims[1], autoY+areaDims[2], 0x30FF20, 16, Fast RGB
     if (ErrorLevel) {
-        ClickMouse(autoX+btnW/2, autoY+btnH/2)
-        logMessage("Enabled Auto Add", 1)
+        ClickMouse(rX + centerPos[1], rY + centerPos[2])
+        logMessage("Auto Add clicked", 1)
     } else { ; Skip if Auto Add is already enabled
         logMessage("Auto Add already enabled", 1)
     }
@@ -3110,8 +3100,14 @@ ShowAuraSettings() {
     local columnCounter := 0
     local columnWidth := 240
 
+    ; Sort names
+    sortedNames := {}
+    for k, v in auraNames
+        sortedNames[v] := v
+    auraNames := sortedNames
+
     ; Create checkboxes for each aura
-    for index, auraName in auraNames {
+    for _, auraName in auraNames {
         ; Convert the aura name to a valid variable name
         sAuraName := RegExReplace(auraName, "[^a-zA-Z0-9]+", "_") ; Replace with underscore
         sAuraName := RegExReplace(sAuraName, "\_$", "") ; Remove any trailing underscore
@@ -3141,7 +3137,7 @@ applyAuraSettings() {
     Gui AuraSettings:Default  ; Ensure we are in the context of AuraSettings GUI
 
     ; Save aura settings with prefix
-    for index, auraName in auraNames {
+    for _, auraName in auraNames {
         sAuraName := RegExReplace(auraName, "[^a-zA-Z0-9]+", "_") ; Replace all non-alphanumeric characters with underscore
         sAuraName := RegExReplace(sAuraName, "\_$", "") ; Remove any trailing underscore
         
@@ -3209,12 +3205,12 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"ItemCraftingCheckBox":"ItemCraftingEnabled"
     ,"InvScreenshotinterval":"ScreenshotInterval"
     ,"PotionCraftingCheckBox":"PotionCraftingEnabled"
-    ,"PotionAutoAddCheckBox":"PotionAutoAddEnabled"          ; Amraki
-    ,"PotionAutoAddIntervalUpDown":"PotionAutoAddInterval"   ; Amraki
+    ,"PotionAutoAddCheckBox":"PotionAutoAddEnabled"
+    ,"PotionAutoAddIntervalUpDown":"PotionAutoAddInterval"
     ,"OwnPrivateServerCheckBox":"InOwnPrivateServer"
     ,"ReconnectCheckBox":"ReconnectEnabled"
-    ,"RestartRobloxCheckBox":"RestartRobloxEnabled"          ; Amraki
-    ,"RestartRobloxIntervalUpDown":"RestartRobloxInterval"   ; Amraki
+    ,"RestartRobloxCheckBox":"RestartRobloxEnabled"
+    ,"RestartRobloxIntervalUpDown":"RestartRobloxInterval"
     ,"WebhookCheckBox":"WebhookEnabled"
     ,"WebhookInput":"WebhookLink"
     ,"WebhookImportantOnlyCheckBox":"WebhookImportantOnly"
@@ -3222,7 +3218,7 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"WebhookUserIDInput":"DiscordUserID"
     ,"WebhookInventoryScreenshots":"InvScreenshotsEnabled"
     ,"StatusBarCheckBox":"StatusBarEnabled"
-    ,"OCREnabledCheckBox":"OCREnabled"}              ; Amraki
+    ,"OCREnabledCheckBox":"OCREnabled"}
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
     ,"WebhookRollPingInput":"WebhookRollPingMinimum"}
