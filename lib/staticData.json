@@ -333,6 +333,11 @@
             "rarity": 300000000,
             "biome": {"name": "Hell", "factor":6},
             "cornerColor": 327680
+        },
+        "16740721": {
+            "name": "Watermelon",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/5/56/Watermelon_Collection.png",
+            "rarity": 320000
         }
     }
 }]
