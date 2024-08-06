@@ -338,6 +338,13 @@
             "name": "Watermelon",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/5/56/Watermelon_Collection.png",
             "rarity": 320000
+        },
+        "3906303": {
+            "name": "Shard Surfer",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/1/1f/Image_%2861%29.png",
+            "rarity": 225000000,
+            "biome": {"name": "Snowy", "factor":3},
+            "cornerColor": 2123672
         }
     }
 }]
