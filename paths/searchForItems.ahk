@@ -15,7 +15,6 @@ walkSend("a","Up")
 walkSleep(2150)
 walkSend("s","Up")
 collect(1)
-
 walkSend("d","Down")
 walkSleep(3200)
 walkSend("s","Down")
