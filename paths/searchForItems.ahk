@@ -24,7 +24,89 @@ walkSend("s","Up")
 walkSleep(400)
 walkSend("d","Up")
 collect(2)
-if (options.VIP){
+
+if (options.Shifter){
+
+    walkSend("a","Down")
+    walkSleep(150)
+    walkSend("w","Down")
+    walkSleep(950)
+    walkSend("a","Up")
+    walkSleep(1950)
+    jump()
+    walkSleep(600)
+    walkSend("d","Down")
+    jump()
+    walkSleep(450)
+    walkSend("d","Up")
+    jump()
+    walkSleep(350)
+    walkSend("w","Up")
+    collect(3)
+
+    walkSend("w","Down")
+    walkSleep(100)
+    walkSend("d","Down")
+    walkSleep(600)
+    walkSend("d","Up")
+    walkSleep(200)
+    walkSend("w","Up")
+    collect(4)
+
+    reset()
+    Sleep, 2000
+
+    walkSend("w","Down")
+    walkSend("a","Down")
+    walkSleep(3750)
+    walkSend("a","Up")
+    walkSleep(750)
+    walkSend("w","Up")
+    collect(5)
+
+    walkSend("a","Down")
+    walkSleep(1222)
+    ; :)
+    jump()
+    walkSleep(2125)
+    jump()
+    walkSleep(250)
+    walkSend("a","Up")
+    collect(6)
+
+
+    walkSend("a","Down")
+    walkSleep(2500)
+    press("s",500)
+    walkSend("a","Up")
+    walkSend("s","Down")
+    jump()
+    walkSleep(800)
+    walkSend("s","Up")
+    walkSend("a","Down")
+    walkSleep(600)
+    jump()
+    walkSleep(200)
+    walkSend("a","up")
+    walkSleep(300)
+    walkSend("s","Down")
+    walkSleep(800)
+    jump()
+    walkSleep(800)
+    jump()
+    walkSleep(800)
+    jump()
+    press("a",70)
+    walkSleep(800)
+    jump()
+    walkSleep(300)
+    walkSend("s","Up")
+    press("d",150)
+
+    sleep, 100
+    collect(7)
+
+} else if (options.VIP){
 
     walkSend("a","Down")
     walkSleep(150)
@@ -110,7 +192,9 @@ if (options.VIP){
     walkSend("d","Up")
     sleep, 100
     collect(7)
+
 } else {
+
     ; back to spawn
     reset()
     Sleep, 2000

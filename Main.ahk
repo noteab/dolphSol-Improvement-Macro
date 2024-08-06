@@ -183,6 +183,7 @@ global options := {"DoingObby":1
     ,"RestartRobloxInterval":1
     ,"LastRobloxRestart":0
     ,"RobloxUpdatedUI":2 ; Default to "New"
+    ,"Shifter":0
 
     ; Crafting
     ,"ItemCraftingEnabled":0
@@ -831,7 +832,13 @@ JEE_AhkWinIsPaused(hWnd) {
 global regWalkFactor := 1.25 ; since i made the paths all with vip, normalize
 
 getWalkTime(d){
-    return d*(1 + (regWalkFactor-1)*(1-options.VIP))
+    baseTime := d * (1 + (regWalkFactor - 1) * (1 - options.VIP))
+    
+    if (options.Shifter) {
+        baseTime := baseTime / 1.50
+    }
+    
+    return baseTime
 }
 
 walkSleep(d){
@@ -2995,8 +3002,9 @@ CreateMainUI() {
     Gui Font, s9 norm
     Gui Add, CheckBox, vVIPCheckBox x32 y58 w150 h22 +0x2, % " VIP Gamepass Owned"
     Gui Add, CheckBox, vAzertyCheckBox x32 y78 w200 h22 +0x2, % " AZERTY Keyboard Layout"
-    Gui Add, Text, x32 y101 w200 h22, % "Collection Back Button Y Offset:"
-    Gui Add, Edit, x206 y100 w50 h18
+    Gui Add, CheckBox, vShifterCheckBox x32 y98 w200 h22 +0x2, % " Shifter Mode"
+    Gui Add, Text, x32 y121 w200 h22, % "Collection Back Button Y Offset:" ; increase by 30 to move down
+    Gui Add, Edit, x206 y120 w50 h18
     Gui Add, UpDown, vBackOffsetUpDown Range-500-500, 0
 
     Gui Font, s10 w600
@@ -3218,7 +3226,8 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"WebhookUserIDInput":"DiscordUserID"
     ,"WebhookInventoryScreenshots":"InvScreenshotsEnabled"
     ,"StatusBarCheckBox":"StatusBarEnabled"
-    ,"OCREnabledCheckBox":"OCREnabled"}
+    ,"OCREnabledCheckBox":"OCREnabled"
+    ,"ShifterCheckBox":"Shifter"}
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
     ,"WebhookRollPingInput":"WebhookRollPingMinimum"}
