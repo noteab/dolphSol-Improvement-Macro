@@ -17,7 +17,7 @@
 SetBatchLines, -1
 
 OnError("LogError")
-; OnMessage(0x500, "ReceiveData")
+OnMessage(0x4a, "ReceiveFromStatus")
 
 SetWorkingDir, % A_ScriptDir "\lib"
 CoordMode, Pixel, Screen
@@ -57,9 +57,10 @@ global disableAlignment := false ; Toggle with F5
 global lastLoggedMessage := ""
 global delayMultiplier := 3 ; Delay multiplier for slower computers - Mainly for camera mode changes
 global auraNames := [] ; List of aura names for webhook pings
-global biomes := ["Windy", "Rainy", "Snowy", "Hell", "Starfall", "Corruption", "Null", "Glitched"]
+global biomes := []
 global ItemSchedulerEntries := []  ; Initialize the array for item usage entries
 global StellaPortalDelay := 0 ; Extra wait time (ms) after entering portal before moving to cauldron - 1000ms = 1s
+global currentBiome := ""
 
 global robloxId := 0
 
@@ -517,6 +518,7 @@ loadData(){
     }
 
     ; Load biome settings
+    biomes := sData.biomes
     for i, biome in biomes {
         key := "Biome" . biome
         if (savedRetrieve.HasKey(key)) {
@@ -2066,38 +2068,6 @@ useItem(itemName, useAmount := 1) {
     Sleep, 200
 }
 
-global deviceLastUsed := A_TickCount
-global currentBiome
-; 
-changeBiome() {
-    deviceIntervalMS := 20 * 60 * 1000
-    sinceLastUsed := A_TickCount - deviceLastUsed
-    
-    cooldownRemainingSec := Floor(((deviceIntervalMS - sinceLastUsed) / 1000))
-    logMessage("Device Cooldown: " cooldownRemainingSec " seconds", 1)
-
-    ; Cooldown check
-    if (sinceLastUsed < deviceIntervalMS) {
-        return
-    }
-
-    ; Change biome
-    logMessage("Current Biome: '" currentBiome "'")
-    if !(currentBiome in ["Glitched", "Hell", "Null"]) {
-        ;"Strange Controller" or "Biome Randomizer"
-        logMessage("Changing biome using 'Strange Controller'", 1)
-
-        PausePaths()
-        useItem("Strange Controller")
-        deviceLastUsed := A_TickCount
-        ResumePaths()
-
-        ; Update biome check schedule
-        SetTimer, biomeLoop, Off
-        biomeLoop()
-    }
-}
-
 checkBottomLeft(){
     getRobloxPos(rX,rY,width,height)
 
@@ -2301,20 +2271,19 @@ enableAutoRoll() {
     }
 }
 
-/* WIP - Do not use
-ReceiveData(wParam, lParam) {
-    ; Lock the memory and get the string
-    StringAddress := DllCall("GlobalLock", "Ptr", lParam, "Ptr")
-    if (StringAddress) {
-        currentBiome := StrGet(StringAddress, "UTF-8")  ; Ensure the correct encoding
-        DllCall("GlobalUnlock", "Ptr", lParam)
-        logMessage("[ReceiveData] Current Biome: " currentBiome)
-        ToolTip, % "Current Biome: " currentBiome
-        Sleep, 5000
-        ToolTip
-    }
+ReceiveFromStatus(wParam, lParam) {
+    StringAddress := NumGet(lParam + 2*A_PtrSize)
+    CopyDataSize := NumGet(lParam + A_PtrSize)
+
+    VarSetCapacity(ReceivedData, CopyDataSize)
+    DllCall("RtlMoveMemory", "Ptr", &ReceivedData, "Ptr", StringAddress, "Ptr", CopyDataSize)
+    
+    ; Ensure null termination for the string
+    ReceivedData := StrGet(&ReceivedData, CopyDataSize/2)
+
+    currentBiome := ReceivedData
+    logMessage("New Biome: " currentBiome)
 }
-*/
 
 LogError(exc) {
     logMessage("[LogError] Error on line " exc.Line ": " exc.Message)
@@ -2394,130 +2363,6 @@ containsText(x, y, width, height, text) {
         logMessage("[containsText] Error searching '" text "': `n" e, 1)
         return -1
     }
-}
-
-global biomeData := {"Normal":{duration: 0}
-                    ,"Windy":{duration: 120}
-                    ,"Rainy":{duration: 120}
-                    ,"Snowy":{duration: 120}
-                    ,"Hell":{duration: 660}
-                    ,"Starfall":{duration: 600}
-                    ,"Corruption":{duration: 660}
-                    ,"Null":{duration: 90}
-                    ,"Glitched":{duration: 164}}
-
-global similarCharacters := {"1":"l"
-    ,"n":"m"
-    ,"m":"n"
-    ,"t":"f"
-    ,"f":"t"
-    ,"s":"S"
-    ,"S":"s"
-    ,"w":"W"
-    ,"W":"w"}
-
-identifyBiome(inputStr){
-    if (!inputStr)
-        return 0
-    
-    internalStr := RegExReplace(inputStr,"\s")
-    internalStr := RegExReplace(internalStr,"^([\[\(\{\|IJ]+)")
-    internalStr := RegExReplace(internalStr,"([\]\)\}\|IJ]+)$")
-
-    highestRatio := 0
-    matchingBiome := ""
-
-    for v,_ in biomeData {
-        if (v = "Glitched"){
-            continue
-        }
-        scanIndex := 1
-        accuracy := 0
-        Loop % StrLen(v) {
-            checkingChar := SubStr(v,A_Index,1)
-            Loop % StrLen(internalStr) - scanIndex + 1 {
-                index := scanIndex + A_Index - 1
-                targetChar := SubStr(internalStr, index, 1)
-                if (targetChar = checkingChar){
-                    accuracy += 3 - A_Index
-                    scanIndex := index+1
-                    break
-                } else if (similarCharacters[targetChar] = checkingChar){
-                    accuracy += 2.5 - A_Index
-                    scanIndex := index+1
-                    break
-                }
-            }
-        }
-        ratio := accuracy/(StrLen(v)*2)
-        if (ratio > highestRatio){
-            matchingBiome := v
-            highestRatio := ratio
-        }
-    }
-
-    if (highestRatio < 0.70){
-        matchingBiome := 0
-        glitchedCheck := StrLen(internalStr)-StrLen(RegExReplace(internalStr,"\d")) + (RegExMatch(internalStr,"\.") ? 4 : 0)
-        if (glitchedCheck >= 20){
-            OutputDebug, % "glitched biome pro!"
-            matchingBiome := "Glitched"
-        }
-    }
-
-    return matchingBiome
-}
-
-determineBiome(){
-    ; logMessage("[determineBiome] Determining biome...")
-    if (!WinActive("ahk_id " GetRobloxHWND()) && !WinActive("Roblox")){
-        logMessage("[determineBiome] Roblox window not active.")
-        return
-    }
-    getRobloxPos(rX,rY,width,height)
-
-    ; Capture screen area
-    pBM := Gdip_BitmapFromScreen(rX "|" rY + height - height*0.102 + ((height/600) - 1)*10 "|" width*0.15 "|" height*0.03)
-
-    effect := Gdip_CreateEffect(3,"2|0|0|0|0" . "|" . "0|1.5|0|0|0" . "|" . "0|0|1|0|0" . "|" . "0|0|0|1|0" . "|" . "0|0|0.2|0|1",0)
-    effect2 := Gdip_CreateEffect(5,-100,250)
-    effect3 := Gdip_CreateEffect(2,10,50)
-    Gdip_BitmapApplyEffect(pBM,effect)
-    Gdip_BitmapApplyEffect(pBM,effect2)
-    Gdip_BitmapApplyEffect(pBM,effect3)
-
-    identifiedBiome := 0
-    resizeCounter := 0
-    Loop 10 {
-        newSizedPBM := Gdip_ResizeBitmap(pBM,300+(A_Index*38),70+(A_Index*7.5),1,2)
-        ocrResult := ocrFromBitmap(newSizedPBM)
-        identifiedBiome := identifyBiome(ocrResult)
-
-        Gdip_DisposeBitmap(newSizedPBM)
-
-        if (identifiedBiome){
-            resizeCounter := A_Index ; Attempt to determine the optimal resize multiplier
-            break
-        }
-    }
-    
-    ; Log only if identified
-    if (identifiedBiome && identifiedBiome != "Normal") {
-        logMessage("[determineBiome] OCR result: " RegExReplace(ocrResult,"(\n|\r)+",""))
-        logMessage("[determineBiome] Identified biome: " identifiedBiome " (" resizeCounter " resizes)")
-        ToolTip, % "Identified biome: " identifiedBiome " (" resizeCounter " resizes )"
-        RemoveTooltip(5)
-    }
-
-    Gdip_DisposeEffect(effect)
-    Gdip_DisposeEffect(effect2)
-    Gdip_DisposeEffect(effect3)
-    Gdip_DisposeBitmap(retrievedMap)
-    Gdip_DisposeBitmap(pBM)
-
-    DllCall("psapi.dll\EmptyWorkingSet", "ptr", -1)
-
-    return identifiedBiome
 }
 
 attemptReconnect(failed := 0){
@@ -2770,16 +2615,16 @@ mainLoop(){
     currentUnixTime := getUnixTime()
     for each, entry in ItemSchedulerEntries {
         if (entry.Enabled && currentUnixTime >= entry.NextRunTime) {
-            ; Use specified number of item
-            UseItem(entry.ItemName, entry.Quantity)
+            ; Account for biome
+            if (!entry.Biome || entry.Biome == "Any" || entry.Biome == currentBiome) { ; !entry.Biome check needed for pre-Biome legacy entries
+                ; Use specified number of item
+                UseItem(entry.ItemName, entry.Quantity)
 
-            ; Update the NextRunTime for the next scheduled run
-            frequencyInSeconds := entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600)
-            nextRunTime := currentUnixTime + frequencyInSeconds
-            ; FormatTime, t, nextRunTime, "hh:mm:ss tt"
-            ; logMessage("[Scheduler] " entry.ItemName " next run: " t " (" frequencyInSeconds " seconds)", 1)
-
-            entry.NextRunTime := nextRunTime
+                ; Update the NextRunTime for the next scheduled run
+                frequencyInSeconds := entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600)
+                nextRunTime := currentUnixTime + frequencyInSeconds
+                entry.NextRunTime := nextRunTime
+            }
         }
     }
 
@@ -2841,33 +2686,6 @@ mainLoop(){
     GuiControl,,TestT,% checkHasObbyBuff(BRCornerX,BRCornerY,statusEffectHeight)
     */
 }
-
-; Used to detect current biome - Copied from status.ahk 
-biomeLoop(){ ; originally secondTick() - renamed due to conflict with existing function
-    if (!options.OCREnabled) {
-        return
-    }
-
-    detectedBiome := determineBiome()
-
-    if (detectedBiome && biomeData[detectedBiome] && detectedBiome != "Normal"){
-        ; If it's the same, we may be checking a little too early so don't wait the full duration again
-        if (detectedBiome = currentBiome) {
-            SetTimer, biomeLoop, -2000
-            return
-        }
-
-        currentBiome := detectedBiome
-
-        changeBiome()
-
-        targetData := biomeData[currentBiome]
-        SetTimer, biomeLoop, % -(targetData.duration+5) * 1000
-    } else {
-        SetTimer, biomeLoop, -2000
-    }
-}
-; biomeLoop()
 
 CreateMainUI() {
     global

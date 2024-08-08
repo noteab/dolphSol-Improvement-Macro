@@ -1,4 +1,8 @@
+/*
 
+    Arrays 'ScheduleItems' and 'biomes' are defined in staticData.json
+
+*/
 
 ; Create the Item Scheduler settings popup
 ShowItemSchedulerSettings() {
@@ -25,6 +29,7 @@ ShowItemSchedulerSettings() {
     Gui Add, Text, x+30 yp w100 h20, Item
     Gui Add, Text, x+-25 yp w50 h20, Quantity
     Gui Add, Text, x+20 yp w50 h20, Frequency
+    Gui Add, Text, x+55 yp w50 h20, Biome
     yPos += 20
 
     ; Create entries for each item usage configuration
@@ -40,7 +45,7 @@ ShowItemSchedulerSettings() {
         yPos += 30
     }
 
-    Gui Show, % "w430 h400", Auto Item Scheduler
+    Gui Show, % "w500 h400", Auto Item Scheduler
 }
 
 ; Function to add item entry to GUI
@@ -50,19 +55,26 @@ AddItemEntry(idx, entry, xPos, yPos) {
     OutputDebug, % "Adding entry " idx " at yPos " yPos
 
     ; Concatenate item names for the dropdown list
-    UsableItems := ["Strange Controller", "Biome Randomizer", "Lucky", "Speed", "Fortune Potion I", "Fortune Potion II", "Fortune Potion III", "Haste Potion I", "Haste Potion II", "Haste Potion III", "Heavenly Potion I", "Heavenly Potion II"]
-    itemList := "|"
-    for each, item in UsableItems {
+    itemList := ""
+    for each, item in ScheduleItems {
         itemList .= item "|"
+    }
+
+    ; Concatenate biome names for the dropdown list
+    biomeList := "Any|"
+    for each, biome in biomes {
+        biomeList .= biome "|"
     }
 
     ; Add controls for the entry
     Gui Add, CheckBox, % "vEnable" idx "CheckBox Section x" xPos " y" yPos " w30 h20 Checked" entry.Enabled, % idx
     Gui Add, DropDownList, vItem%idx%DropDown x+ yp w115 h20 R10, % itemList
     GuiControl, ChooseString, Item%idx%DropDown, % entry.ItemName
-    Gui Add, Edit, vQuantity%idx%Edit x+5 yp wp+10 w40 h20 Number, % entry.Quantity
-    Gui Add, Edit, vFrequency%idx%Edit x+5 yp w30 h20 Number, % entry.Frequency
+    Gui Add, Edit, vQuantity%idx%Edit x+5 yp wp+10 w40 h20 Number Center, % entry.Quantity
+    Gui Add, Edit, vFrequency%idx%Edit x+5 yp w30 h20 Number Center, % entry.Frequency
     Gui Add, DropDownList, vTimeUnit%idx%DropDown x+ yp w80 h20 R2, Minutes||Hours
+    Gui Add, DropDownList, vBiome%idx%DropDown x+ yp w75 h20 R10, % biomeList
+    GuiControl, ChooseString, Biome%idx%DropDown, % entry.Biome ? entry.Biome : "Any"
     Gui Add, Button, gDeleteItemEntry vDelete%idx% x+m yp w80 h20, Delete
 }
 
@@ -80,7 +92,8 @@ AddNewItemEntry() {
         , ItemName: ""
         , Quantity: 1
         , Frequency: 1
-        , TimeUnit: "Minutes"}
+        , TimeUnit: "Minutes"
+        , Biome: "Any"}
     
     idx := ItemSchedulerEntries.Length() + 1
     AddItemEntry(idx, entry, 20, yPos)
@@ -123,6 +136,7 @@ SaveItemSchedulerSettings() {
         GuiControlGet, quantity,, Quantity%idx%Edit
         GuiControlGet, frequency,, Frequency%idx%Edit
         GuiControlGet, timeUnit,, TimeUnit%idx%DropDown
+        GuiControlGet, biome,, Biome%idx%DropDown
 
         if (itemName = "" || quantity < 1 || frequency < 1) { ; Skip incomplete entries
             idx++
@@ -134,12 +148,14 @@ SaveItemSchedulerSettings() {
         ; OutputDebug, % "  Quantity: " quantity
         ; OutputDebug, % "  Frequency: " frequency
         ; OutputDebug, % "  Min/Hr: " timeUnit
+        ; OutputDebug, % "  Biome: " biome
 
         entry := {Enabled: enabled
             , ItemName: itemName
             , Quantity: quantity
             , Frequency: frequency
-            , TimeUnit: timeUnit}
+            , TimeUnit: timeUnit
+            , Biome: biome}
 
         ; Add the entry to the ItemSchedulerEntries array
         ItemSchedulerEntries.Push(entry)
@@ -149,7 +165,7 @@ SaveItemSchedulerSettings() {
 
     ; Save settings to global options
     for i, entry in ItemSchedulerEntries {
-        options["ISEntry" i] := entry.Enabled "," entry.ItemName "," entry.Quantity "," entry.Frequency "," entry.TimeUnit
+        options["ISEntry" i] := entry.Enabled "," entry.ItemName "," entry.Quantity "," entry.Frequency "," entry.TimeUnit "," entry.Biome
     }
 }
 
@@ -169,6 +185,7 @@ DeleteItemEntry() {
     GuiControl, Hide, Quantity%idx%Edit
     GuiControl, Hide, Frequency%idx%Edit
     GuiControl, Hide, TimeUnit%idx%DropDown
+    GuiControl, Hide, Biome%idx%DropDown
     GuiControl, Hide, Delete%idx%
 
     ; Reposition remaining controls
@@ -181,6 +198,7 @@ DeleteItemEntry() {
             GuiControl, Move, Quantity%i%Edit, y%yPos%
             GuiControl, Move, Frequency%i%Edit, y%yPos%
             GuiControl, Move, TimeUnit%i%DropDown, y%yPos%
+            GuiControl, Move, Biome%i%DropDown, y%yPos%
             GuiControl, Move, Delete%i%, y%yPos%
 
             ; Force redraw to ensure no blurriness or overlap
@@ -189,6 +207,7 @@ DeleteItemEntry() {
             GuiControl, MoveDraw, Quantity%i%Edit
             GuiControl, MoveDraw, Frequency%i%Edit
             GuiControl, MoveDraw, TimeUnit%i%DropDown
+            GuiControl, MoveDraw, Biome%i%DropDown
             GuiControl, MoveDraw, Delete%i%
             yPos += 30
         }
@@ -196,7 +215,10 @@ DeleteItemEntry() {
 }
 
 LoadItemSchedulerOptions() {
-    global configPath, ItemSchedulerEntries
+    global configPath, ItemSchedulerEntries, ScheduleItems
+
+    ; Load items available for use
+    ScheduleItems := sData.scheduleItems
 
     savedRetrieve := getINIData(configPath)
     if (!savedRetrieve) {
@@ -208,7 +230,7 @@ LoadItemSchedulerOptions() {
     for i, v in savedRetrieve {
         if (InStr(i, "ISEntry", 1) = 1) {
             parts := StrSplit(v, ",")
-            entry := {Enabled: parts[1], ItemName: parts[2], Quantity: parts[3], Frequency: parts[4], TimeUnit: parts[5]}
+            entry := {Enabled: parts[1], ItemName: parts[2], Quantity: parts[3], Frequency: parts[4], TimeUnit: parts[5], Biome: parts[6]}
             entry.NextRunTime := getUnixTime() ; Run once on load. TODO: Add option to menu entries
 
             if (entry.ItemName = "") {
@@ -220,7 +242,7 @@ LoadItemSchedulerOptions() {
 
     ; Add entries to options - Handled in Save function which is only called when Scheduler is closed
     for i, entry in ItemSchedulerEntries {
-        options["ISEntry" i] := entry.Enabled "," entry.ItemName "," entry.Quantity "," entry.Frequency "," entry.TimeUnit
+        options["ISEntry" i] := entry.Enabled "," entry.ItemName "," entry.Quantity "," entry.Frequency "," entry.TimeUnit "," entry.Biome
     }
 }
 
