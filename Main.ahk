@@ -2239,6 +2239,11 @@ ClickPlay() {
     
     ; Enable Auto Roll - Completely removed from Initialize() to avoid toggling when macro is restarted, but game is not
     ClickMouse(pX + (width*0.35), pY + (height*0.95))
+
+    ; Enable Merchant Tracker - Introduced Era 8.5 Update
+    ; No harm if user doesn't own
+    Sleep, 2000
+    useItem("Merchant Tracker")
 }
 
 ; Clear RAM by restarting Roblox
