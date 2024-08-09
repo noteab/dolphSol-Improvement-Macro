@@ -68,7 +68,7 @@ if (!ErrorLevel){
     RegExMatch(retrieved, "(?<=WebhookRollPingMinimum=)(.*)", pingMinimum)
     RegExMatch(retrieved, "(?<=WebhookAuraRollImages=)(.*)", auraImages)
 } else {
-    MsgBox, An error occurred while reading %configPath% data, Discord messages will not be sent.
+    logMessage("An error occurred while reading config data. Discord messages will not be sent.")
     return
 }
 
@@ -76,11 +76,11 @@ FileRead, staticDataContent, % "staticData.json"
 global staticData := Jxon_Load(staticDataContent)[1]
 
 ; Added in v1.4.0 - Does this improve anything?
-; for i,v in staticData.stars {
-;     if (v.rarity < 1000000 && !v.mutations){
-;         v.cornerColor := 0
-;     }
-; }
+for i,v in staticData.stars {
+    if (v.rarity < 1000000 && !v.mutations){
+        v.cornerColor := 0
+    }
+}
 
 LogError(exc) {
     logMessage("[LogError] Error on line " exc.Line ": " exc.Message)
@@ -592,8 +592,8 @@ determineBiome(){
         }
     }
     if (identifiedBiome && identifiedBiome != "Normal") {
-        logMessage("[determineBiome] OCR result: " RegExReplace(ocrResult,"(\n|\r)+",""))
-        logMessage("[determineBiome] Identified biome: " identifiedBiome)
+        ; logMessage("[determineBiome] OCR result: " RegExReplace(ocrResult,"(\n|\r)+",""))
+        ; logMessage("[determineBiome] Identified biome: " identifiedBiome)
         Gdip_SaveBitmapToFile(pBM,ssPath)
     }
 
@@ -850,58 +850,49 @@ SystemCursor(OnOff=1)   ; INIT = "I","Init"; OFF = 0,"Off"; TOGGLE = -1,"T","Tog
     }
 }
 
-; SendBiomeData(ByRef biome){
-;     ; Allocate memory and store the string
-;     SizeInBytes := (StrLen(biome) + 1) * (A_IsUnicode ? 2 : 1)
-;     hMem := DllCall("GlobalAlloc", "UInt", 0x0042, "UInt", SizeInBytes, "Ptr")
-;     pMem := DllCall("GlobalLock", "Ptr", hMem, "Ptr")
-;     if (pMem) {
-;         StrPut(biome, pMem, "UTF-8")
-;         DllCall("GlobalUnlock", "Ptr", hMem)
-        
-;         ; Send data to Main.ahk
-;         SetTitleMatchMode, 2
-;         DetectHiddenWindows, On
-;         if hwnd := WinExist("dolphSol Macro ahk_class AutoHotkeyGUI") {
-;             PostMessage, 0x500, 0, hMem,, ahk_id %hwnd%
-;             logMessage("[SendBiomeData] Sent to Main.ahk: " currentBiome)
-;         } else {
-;             DllCall("GlobalFree", "Ptr", hMem)
-;         }
-;     }
-; }
+SendToMain(ByRef StringToSend) {
+    TargetScript := "ahk_class AutoHotkeyGUI"
 
-secondTick(){
-    biomeFinished := 0
-    if (currentBiome != "Normal" && currentBiomeTimer - getUnixTime() < 1){
-        biomeFinished := 1
-    }
+    VarSetCapacity(CopyDataStruct, 3*A_PtrSize, 0)
+    SizeInBytes := (StrLen(StringToSend) + 1) * (A_IsUnicode ? 2 : 1)
+    NumPut(SizeInBytes, CopyDataStruct, A_PtrSize)
+    NumPut(&StringToSend, CopyDataStruct, 2*A_PtrSize)
+
+    Prev_DetectHiddenWindows := A_DetectHiddenWindows
+    Prev_TitleMatchMode := A_TitleMatchMode
+    DetectHiddenWindows On
+    SetTitleMatchMode 2
+
+    SendMessage, 0x4a, 0, &CopyDataStruct,, %TargetScript%
+
+    DetectHiddenWindows %Prev_DetectHiddenWindows%
+    SetTitleMatchMode %Prev_TitleMatchMode%
+    return ErrorLevel
+}
+
+secondTick() {
     rollDetection()
 
-    if ((!rareDisplaying && currentBiome = "Normal") || biomeFinished){
-        FormatTime, fTime, , HH:mm:ss
-        if (biomeFinished && currentBiomeDisplayed){
-            currentBiomeDisplayed := 0
-            webhookPost({embedContent: "[" fTime "]: Biome Ended - " currentBiome})
-            currentBiome := "Normal"
-        }
+    detectedBiome := determineBiome()
+    if (!detectedBiome || detectedBiome == currentBiome) {
+        return
+    }
 
-        detectedBiome := determineBiome()
+    if (detectedBiome == "Normal") {
+        logMessage("[secondTick] Biome Ended: " currentBiome)
+        currentBiome := detectedBiome
+        SendToMain(currentBiome)
+    } else {
+        currentBiome := detectedBiome
+        logMessage("[secondTick] Detected biome: " currentBiome)
+        SendToMain(currentBiome)
 
-        if (detectedBiome && biomeData[detectedBiome] && detectedBiome != "Normal"){
-            currentBiome := detectedBiome
-            logMessage("[secondTick] Detected biome: " currentBiome)
-            ; Send to Main.ahk
-            ; SendBiomeData(currentBiome)
 
-            targetData := biomeData[currentBiome]
-            if (targetData.display || targetData.ping){
-                currentBiomeDisplayed := 1
-    
-                webhookPost({embedContent: "[" fTime "]: Biome Started - " currentBiome, files:[ssPath], embedImage:"attachment://ss.jpg", embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
-            }
+        targetData := biomeData[currentBiome]
+        if (targetData.display || targetData.ping) {
+            FormatTime, fTime, , HH:mm:ss
 
-            currentBiomeTimer := getUnixTime() + targetData.duration + 5
+            webhookPost({embedContent: "[" fTime "]: Biome Started - " currentBiome, files:[ssPath], embedImage:"attachment://ss.jpg", embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
         }
     }
 }

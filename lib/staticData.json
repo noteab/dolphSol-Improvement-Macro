@@ -1,10 +1,12 @@
 [{
-    "announcement":"v1.4.0 has fully released! Please remember to have your camera mode on the default option before starting the macro.",
+    "announcement":"",
     "updateInfo": {
-        "latestVersion":"v1.4.0",
-        "versionLink":"https://github.com/BuilderDolphin/dolphSol-Macro/releases/latest",
-        "updateNotes":"- Full release of the 1.4.0 version!"
+        "latestVersion":"08/08",
+        "versionLink":"https://github.com/Amraki/dolphSol-Macro",
+        "updateNotes":"Something new 🤷‍♂️"
     },
+    "biomes": ["Windy", "Rainy", "Snowy", "Hell", "Starfall", "Corruption", "Null", "Glitched"],
+    "scheduleItems" : ["Strange Controller", "Biome Randomizer", "Lucky Potion", "Speed Potion", "Fortune Potion I", "Fortune Potion II", "Fortune Potion III", "Haste Potion I", "Haste Potion II", "Haste Potion III", "Heavenly Potion I", "Heavenly Potion II"],
     "stars": {
         "12505855": {
             "name": "Comet [From Starfall]",
@@ -338,6 +340,13 @@
             "name": "Watermelon",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/5/56/Watermelon_Collection.png",
             "rarity": 320000
+        },
+        "3906303": {
+            "name": "Shard Surfer",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/1/1f/Image_%2861%29.png",
+            "rarity": 225000000,
+            "biome": {"name": "Snowy", "factor":3},
+            "cornerColor": 2123672
         }
     }
 }]
