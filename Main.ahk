@@ -17,7 +17,7 @@
 SetBatchLines, -1
 
 OnError("LogError")
-; OnMessage(0x500, "ReceiveData")
+OnMessage(0x4a, "ReceiveFromStatus")
 
 SetWorkingDir, % A_ScriptDir "\lib"
 CoordMode, Pixel, Screen
@@ -30,14 +30,14 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 #Include *i ItemScheduler.ahk
 
-global version := "v1.4.0" ; Official version
-version := version " patched 07/13" ; Unofficial patch
+global currentVersion := "v1.4.0"
+global currentPatch := "08/08"
+global version := currentVersion . " patched " . currentPatch
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
     MsgBox, 16, % "dolphSol Macro " version, % "Unable to access all necessary files to run correctly.`n"
-            . "Please make sure the macro folder is extracted by right clicking the downloaded file and choosing 'Extract All'.`n`n"
-            . "Note that Amraki's Patch only contains modified files. They will need to be copied into the official macro folder."
+            . "Please make sure the macro folder is extracted by right clicking the downloaded file and choosing 'Extract All'."
     ExitApp
 }
 
@@ -57,9 +57,10 @@ global disableAlignment := false ; Toggle with F5
 global lastLoggedMessage := ""
 global delayMultiplier := 3 ; Delay multiplier for slower computers - Mainly for camera mode changes
 global auraNames := [] ; List of aura names for webhook pings
-global biomes := ["Windy", "Rainy", "Snowy", "Hell", "Starfall", "Corruption", "Null", "Glitched"]
+global biomes := []
 global ItemSchedulerEntries := []  ; Initialize the array for item usage entries
 global StellaPortalDelay := 0 ; Extra wait time (ms) after entering portal before moving to cauldron - 1000ms = 1s
+global currentBiome := ""
 
 global robloxId := 0
 
@@ -182,6 +183,7 @@ global options := {"DoingObby":1
     ,"RestartRobloxEnabled":0
     ,"RestartRobloxInterval":1
     ,"LastRobloxRestart":0
+    ,"LastAnnouncement":0
     ,"RobloxUpdatedUI":2 ; Default to "New"
     ,"Shifter":0
 
@@ -209,8 +211,8 @@ global options := {"DoingObby":1
 global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode="
 
 ; Must be called in correct order
-updateStaticData() ; Get latest data for update check, aura names, etc.
 loadData() ; Load config data
+updateStaticData() ; Get latest data for update check, aura names, etc.
 
 ; Disable OCR mode if resolution isn't supported
 ; Now enabling the mode will notify of requirements
@@ -325,7 +327,7 @@ getINIData(path){
     
     if (!retrieved){
         logMessage("[getINIData] No data found in " path)
-        MsgBox, An error occurred while reading %path% data, please review the file.
+        ; MsgBox, An error occurred while reading %path% data, please review the file.
         return
     }
 
@@ -352,10 +354,10 @@ getINIData(path){
 }
 
 writeToINI(path,object,header){
-    if (!FileExist(path)){
-        MsgBox, You are missing the file: %path%, please ensure that it is in the correct location.
-        return
-    }
+    ; if (!FileExist(path)){
+    ;     MsgBox, You are missing the file: %path%, please ensure that it is in the correct location.
+    ;     return
+    ; }
 
     formatted := header
 
@@ -363,49 +365,83 @@ writeToINI(path,object,header){
         formatted .= i . "=" . v . "`r`n"
     }
 
-    FileDelete, %path%
+    if (FileExist(path)) {
+        FileDelete, %path%
+    }
     FileAppend, %formatted%, %path%
 }
 
-updateStaticData(){
-    url := "https://raw.githubusercontent.com/Amraki/dolphSol-Macro/Amraki-Patch/lib/staticData.json"
+getURLContent(url) {
+    try {
+        WinHttp := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+        WinHttp.Open("GET", url, false)
+        WinHttp.SetRequestHeader("Cache-Control", "no-cache")
+        WinHttp.SetRequestHeader("Pragma", "no-cache")
+        WinHttp.Send()
 
-    WinHttp := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-    WinHttp.Open("GET", url, false)
-    WinHttp.SetRequestHeader("Cache-Control", "no-cache")
-    WinHttp.SetRequestHeader("Pragma", "no-cache")
-    WinHttp.Send()
-
-    If (WinHttp.Status = 200) {
-        content := WinHttp.ResponseText
-        FileDelete, staticData.json
-        FileAppend, %content%, staticData.json
-    }
-
-    FileRead, staticDataContent, % "staticData.json"
-    sData := Jxon_Load(staticDataContent)[1]
-    if (sData.updateInfo.latestVersion != "v1.4.0"){ ; Compare to official version
-        uNotes := sData.updateInfo.updateNotes
-        MsgBox, 4, % "New Update Available", % "A new update is available! Would you like to head to the GitHub page to update your macro?" . (uNotes ? ("`n`nUpdate Notes:`n" . uNotes) : "")
-        
-        IfMsgBox Yes
-            updateYesClicked()
-    }
-    if (sData.announcement){
-        ; MsgBox, 0,Macro Announcement,% sData.announcement
-    }
-
-    ; Load aura names from JSON
-    auraNames := []
-    for key, value in sData.stars {
-        auraNames.push(value.name)
-        if (value.mutations) {
-            for index, mutation in value.mutations {
-                auraNames.push(mutation.name)
-            }
+        If (WinHttp.Status = 200) {
+            return WinHttp.ResponseText
         }
+
+        return ""
+    } catch {
+        return ""
     }
-    ; logMessage("[updateStaticData] Aura names: " auraNames)
+}
+
+updateStaticData() {
+    updateURL := "https://raw.githubusercontent.com/BuilderDolphin/dolphSol-Macro/main/lib/staticData.json"
+    patchURL := "https://raw.githubusercontent.com/Amraki/dolphSol-Macro/Amraki-Patch/lib/staticData.json"
+
+    patchContent := getURLContent(patchURL)
+    if (patchContent != "") {
+        FileDelete, staticData.json
+        FileAppend, %patchContent%, staticData.json
+
+        patchData := Jxon_Load(patchContent)[1]
+        patchVersion := patchData.updateInfo.latestVersion
+        OutputDebug, % "patchVersion: " patchVersion
+    }
+
+    content := getURLContent(updateURL)
+    if (content != "") {
+        officialData := Jxon_Load(content)[1]
+        officialVersion := officialData.updateInfo.latestVersion
+        OutputDebug, % "officialVersion: " officialVersion
+    }
+
+    if (patchContent == "" && content == "") {
+        MsgBox, 16, Update Check, % "Unable to check for update. Error: " . e.Message . "`nContinuing with current StaticData.json data.`nCheck your network connection and restart to try again."
+        return
+    }
+
+    ; Show Announcement once daily at most
+    sData := patchData
+    if (sData.announcement != "" && (getUnixTime() - options.LastAnnouncement >= 24*60*60*1000)) { ; 24hrs
+        MsgBox, 0, Macro Announcement, % sData.announcement
+        options.LastAnnouncement := getUnixTime()
+    }
+
+    if (patchVersion && patchVersion != currentPatch) {
+        ; Patch update available
+        updateMessage := "A new patch version is available!"
+    } else if (officialVersion && officialVersion != currentVersion) {
+        ; Official update available
+        sData := officialData
+        updateMessage := "An official update is available! Please note some features from the patch may be missing or modified so adjust accordingly."
+    } else {
+        return
+    }
+
+    uNotes := sData.updateInfo.updateNotes
+    MsgBox, 36, New Update Available, % updateMessage . "`nWould you like to head to the GitHub page to update your macro?" . (uNotes ? ("`n`nUpdate Notes:`n" . uNotes) : "")
+    IfMsgBox No
+        return
+
+    options.FirstTime := 0
+    vLink := sData.updateInfo.versionLink
+    Run % (vLink ? vLink : "https://github.com/BuilderDolphin/dolphSol-Macro/releases/latest")
+    ExitApp
 }
 
 ; data loading
@@ -456,6 +492,19 @@ loadData(){
     }
     options := newOptions
 
+    ; Load aura names from JSON
+    FileRead, staticDataContent, % "staticData.json"
+    sData := Jxon_Load(staticDataContent)[1]
+    auraNames := []
+    for key, value in sData.stars {
+        auraNames.push(value.name)
+        if (value.mutations) {
+            for index, mutation in value.mutations {
+                auraNames.push(mutation.name)
+            }
+        }
+    }
+
     ; Load aura settings with prefix
     for index, auraName in auraNames {
         sAuraName := RegExReplace(auraName, "[^a-zA-Z0-9]+", "_") ; Replace all non-alphanumeric characters with underscore
@@ -470,6 +519,7 @@ loadData(){
     }
 
     ; Load biome settings
+    biomes := sData.biomes
     for i, biome in biomes {
         key := "Biome" . biome
         if (savedRetrieve.HasKey(key)) {
@@ -2055,38 +2105,6 @@ useItem(itemName, useAmount := 1) {
     Sleep, 200
 }
 
-global deviceLastUsed := A_TickCount
-global currentBiome
-; 
-changeBiome() {
-    deviceIntervalMS := 20 * 60 * 1000
-    sinceLastUsed := A_TickCount - deviceLastUsed
-    
-    cooldownRemainingSec := Floor(((deviceIntervalMS - sinceLastUsed) / 1000))
-    logMessage("Device Cooldown: " cooldownRemainingSec " seconds", 1)
-
-    ; Cooldown check
-    if (sinceLastUsed < deviceIntervalMS) {
-        return
-    }
-
-    ; Change biome
-    logMessage("Current Biome: '" currentBiome "'")
-    if !(currentBiome in ["Glitched", "Hell", "Null"]) {
-        ;"Strange Controller" or "Biome Randomizer"
-        logMessage("Changing biome using 'Strange Controller'", 1)
-
-        PausePaths()
-        useItem("Strange Controller")
-        deviceLastUsed := A_TickCount
-        ResumePaths()
-
-        ; Update biome check schedule
-        SetTimer, biomeLoop, Off
-        biomeLoop()
-    }
-}
-
 checkBottomLeft(){
     getRobloxPos(rX,rY,width,height)
 
@@ -2258,6 +2276,11 @@ ClickPlay() {
     
     ; Enable Auto Roll - Completely removed from Initialize() to avoid toggling when macro is restarted, but game is not
     ClickMouse(pX + (width*0.35), pY + (height*0.95))
+
+    ; Enable Merchant Tracker - Introduced Era 8.5 Update
+    ; No harm if user doesn't own
+    Sleep, 2000
+    useItem("Merchant Tracker")
 }
 
 ; Clear RAM by restarting Roblox
@@ -2290,20 +2313,19 @@ enableAutoRoll() {
     }
 }
 
-/* WIP - Do not use
-ReceiveData(wParam, lParam) {
-    ; Lock the memory and get the string
-    StringAddress := DllCall("GlobalLock", "Ptr", lParam, "Ptr")
-    if (StringAddress) {
-        currentBiome := StrGet(StringAddress, "UTF-8")  ; Ensure the correct encoding
-        DllCall("GlobalUnlock", "Ptr", lParam)
-        logMessage("[ReceiveData] Current Biome: " currentBiome)
-        ToolTip, % "Current Biome: " currentBiome
-        Sleep, 5000
-        ToolTip
-    }
+ReceiveFromStatus(wParam, lParam) {
+    StringAddress := NumGet(lParam + 2*A_PtrSize)
+    CopyDataSize := NumGet(lParam + A_PtrSize)
+
+    VarSetCapacity(ReceivedData, CopyDataSize)
+    DllCall("RtlMoveMemory", "Ptr", &ReceivedData, "Ptr", StringAddress, "Ptr", CopyDataSize)
+    
+    ; Ensure null termination for the string
+    ReceivedData := StrGet(&ReceivedData, CopyDataSize/2)
+
+    currentBiome := ReceivedData
+    logMessage("New Biome: " currentBiome)
 }
-*/
 
 LogError(exc) {
     logMessage("[LogError] Error on line " exc.Line ": " exc.Message)
@@ -2382,130 +2404,6 @@ containsText(x, y, width, height, text) {
         logMessage("[containsText] Error searching '" text "': `n" e, 1)
         return -1
     }
-}
-
-global biomeData := {"Normal":{duration: 0}
-                    ,"Windy":{duration: 120}
-                    ,"Rainy":{duration: 120}
-                    ,"Snowy":{duration: 120}
-                    ,"Hell":{duration: 660}
-                    ,"Starfall":{duration: 600}
-                    ,"Corruption":{duration: 660}
-                    ,"Null":{duration: 90}
-                    ,"Glitched":{duration: 164}}
-
-global similarCharacters := {"1":"l"
-    ,"n":"m"
-    ,"m":"n"
-    ,"t":"f"
-    ,"f":"t"
-    ,"s":"S"
-    ,"S":"s"
-    ,"w":"W"
-    ,"W":"w"}
-
-identifyBiome(inputStr){
-    if (!inputStr)
-        return 0
-    
-    internalStr := RegExReplace(inputStr,"\s")
-    internalStr := RegExReplace(internalStr,"^([\[\(\{\|IJ]+)")
-    internalStr := RegExReplace(internalStr,"([\]\)\}\|IJ]+)$")
-
-    highestRatio := 0
-    matchingBiome := ""
-
-    for v,_ in biomeData {
-        if (v = "Glitched"){
-            continue
-        }
-        scanIndex := 1
-        accuracy := 0
-        Loop % StrLen(v) {
-            checkingChar := SubStr(v,A_Index,1)
-            Loop % StrLen(internalStr) - scanIndex + 1 {
-                index := scanIndex + A_Index - 1
-                targetChar := SubStr(internalStr, index, 1)
-                if (targetChar = checkingChar){
-                    accuracy += 3 - A_Index
-                    scanIndex := index+1
-                    break
-                } else if (similarCharacters[targetChar] = checkingChar){
-                    accuracy += 2.5 - A_Index
-                    scanIndex := index+1
-                    break
-                }
-            }
-        }
-        ratio := accuracy/(StrLen(v)*2)
-        if (ratio > highestRatio){
-            matchingBiome := v
-            highestRatio := ratio
-        }
-    }
-
-    if (highestRatio < 0.70){
-        matchingBiome := 0
-        glitchedCheck := StrLen(internalStr)-StrLen(RegExReplace(internalStr,"\d")) + (RegExMatch(internalStr,"\.") ? 4 : 0)
-        if (glitchedCheck >= 20){
-            OutputDebug, % "glitched biome pro!"
-            matchingBiome := "Glitched"
-        }
-    }
-
-    return matchingBiome
-}
-
-determineBiome(){
-    ; logMessage("[determineBiome] Determining biome...")
-    if (!WinActive("ahk_id " GetRobloxHWND()) && !WinActive("Roblox")){
-        logMessage("[determineBiome] Roblox window not active.")
-        return
-    }
-    getRobloxPos(rX,rY,width,height)
-
-    ; Capture screen area
-    pBM := Gdip_BitmapFromScreen(rX "|" rY + height - height*0.102 + ((height/600) - 1)*10 "|" width*0.15 "|" height*0.03)
-
-    effect := Gdip_CreateEffect(3,"2|0|0|0|0" . "|" . "0|1.5|0|0|0" . "|" . "0|0|1|0|0" . "|" . "0|0|0|1|0" . "|" . "0|0|0.2|0|1",0)
-    effect2 := Gdip_CreateEffect(5,-100,250)
-    effect3 := Gdip_CreateEffect(2,10,50)
-    Gdip_BitmapApplyEffect(pBM,effect)
-    Gdip_BitmapApplyEffect(pBM,effect2)
-    Gdip_BitmapApplyEffect(pBM,effect3)
-
-    identifiedBiome := 0
-    resizeCounter := 0
-    Loop 10 {
-        newSizedPBM := Gdip_ResizeBitmap(pBM,300+(A_Index*38),70+(A_Index*7.5),1,2)
-        ocrResult := ocrFromBitmap(newSizedPBM)
-        identifiedBiome := identifyBiome(ocrResult)
-
-        Gdip_DisposeBitmap(newSizedPBM)
-
-        if (identifiedBiome){
-            resizeCounter := A_Index ; Attempt to determine the optimal resize multiplier
-            break
-        }
-    }
-    
-    ; Log only if identified
-    if (identifiedBiome && identifiedBiome != "Normal") {
-        logMessage("[determineBiome] OCR result: " RegExReplace(ocrResult,"(\n|\r)+",""))
-        logMessage("[determineBiome] Identified biome: " identifiedBiome " (" resizeCounter " resizes)")
-        ToolTip, % "Identified biome: " identifiedBiome " (" resizeCounter " resizes )"
-        RemoveTooltip(5)
-    }
-
-    Gdip_DisposeEffect(effect)
-    Gdip_DisposeEffect(effect2)
-    Gdip_DisposeEffect(effect3)
-    Gdip_DisposeBitmap(retrievedMap)
-    Gdip_DisposeBitmap(pBM)
-
-    DllCall("psapi.dll\EmptyWorkingSet", "ptr", -1)
-
-    return identifiedBiome
 }
 
 attemptReconnect(failed := 0){
@@ -2758,16 +2656,16 @@ mainLoop(){
     currentUnixTime := getUnixTime()
     for each, entry in ItemSchedulerEntries {
         if (entry.Enabled && currentUnixTime >= entry.NextRunTime) {
-            ; Use specified number of item
-            UseItem(entry.ItemName, entry.Quantity)
+            ; Account for biome
+            if (!entry.Biome || entry.Biome == "Any" || entry.Biome == currentBiome) { ; !entry.Biome check needed for pre-Biome legacy entries
+                ; Use specified number of item
+                UseItem(entry.ItemName, entry.Quantity)
 
-            ; Update the NextRunTime for the next scheduled run
-            frequencyInSeconds := entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600)
-            nextRunTime := currentUnixTime + frequencyInSeconds
-            ; FormatTime, t, nextRunTime, "hh:mm:ss tt"
-            ; logMessage("[Scheduler] " entry.ItemName " next run: " t " (" frequencyInSeconds " seconds)", 1)
-
-            entry.NextRunTime := nextRunTime
+                ; Update the NextRunTime for the next scheduled run
+                frequencyInSeconds := entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600)
+                nextRunTime := currentUnixTime + frequencyInSeconds
+                entry.NextRunTime := nextRunTime
+            }
         }
     }
 
@@ -2830,33 +2728,6 @@ mainLoop(){
     GuiControl,,TestT,% checkHasObbyBuff(BRCornerX,BRCornerY,statusEffectHeight)
     */
 }
-
-; Used to detect current biome - Copied from status.ahk 
-biomeLoop(){ ; originally secondTick() - renamed due to conflict with existing function
-    if (!options.OCREnabled) {
-        return
-    }
-
-    detectedBiome := determineBiome()
-
-    if (detectedBiome && biomeData[detectedBiome] && detectedBiome != "Normal"){
-        ; If it's the same, we may be checking a little too early so don't wait the full duration again
-        if (detectedBiome = currentBiome) {
-            SetTimer, biomeLoop, -2000
-            return
-        }
-
-        currentBiome := detectedBiome
-
-        changeBiome()
-
-        targetData := biomeData[currentBiome]
-        SetTimer, biomeLoop, % -(targetData.duration+5) * 1000
-    } else {
-        SetTimer, biomeLoop, -2000
-    }
-}
-; biomeLoop()
 
 CreateMainUI() {
     global
@@ -3678,7 +3549,7 @@ startMacro(){
 if (!options.FirstTime){
     options.FirstTime := 1
     saveOptions()
-    MsgBox, 0,dolphSol Macro - Welcome, % "Welcome to dolphSol macro!`n`nIf this is your first time here, make sure to go through all of the tabs to make sure your settings are right.`n`nIf you are here from an update, remember that you can import all of your previous settings in the Settings menu.`n`nMake sure join the Discord server and check the GitHub page for the community and future updates, which can both be found in the Credits page. (Discord link is also in the bottom right corner)"
+    MsgBox, 0,dolphSol Macro - Welcome, % "Welcome to dolphSol macro!`n`nIf this is your first time here, go through all of the tabs to make sure your settings are right.`n`nIf you are here from an update, remember that you can import all of your previous settings in the Settings menu.`n`nJoin the Discord server and check the GitHub page for the community and future updates, which can both be found in the Credits page."
 }
 
 if (!options.WasRunning){
