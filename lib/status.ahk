@@ -870,7 +870,6 @@ SendToMain(ByRef StringToSend) {
     return ErrorLevel
 }
 
-    }
 secondTick() {
     rollDetection()
 
