@@ -34,7 +34,13 @@ global options = getINIData("..\settings\config.ini")
 global regWalkFactor := 1.25 ; since i made the paths all with vip, normalize
 
 getWalkTime(d){
-    return d*(1 + (regWalkFactor-1)*(1-options.VIP))
+    baseTime := d * (1 + (regWalkFactor - 1) * (1 - options.VIP))
+    
+    if (options.Shifter) {
+        baseTime := baseTime / 1.50
+    }
+    
+    return baseTime
 }
 
 walkSleep(d){
@@ -64,12 +70,12 @@ press2(k, k2, duration := 50) {
 }
 
 reset() {
-    press("Esc",150)
-    Sleep, 50
-    press("r",150)
-    Sleep, 50
-    press("Enter",150)
-    Sleep, 50
+    press("Esc")
+    Sleep, 100
+    press("r")
+    Sleep, 100
+    press("Enter")
+    Sleep, 100
 }
 jump() {
     press("Space")
@@ -79,13 +85,13 @@ collect(num){
     if (!options["ItemSpot" . num]){
         return
     }
-    Loop, 6 
+    Loop, 5
     {
         Send {f}
-        Sleep, 75
+        Sleep, 100
     }
     Send {e}
-    Sleep, 50
+    Sleep, 100
 }
 
 isFullscreen() {
@@ -207,19 +213,15 @@ alignCamera(){
 
     Sleep, 100
 
-    walkSend("w","Down")
     walkSend("d","Down")
-    walkSleep(500)
+    walkSleep(200)
     jump()
     walkSleep(400)
-    jump()
-    walkSleep(600)
-
     walkSend("d","Up")
-    walkSend("a","Down")
-    walkSleep(1500)
-
-    walkSend("a","Up")
+    walkSend("w","Down")
+    walkSleep(500)
+    jump()
+    walkSleep(900)
     walkSend("w","Up")
 
     rotateCameraMode()

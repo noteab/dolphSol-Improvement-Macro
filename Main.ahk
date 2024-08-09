@@ -187,6 +187,7 @@ global options := {"DoingObby":1
     ,"RobloxUpdatedUI":2 ; Default to "New"
     ,"ClaimDailyQuests":0       ; Stewart
     ,"SearchSpecialAuras":0     ; Stewart
+    ,"Shifter":0
 
     ; Crafting
     ,"ItemCraftingEnabled":0
@@ -883,7 +884,13 @@ JEE_AhkWinIsPaused(hWnd) {
 global regWalkFactor := 1.25 ; since i made the paths all with vip, normalize
 
 getWalkTime(d){
-    return d*(1 + (regWalkFactor-1)*(1-options.VIP))
+    baseTime := d * (1 + (regWalkFactor - 1) * (1 - options.VIP))
+    
+    if (options.Shifter) {
+        baseTime := baseTime / 1.50
+    }
+    
+    return baseTime
 }
 
 walkSleep(d){
@@ -1135,6 +1142,7 @@ alignCamera(){
 
     ; reset() ; Redundant, handleCrafting() will use align() if needed
     removeDim()
+    reset()
     Sleep, 2000
 }
 
@@ -1299,21 +1307,50 @@ walkToJakesShop(){
 }
 
 walkToPotionCrafting(){
+    sleep, 2000
     walkSend("w","Down")
-    walkSleep(2300)
-    jump()
-    walkSleep(400 + 100*(!options.VIP))
+    walkSend("a","Down")
+    walkSleep(3800)
+    walkSend("a","Up")
+    walkSleep(675)
     walkSend("w","Up")
-    press("a",9500)
-    walkSend("d","Down")
-    walkSleep(1000)
-    walkSend("d","Up")
-    Send {Space Down}
+    walkSend("a","Down")
+    walkSleep(777)
+    jump()
+    walkSend("w","Down")
+    walkSleep(200)
+    walkSend("w","Up")
+    walkSend("a","Down")
+    walkSleep(800)
     walkSend("s","Down")
-    walkSleep(2000)
-    Send {Space Up}
-    walkSleep(3000)
+    walkSleep(235)
     walkSend("s","Up")
+    walkSleep(1225)
+    jump()
+    walkSleep(350)
+    walkSend("a","Up")
+    walkSend("a","Down")
+    walkSleep(2500)
+    press("s",500)
+    walkSend("a","Up")
+    walkSend("s","Down")
+    walkSleep(100)
+    jump()
+    walkSleep(800)
+    walkSend("a","Down")
+    walkSleep(400)
+    jump()
+    walkSleep(200)
+    walkSend("s","Up")
+    walkSleep(500)
+    jump()
+    walkSleep(740)
+    walkSend("a","up")
+    walkSleep(200)
+    walkSend("s","down")
+    walkSleep(3050)
+    walkSend("s","up")
+    Sleep, 200
 }
 
 ; End of paths
@@ -1802,7 +1839,8 @@ handleCrafting(craftLocation := 0, retryCount := 0){
     }
 
     if (options.PotionCraftingEnabled && craftLocation != 2){
-        align()
+        ; align() is this even needed?
+        reset()
         updateStatus("Walking to Stella's Cave (Crafting)")
         walkToPotionCrafting()
         Sleep, % (StellaPortalDelay && StellaPortalDelay > 0) ? StellaPortalDelay : 0
@@ -1870,10 +1908,10 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         Sleep, 200
         MouseClick
 
-        alignCamera()
+        ; alignCamera()
     }
     if (options.ItemCraftingEnabled && craftLocation != 1){
-        align()
+        ; align()
         updateStatus("Walking to Jake's Shop (Crafting)")
         walkToJakesShop()
         Sleep, 100
@@ -1899,10 +1937,10 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         Sleep, 200
         MouseClick
 
-        alignCamera()
+        ; alignCamera()
     }
 
-    reset()
+    ; reset()
 }
 
 ; Click Auto Add if not enabled
@@ -2384,7 +2422,6 @@ FileGetSize(filePath) {
 ; Check if area contains the specified text
 containsText(x, y, width, height, text) {
     ; Potential improvement by ignoring non-alphanumeric characters
-
     ; Highlight(x-10, y-10, width+20, height+20, 2000)
     
     try {
@@ -2623,7 +2660,7 @@ mainLoop(){
     if (isPlayButtonVisible()) {
         ClickPlay()
     }
-
+	
     enableAutoRoll() ; Check after ClickPlay to make sure not left off due to lag, etc
 
     ; Equip preferred aura
@@ -2641,9 +2678,9 @@ mainLoop(){
     Sleep, 250
 
     ; Reset to spawn before taking screenshots or using items
-    reset()
+    ; reset()
     
-    ; Attempt to claim quests every 10 minutes
+    ; Attempt to claim quests every 30 minutes
     if (options.ClaimDailyQuests && !lastClaim || A_TickCount - lastClaim > 1800000) {
         ClaimQuests()
         lastClaim := A_TickCount
@@ -2684,7 +2721,8 @@ mainLoop(){
     }
     
     if (options.DoingObby && (A_TickCount - lastObby) >= (obbyCooldown*1000)){
-        align()
+        ; align()
+        reset()
         obbyRun()
 
         ; MouseGetPos, mouseX, mouseY
@@ -2703,7 +2741,7 @@ mainLoop(){
         }
         if (!hasBuff)
         {
-            align()
+            ; align()
             updateStatus("Obby Failed, Retrying")
             lastObby := A_TickCount - obbyCooldown*1000
             obbyRun()
@@ -2878,8 +2916,9 @@ CreateMainUI() {
     Gui Add, CheckBox, vVIPCheckBox x32 y58 w150 h22 +0x2, % " VIP Gamepass Owned"
     Gui Add, CheckBox, vAzertyCheckBox x32 y78 w200 h22 +0x2, % " AZERTY Keyboard Layout"
     Gui Add, CheckBox, vClaimDailyQuestsCheckBox x32 y98 w200 h22 +0x2, % " Auto Claim Daily Quests (30 min)"
-    Gui Add, Text, x32 y151 w200 h22, % "Collection Back Button Y Offset:"
-    Gui Add, Edit, x206 y150 w50 h18
+    Gui Add, CheckBox, gShifterCheckBoxClick vShifterCheckBox x32 y118 w200 h22 +0x2, % " Shifter Mode"
+    Gui Add, Text, x32 y141 w200 h22, % "Collection Back Button Y Offset:" ; increase by 30 to move down
+    Gui Add, Edit, x206 y140 w50 h18
     Gui Add, UpDown, vBackOffsetUpDown Range-500-500, 0
 
     Gui Font, s10 w600
@@ -2941,13 +2980,15 @@ CreateMainUI() {
     Gui Add, Button, gShowBiomeSettings vBiomeButton x16 y100 w128, Configure Biomes
     Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x16 y+5 w128, Item Scheduler
 
+    Gui Add, Button, gUIHelpClick vUIHelpButton x380 y190 w100 h23, how can I tell?
+
     ; Roblox UI style to determine Chat button position
     Gui Font, s10 w600
-    Gui Add, Text, x400 y150, Roblox UI
+    Gui Add, Text, x400 y130, Roblox UI
     Gui Font, s9 norm
     
     ; options["RobloxUpdatedUI"]
-    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y170, Old
+    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y150, Old
     Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio2, New
     GuiControl,, RobloxUpdatedUIRadio1, % (options["RobloxUpdatedUI"] = 1) ? 1 : 0
     GuiControl,, RobloxUpdatedUIRadio2, % (options["RobloxUpdatedUI"] = 2) ? 1 : 0
@@ -3119,9 +3160,10 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"WebhookUserIDInput":"DiscordUserID"
     ,"WebhookInventoryScreenshots":"InvScreenshotsEnabled"
     ,"StatusBarCheckBox":"StatusBarEnabled"
-    ,"SearchSpecialAurasCheckBox":"SearchSpecialAuras"      ; Stewart
-    ,"ClaimDailyQuestsCheckBox":"ClaimDailyQuests"          ; Stewart
-    ,"OCREnabledCheckBox":"OCREnabled"}
+    ,"SearchSpecialAurasCheckBox":"SearchSpecialAuras"
+    ,"ClaimDailyQuestsCheckBox":"ClaimDailyQuests"
+    ,"OCREnabledCheckBox":"OCREnabled"
+    ,"ShifterCheckBox":"Shifter"}
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
     ,"WebhookRollPingInput":"WebhookRollPingMinimum"}
@@ -3644,6 +3686,14 @@ GetRobloxVersion:
     options["RobloxUpdatedUI"] := (RobloxUpdatedUIRadio1 = 1) ? 1 : 2
     return
 
+ShifterCheckBoxClick:
+    Gui mainUI:Default
+    GuiControlGet, v,, ShifterCheckBox
+    if (v){
+    MsgBox, 0, Important, % "Shifter mode has not been tested with a non vip account and does not currently have Obby capabilites."
+    }
+    return
+
 OCREnabledCheckBoxClick:
     Gui mainUI:Default
     GuiControlGet, v,, OCREnabledCheckBox
@@ -3735,6 +3785,12 @@ RollDetectionHelpClick:
 OCRHelpClick:
     MsgBox, 0, OCR, % "OCR allows the macro to respond to events instead of blindly pressing keys and moving the mouse. Currently requires Roblox to be ran at 1920x1080 resolution and 100% scale."
 	return
+
+UIHelpClick:
+    Gui, New 
+    Gui, Add, Picture, x20 y50, % mainDir "images\UIInformation.png" ; Change to the path of your image file
+    Gui, Show, AutoSize  ; Adjust the GUI window size to fit the image
+    return
 
 ; gui close buttons
 mainUIGuiClose:
