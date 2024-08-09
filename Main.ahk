@@ -3020,8 +3020,9 @@ ShowAuraEquipSearch() {
     Gui Font, s11 w300
     Gui Add, Text, x16 y10 w300 h50, % "Enter aura name to be used for search.`nThe first result will be equipped so be specific."
 
+    ; No functionality yet
     searchSpecialAurasState := options.SearchSpecialAuras ? "Checked" : ""
-    Gui Add, CheckBox, vSearchSpecialAurasCheckBox x200 y148 w300 h22 %searchSpecialAurasState%, % "Search in Special Auras"
+    Gui Add, CheckBox, vSearchSpecialAurasCheckBox x200 y148 w300 h22 %searchSpecialAurasState% +Disabled, % "Search in Special Auras"
 
     defaultAura := options.AutoEquipAura ? options.AutoEquipAura : "Quartz"
     Gui Add, Edit, vAuraNameInput x8 y110 w382 h22, % defaultAura
