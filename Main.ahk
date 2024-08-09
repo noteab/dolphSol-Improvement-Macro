@@ -2874,14 +2874,14 @@ CreateMainUI() {
 
     Gui mainUI: New, +hWndhGui
     Gui Color, 0xDADADA
-    Gui Add, Button, gStartClick vStartButton x8 y264 w80 h23 -Tabstop, F1 - Start
-    Gui Add, Button, gPauseClick vPauseButton x96 y264 w80 h23 -Tabstop, F2 - Pause
-    Gui Add, Button, gStopClick vStopButton x184 y264 w80 h23 -Tabstop, F3 - Stop
-    Gui Add, CheckBox, vOwnPrivateServerCheckBox x300 y264 h23 +0x2, % "In your own Private Server?"
+    Gui Add, Button, gStartClick vStartButton x8 y224 w80 h23 -Tabstop, F1 - Start
+    Gui Add, Button, gPauseClick vPauseButton x96 y224 w80 h23 -Tabstop, F2 - Pause
+    Gui Add, Button, gStopClick vStopButton x184 y224 w80 h23 -Tabstop, F3 - Stop
+    Gui Add, CheckBox, vOwnPrivateServerCheckBox x300 y224 h23 +0x2, % "In your own Private Server?"
     Gui Font, s11 Norm, Segoe UI
-    Gui Add, Picture, gDiscordServerClick w26 h20 x462 y266, % mainDir "images\discordIcon.png"
+    Gui Add, Picture, gDiscordServerClick w26 h20 x462 y226, % mainDir "images\discordIcon.png"
 
-    Gui Add, Tab3, vMainTabs x8 y8 w484 h250 +0x800000, Main|Crafting|Status|Settings|Credits|Extras
+    Gui Add, Tab3, vMainTabs x8 y8 w484 h210 +0x800000, Main|Crafting|Status|Settings|Credits|Extras
 
 ; main tab
     Gui Tab, 1
@@ -2918,44 +2918,42 @@ CreateMainUI() {
 ; crafting tab
     Gui Tab, 2
     Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y40 w231 h150 vItemCraftingGroup -Theme +0x50000007, Item Crafting
+    Gui Add, GroupBox, x16 y40 w231 h110 vItemCraftingGroup -Theme +0x50000007, Item Crafting
     Gui Font, s9 norm
     Gui Add, CheckBox, vItemCraftingCheckBox x32 y58 w190 h22 +Disabled, % " Automatic Item Crafting"
     Gui Font, s9 w600
-    Gui Add, GroupBox, x21 y80 w221 h105 vItemCraftingOptionsGroup -Theme +0x50000007, Crafting Options
+    Gui Add, GroupBox, x21 y80 w221 h65 vItemCraftingOptionsGroup -Theme +0x50000007, Crafting Options
 
     ; Potion Crafting Settings
     potionSlotOptions := "None||Fortune Potion I|Fortune Potion II|Fortune Potion III|Haste Potion I|Haste Potion II|Haste Potion III|Heavenly Potion I|Heavenly Potion II"
     Gui Font, s10 w600
-    Gui Add, GroupBox, x252 y40 w231 h210 vPotionCraftingGroup -Theme +0x50000007, Potion Crafting
+    Gui Add, GroupBox, x252 y40 w231 h170 vPotionCraftingGroup -Theme +0x50000007, Potion Crafting
     Gui Font, s9 norm
     Gui Add, CheckBox, vPotionCraftingCheckBox x268 y58 w200 h22 +0x2, % " Automatic Potion Crafting"
     Gui Add, CheckBox, vPotionAutoAddCheckBox x268 y78 w200 h22 +0x2, % " Use Auto Add (Cycles Slots)"
-    ; Gui Add, CheckBox, v8 x268 y98 w200 h22 +0x2, % " "
-    ; Gui Add, CheckBox, v9 x268 y118 w200 h22 +0x2, % " "
     
     ; Potion Crafting Slots
     Gui Font, s9 w600
-    Gui Add, GroupBox, x257 y140 w221 h105 vPotionCraftingSlotsGroup -Theme +0x50000007, Crafting Slots
+    Gui Add, GroupBox, x257 y100 w221 h105 vPotionCraftingSlotsGroup -Theme +0x50000007, Crafting Slots
     Gui Font, s9 norm
-    Gui Add, Text, x270 y162 w100 h16 vItemCraftingSlot1Header BackgroundTrans, Slot 1:
-    Gui Add, DropDownList, x312 y158 w120 h10 vPotionCraftingSlot1DropDown R9, % potionSlotOptions
-    Gui Add, Text, x270 y192 w100 h16 vItemCraftingSlot2Header BackgroundTrans, Slot 2:
-    Gui Add, DropDownList, x312 y188 w120 h10 vPotionCraftingSlot2DropDown R9, % potionSlotOptions
-    Gui Add, Text, x270 y222 w100 h16 vItemCraftingSlot3Header BackgroundTrans, Slot 3:
-    Gui Add, DropDownList, x312 y218 w120 h10 vPotionCraftingSlot3DropDown R9, % potionSlotOptions
+    Gui Add, Text, x270 y122 w100 h16 vItemCraftingSlot1Header BackgroundTrans, Slot 1:
+    Gui Add, DropDownList, x312 y118 w120 h10 vPotionCraftingSlot1DropDown R9, % potionSlotOptions
+    Gui Add, Text, x270 y152 w100 h16 vItemCraftingSlot2Header BackgroundTrans, Slot 2:
+    Gui Add, DropDownList, x312 y148 w120 h10 vPotionCraftingSlot2DropDown R9, % potionSlotOptions
+    Gui Add, Text, x270 y182 w100 h16 vItemCraftingSlot3Header BackgroundTrans, Slot 3:
+    Gui Add, DropDownList, x312 y178 w120 h10 vPotionCraftingSlot3DropDown R9, % potionSlotOptions
 
     ; Crafting Interval
     Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y190 w231 h60 vCraftingIntervalGroup -Theme +0x50000007, Crafting Intervals
+    Gui Add, GroupBox, x16 y150 w231 h60 vCraftingIntervalGroup -Theme +0x50000007, Crafting Intervals
     Gui Font, s9 norm
 
-    Gui Add, Text, x32 y210 h35 vCraftingIntervalText BackgroundTrans Section, Craft every
+    Gui Add, Text, x32 y170 h35 vCraftingIntervalText BackgroundTrans Section, Craft every
     Gui Add, Edit, ys wp w45 h18 vCraftingIntervalInput Number, 10
     Gui Add, UpDown, vCraftingIntervalUpDown Range1-300, 10
     Gui Add, Text, ys wp w60 h35 BackgroundTrans, minutes
 
-    Gui Add, Text, x32 y230 h35 vPotionAutoAddIntervalText BackgroundTrans Section, Auto Add every
+    Gui Add, Text, x32 y190 h35 vPotionAutoAddIntervalText BackgroundTrans Section, Auto Add every
     Gui Add, Edit, ys wp w45 h18 vPotionAutoAddIntervalInput Number, 10
     Gui Add, UpDown, vPotionAutoAddIntervalUpDown Range1-300, 10
     Gui Add, Text, ys wp w60 h35 BackgroundTrans, minutes
@@ -2963,12 +2961,12 @@ CreateMainUI() {
 ; status tab
     Gui Tab, 3
     Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y40 w130 h210 vStatsGroup -Theme +0x50000007, Stats
+    Gui Add, GroupBox, x16 y40 w130 h170 vStatsGroup -Theme +0x50000007, Stats
     Gui Font, s8 norm
     Gui Add, Text, vStatsDisplay x22 y58 w118 h146, runtime: 123`ndisconnects: 1000
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x151 y40 w200 h210 vWebhookGroup -Theme +0x50000007, Discord Webhook
+    Gui Add, GroupBox, x151 y40 w200 h170 vWebhookGroup -Theme +0x50000007, Discord Webhook
     Gui Font, s7.5 norm
     Gui Add, CheckBox, vWebhookCheckBox x166 y63 w120 h16 +0x2 gEnableWebhookToggle, % " Enable Webhook"
     Gui Add, Text, x161 y85 w100 h20 vWebhookInputHeader BackgroundTrans, Webhook URL:
@@ -2988,7 +2986,7 @@ CreateMainUI() {
     Gui Add, CheckBox, vStatusBarCheckBox x366 y63 w110 h20 +0x2, % " Enable Status Bar"
 
     Gui Font, s9 w600
-    Gui Add, GroupBox, x356 y90 w127 h160 vRollDetectionGroup -Theme +0x50000007, Roll Detection
+    Gui Add, GroupBox, x356 y90 w127 h120 vRollDetectionGroup -Theme +0x50000007, Roll Detection
     Gui Font, s8 norm
     Gui Add, Button, gRollDetectionHelpClick vRollDetectionHelpButton x457 y99 w23 h23, ?
     Gui Add, Text, vWebhookRollSendHeader x365 y110 w110 h16 BackgroundTrans, % "Send Minimum:"
@@ -3004,27 +3002,21 @@ CreateMainUI() {
 ; settings tab
     Gui Tab, 4
     Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y40 w259 h210 vGeneralSettingsGroup -Theme +0x50000007, General
+    Gui Add, GroupBox, x16 y40 w259 h170 vGeneralSettingsGroup -Theme +0x50000007, General
     Gui Font, s9 norm
     Gui Add, CheckBox, vVIPCheckBox x32 y58 w150 h22 +0x2, % " VIP Gamepass Owned"
     Gui Add, CheckBox, vAzertyCheckBox x32 y78 w200 h22 +0x2, % " AZERTY Keyboard Layout"
     Gui Add, CheckBox, vClaimDailyQuestsCheckBox x32 y98 w200 h22 +0x2, % " Auto Claim Daily Quests (30 min)"
-    ; Gui Add, CheckBox, v2 x32 y118 w200 h22 +0x2, % " "
-    ; Gui Add, CheckBox, v3 x32 y138 w200 h22 +0x2, % " "
-    ; Gui Add, CheckBox, v4 x32 y158 w200 h22 +0x2, % " "
-    ; Gui Add, CheckBox, v5 x32 y178 w200 h22 +0x2, % " "
-    ; Gui Add, CheckBox, v6 x32 y198 w200 h22 +0x2, % " "
-    Gui Add, Text, x32 y121 w200 h22, % "Collection Back Button Y Offset:" ; 220
-    Gui Add, Edit, x206 y120 w50 h18                                       ; 221
+    Gui Add, Text, x32 y151 w200 h22, % "Collection Back Button Y Offset:"
+    Gui Add, Edit, x206 y150 w50 h18
     Gui Add, UpDown, vBackOffsetUpDown Range-500-500, 0
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x280 y40 w203 h178 vReconnectSettingsGroup -Theme +0x50000007, Reconnect
+    Gui Add, GroupBox, x280 y40 w203 h138 vReconnectSettingsGroup -Theme +0x50000007, Reconnect
     Gui Font, s9 norm
 
     ; Reconnect Options
     Gui Add, CheckBox, x296 y61 w150 h16 +0x2 vReconnectCheckBox Section, % " Enable Reconnect"
-    ; Gui Add, CheckBox, x296 y81 w150 h16 +0x2 vQuestReconnectCheckBox Section, % " Reconnect at Daily Reset"
 
     ; Restart Roblox
     Gui Add, CheckBox, x296 y81 h16 +0x2 vRestartRobloxCheckBox Section, % " Restart Roblox every"
@@ -3033,11 +3025,11 @@ CreateMainUI() {
     Gui Add, Text, x350 y102 w130 h16 BackgroundTrans, % "hour(s) (Clears RAM)"
 
     ; Private Server Link
-    Gui Add, Text, x290 y171 w100 h20 vPrivateServerInputHeader BackgroundTrans, Private Server Link:
-    Gui Add, Edit, x294 y188 w177 h20 vPrivateServerInput, % ""
+    Gui Add, Text, x290 y131 w100 h20 vPrivateServerInputHeader BackgroundTrans, Private Server Link:
+    Gui Add, Edit, x294 y148 w177 h20 vPrivateServerInput, % ""
 
     ; Import 
-    Gui Add, Button, vImportSettingsButton gImportSettingsClick x317 y226 w130 h20, Import Settings
+    Gui Add, Button, vImportSettingsButton gImportSettingsClick x317 y186 w130 h20, Import Settings
     
 ; credits tab
     Gui Tab, 5
@@ -3080,16 +3072,16 @@ CreateMainUI() {
 
     ; Roblox UI style to determine Chat button position
     Gui Font, s10 w600
-    Gui Add, Text, x400 y190, Roblox UI
+    Gui Add, Text, x400 y150, Roblox UI
     Gui Font, s9 norm
     
     ; options["RobloxUpdatedUI"]
-    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y210, Old
+    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y170, Old
     Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio2, New
     GuiControl,, RobloxUpdatedUIRadio1, % (options["RobloxUpdatedUI"] = 1) ? 1 : 0
     GuiControl,, RobloxUpdatedUIRadio2, % (options["RobloxUpdatedUI"] = 2) ? 1 : 0
 
-    Gui Show, % "w500 h294 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Macro " version
+    Gui Show, % "w500 h254 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Macro " version
 
     ; status bar
     Gui statusBar:New, +AlwaysOnTop -Caption
