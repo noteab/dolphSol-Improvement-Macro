@@ -1138,6 +1138,7 @@ alignCamera(){
 
     ; reset() ; Redundant, handleCrafting() will use align() if needed
     removeDim()
+    reset()
     Sleep, 2000
 }
 
@@ -2638,7 +2639,7 @@ mainLoop(){
     ; Reset to spawn before taking screenshots or using items
     ; reset()
     
-    ; Attempt to claim quests every 10 minutes
+    ; Attempt to claim quests every 30 minutes
     if (!lastClaim || A_TickCount - lastClaim > 600000) {
         ClaimQuests()
         lastClaim := A_TickCount
@@ -2873,9 +2874,9 @@ CreateMainUI() {
     Gui Font, s9 norm
     Gui Add, CheckBox, vVIPCheckBox x32 y58 w150 h22 +0x2, % " VIP Gamepass Owned"
     Gui Add, CheckBox, vAzertyCheckBox x32 y78 w200 h22 +0x2, % " AZERTY Keyboard Layout"
-    Gui Add, CheckBox, vShifterCheckBox x32 y98 w200 h22 +0x2, % " Shifter Mode"
-    Gui Add, Text, x32 y121 w200 h22, % "Collection Back Button Y Offset:" ; increase by 30 to move down
-    Gui Add, Edit, x206 y120 w50 h18
+    Gui Add, CheckBox, gShifterCheckBoxClick vShifterCheckBox x32 y118 w200 h22 +0x2, % " Shifter Mode"
+    Gui Add, Text, x32 y141 w200 h22, % "Collection Back Button Y Offset:" ; increase by 30 to move down
+    Gui Add, Edit, x206 y140 w50 h18
     Gui Add, UpDown, vBackOffsetUpDown Range-500-500, 0
 
     Gui Font, s10 w600
@@ -2937,13 +2938,15 @@ CreateMainUI() {
     Gui Add, Button, gShowBiomeSettings vBiomeButton x16 y100 w128, Configure Biomes
     Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x16 y+5 w128, Item Scheduler
 
+    Gui Add, Button, gUIHelpClick vUIHelpButton x380 y190 w100 h23, how can I tell?
+
     ; Roblox UI style to determine Chat button position
     Gui Font, s10 w600
-    Gui Add, Text, x400 y150, Roblox UI
+    Gui Add, Text, x400 y130, Roblox UI
     Gui Font, s9 norm
     
     ; options["RobloxUpdatedUI"]
-    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y170, Old
+    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y150, Old
     Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio2, New
     GuiControl,, RobloxUpdatedUIRadio1, % (options["RobloxUpdatedUI"] = 1) ? 1 : 0
     GuiControl,, RobloxUpdatedUIRadio2, % (options["RobloxUpdatedUI"] = 2) ? 1 : 0
@@ -3619,6 +3622,14 @@ GetRobloxVersion:
     options["RobloxUpdatedUI"] := (RobloxUpdatedUIRadio1 = 1) ? 1 : 2
     return
 
+ShifterCheckBoxClick:
+    Gui mainUI:Default
+    GuiControlGet, v,, ShifterCheckBox
+    if (v){
+    MsgBox, 0, Important, % "Shifter mode has not been tested with a non vip account and does not currently have Obby capabilites."
+    }
+    return
+
 OCREnabledCheckBoxClick:
     Gui mainUI:Default
     GuiControlGet, v,, OCREnabledCheckBox
@@ -3710,6 +3721,12 @@ RollDetectionHelpClick:
 OCRHelpClick:
     MsgBox, 0, OCR, % "OCR allows the macro to respond to events instead of blindly pressing keys and moving the mouse. Currently requires Roblox to be ran at 1920x1080 resolution and 100% scale."
 	return
+
+UIHelpClick:
+    Gui, New 
+    Gui, Add, Picture, x20 y50, % mainDir "images\UIInformation.png" ; Change to the path of your image file
+    Gui, Show, AutoSize  ; Adjust the GUI window size to fit the image
+    return
 
 ; gui close buttons
 mainUIGuiClose:
