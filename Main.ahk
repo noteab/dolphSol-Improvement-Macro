@@ -1355,41 +1355,20 @@ walkToPotionCrafting(){
 
 ; End of paths
 
-closeChat() {
-    Sleep, 100
-    Send, /
-    Sleep, 100
-    Send, {Enter}
-
-    getRobloxPos(rX, rY, rW, rH)
-    clickX := 0
-    clickY := rY + rH*0.02
-
-    if (!options.RobloxUpdatedUI) { ; Alternative syntax
-        return
+closeChat(){
+    offsetX := 75
+    offsetY := 25 ; Changed from 12
+    if (options["RobloxUpdatedUI"] = 2) {
+        offsetX := 144
+        offsetY := 40
     }
 
-    ; Old UI
-    if (options["RobloxUpdatedUI"] = 1) {
-        if (rW > 1440) {
-            clickX := rX + rW*0.04
-        } else {
-            clickX := rX + rW*0.055
-        }
-        
-    ; New UI
-    } else if (options["RobloxUpdatedUI"] = 2) {
-        if (rW > 1440) {
-            clickX := rX + rW*0.06
-        } else {
-            clickX := rX + rW*0.085
-        }
-    }
-
-    if (clickX > 0) {
-        MouseMove, % clickX, % clickY
-        sleep, 100
-        MouseClick
+    getRobloxPos(pX,pY,width,height)
+    PixelGetColor, chatCheck, % pX + offsetX, % pY + offsetY, RGB
+    isWhite := compareColors(chatCheck,0xffffff) < 16
+    isGray := compareColors(chatCheck,0xc3c3c3) < 16
+    if (isWhite || isGray){ ; is chat open??
+        ClickMouse(pX + offsetX, pY + offsetY)
     }
 }
 
