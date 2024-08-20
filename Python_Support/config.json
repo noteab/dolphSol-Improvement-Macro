@@ -1,0 +1,238 @@
+{
+    "BROWSER_EXE_NAMES": "opera.exe",
+    "TESSERACT_CMD": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+    "BIOME_OCR_TEXT_REGION": [
+        5,
+        913,
+        312,
+        30
+    ],
+    "INVENTORY_OCR_CHECK_REGION": [
+        840,
+        250,
+        250,
+        40
+    ],
+    "is_auto_biome": true,
+    "glitch_ping_amount": 3,
+    "buff_item_choices": [
+        {
+            "name": "Lucky Potion",
+            "value": "Lucky Potion"
+        },
+        {
+            "name": "Speed Potion",
+            "value": "Speed Potion"
+        },
+        {
+            "name": "Fortune Potion 1",
+            "value": "Fortune Potion 1"
+        },
+        {
+            "name": "Fortune Potion 2",
+            "value": "Fortune Potion 2"
+        },
+        {
+            "name": "Fortune Potion 3",
+            "value": "Fortune Potion 3"
+        },
+        {
+            "name": "Haste 1",
+            "value": "Haste 1"
+        },
+        {
+            "name": "Haste 2",
+            "value": "Haste 2"
+        },
+        {
+            "name": "Haste 3",
+            "value": "Haste 3"
+        },
+        {
+            "name": "Biome Randomizer",
+            "value": "Biome Randomizer"
+        },
+        {
+            "name": "Strange Controller",
+            "value": "Strange Controller"
+        },
+        {
+            "name": "Heavenly Potion 1",
+            "value": "Heavenly Potion 1"
+        },
+        {
+            "name": "Heavenly Potion 2",
+            "value": "Heavenly Potion 2"
+        },
+        {
+            "name": "Mixed Potion",
+            "value": "Mixed Potion"
+        },
+        {
+            "name": "Strange Potion 1",
+            "value": "Strange Potion 1"
+        },
+        {
+            "name": "Strange Potion 2",
+            "value": "Strange Potion 2"
+        },
+        {
+            "name": "Rune of Rainstorm",
+            "value": "Rune of Rainstorm "
+        },
+        {
+            "name": "Rune of Frost",
+            "value": "Rune of Frost"
+        },
+        {
+            "name": "Rune of Wind",
+            "value": "Rune of Wind"
+        },
+        {
+            "name": "Rune of Hell",
+            "value": "Rune of Hell"
+        },
+        {
+            "name": "Rune of Galaxy",
+            "value": "Rune of Galaxy"
+        },
+        {
+            "name": "Rune of Corruption",
+            "value": "Rune of Corruption"
+        },
+        {
+            "name": "Rune of Nothing",
+            "value": "Rune of Nothing"
+        },
+        {
+            "name": "Rune of Everything",
+            "value": "Rune of Everything"
+        }
+    ],
+    "item_crafting_choices": [
+        {
+            "Item_Name": "None"
+        },
+        {
+            "Item_Name": "Gear Basing"
+        },
+        {
+            "Item_Name": "Luck Glove"
+        },
+        {
+            "Item_Name": "Lunar Device"
+        },
+        {
+            "Item_Name": "Solar Device "
+        },
+        {
+            "Item_Name": "Eclipse"
+        },
+        {
+            "Item_Name": "Eclipse Device"
+        },
+        {
+            "Item_Name": "Jackpot Gauntlet"
+        },
+        {
+            "Item_Name": "Exo Gauntlet"
+        },
+        {
+            "Item_Name": "Galatic Device"
+        },
+        {
+            "Item_Name": "Subzero Device"
+        },
+        {
+            "Item_Name": "Gravitational Device"
+        },
+        {
+            "Item_Name": "Windstorm Device"
+        },
+        {
+            "Item_Name": "Volcanic Device"
+        },
+        {
+            "Item_Name": "Strange Controller"
+        },
+        {
+            "Item_Name": "Biome Randomizer"
+        },
+        {
+            "Item_Name": "Exoflex Device"
+        },
+        {
+            "Item_Name": "Flesh Device"
+        },
+        {
+            "Item_Name": "Bank"
+        }
+    ],
+    "enable_auto_item_crafting": false,
+    "crafting_interval": "5",
+    "slot_3": "None",
+    "slot_1": "None",
+    "slot_2": "None",
+    "enable_reconnect": true,
+    "private_server_link": "https://www.roblox.com/games/15532962292/Sols-RNG-SUMMER?privateServerLinkCode=50250775579113198293144552265808",
+    "private_server_code": "50250775579113198293144552265808",
+    "Mari_Item_Option": [
+        {
+            "Item_To_Buy": "None"
+        },
+        {
+            "Item_To_Buy": "Void Coin"
+        },
+        {
+            "Item_To_Buy": "Lucky Penny"
+        },
+        {
+            "Item_To_Buy": "Fortune Spoid 3"
+        },
+        {
+            "Item_To_Buy": "Fortune Spoid 2"
+        },
+        {
+            "Item_To_Buy": "Fortune Spoid 1"
+        },
+        {
+            "Item_To_Buy": "Lucky Potion XL"
+        },
+        {
+            "Item_To_Buy": "Mixed Potion"
+        }
+    ],
+    "Jester_Item_Option": [
+        {
+            "Item_To_Buy": "None"
+        },
+        {
+            "Item_To_Buy": "Oblivion Potion"
+        },
+        {
+            "Item_To_Buy": "Heavenly Potion 2"
+        },
+        {
+            "Item_To_Buy": "Rune of Everthing"
+        },
+        {
+            "Item_To_Buy": "Strange Potion 2"
+        },
+        {
+            "Item_To_Buy": "Stella Candle"
+        },
+        {
+            "Item_To_Buy": "Merchant Tracker"
+        },
+        {
+            "Item_To_Buy": "Random Potion Sack"
+        }
+    ],
+    "enable_auto_merchant": false,
+    "mari_slot_1": "Mixed Potion",
+    "mari_slot_2": "None",
+    "mari_slot_3": "None",
+    "jester_slot_1": "Oblivion Potion",
+    "jester_slot_2": "Merchant Tracker",
+    "jester_slot_3": "None"
+}

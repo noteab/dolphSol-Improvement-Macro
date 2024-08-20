@@ -1,0 +1,30 @@
+(!) If you reached here, welcome to my improvement version of dolphSol by Noteab, a big thanks to Amraki and Stewart for making this unoffical patch and motivate me to make an modification of this version for a better experience of every macro users out there! Their changes on the latest patch have been applied to show credit and keep respect of their hard-working update :)
+
+
+== INSTALLATION & INSTRUCTION GUIDE (V.105 UPDATED 17/08/2024) == (IMPORTANT STEP)
+Full Tutorial video about Python installation and macro bot setup: https://streamable.com/8t4c65 (WATCH THE VIDEO I REPEAT YALL WHAT THE VIDEO!!!) 
+
+
+(1) Download Python (latest version): https://www.python.org/downloads/ --> Also enable "add PATH to python" option
+(2) Download Tesseract (OCR used for biome detection, item check): (https://github.com/UB-Mannheim/tesseract/wiki)
+--> Just find the keyword: "The latest installers can be downloaded here: tesseract-ocr-w64-setup-5.4.0.20240606.exe (64 bit)", at the front page so it easy to see
+(3) Setup discord bot: https://discord.com/developers/applications
+
+
+* NOTES *
+- Install package in requirements: pip install -r requirements.txt
+- I have put uninstall_package (do this when everything messed up, this will be a fresh with no python packages after uninstall then redo the install requirements.txt): pip uninstall -r uninstall_packages.txt -y
+
+
+
+== FAQ (Will add more question soon) ==
+-- Congratulate to who patiently complete my installation & instruction guide, so this is how you use the command correctly --
+
+(1) If you open the discord_cmd.py but the slash command in your discord wont show up? What should you do? --> Use "/sync" command and refresh the discord page, it should be update all the existing command list for you. Or uncomment await bot.tree.sync() in async def on_ready() and refresh your discord browser then comment that bot.tree.sync() (prevent from being ratelimited)
+
+(2) For the reconnection, I have reverted back to deeplink method, auto detection sol rng server shutdown message and roblox disconnect popup, after reconnect it will reset the camera angle to let the AHK macro do its job properly.
+
+(?) Soon...
+ 
+== END OF THE IMPORTANT NOTE ==
+Have a good day of macroing, dolphSol user :D
