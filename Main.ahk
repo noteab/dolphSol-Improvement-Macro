@@ -82,6 +82,8 @@ craftingCompleteColor := 0x1C821A
 
 statusEffectSpace := 5
 
+SetKeyDelay, 50 ; I wasnt sure where to put this
+
 global mainDir := A_ScriptDir "\"
 
 logMessage("") ; empty line for separation
@@ -1236,7 +1238,7 @@ runPath(pathName,voidPoints,noCenter = 0){
                     }
                 }
             }
-
+            /*
             blackCorners := 0
             for i,point in scanPoints {
                 PixelGetColor, pColor, % point[1], % point[2], RGB
@@ -1254,6 +1256,7 @@ runPath(pathName,voidPoints,noCenter = 0){
                     }
                 }
             }
+            */
             Sleep, 225
             voidCooldown := Max(0,voidCooldown-1)
         }
@@ -1758,7 +1761,7 @@ craftingClickAdd(totalSlots, maxes := 0, isGear := 0) {
             Sleep, 200
             MouseClick
             Sleep, 200
-            SendInput, % inputQty
+            Send, % inputQty
             Sleep, 200
 
             ; Click the "Add" button
@@ -2057,7 +2060,7 @@ EquipAura(auraName := "") {
         posBtn := getPositionFromAspectRatioUV(StorageSearchUV[1], StorageSearchUV[2], storageAspectRatio)
     }
     ClickMouse(posBtn[1], posBtn[2])
-    SendInput, % auraName
+    Send, % auraName
     Sleep, 500
 
     ; Search Result
@@ -2101,7 +2104,7 @@ useItem(itemName, useAmount := 1) {
     ; Search for item
     searchBar := getPositionFromAspectRatioUV(0.56, -0.39, storageAspectRatio)
     ClickMouse(searchBar[1], searchBar[2])
-    SendInput, % itemName
+    Send, % itemName
     Sleep, 200
 
     ; Select item
