@@ -465,35 +465,43 @@ item_choices = [
     quantity="Quantity of the item to use",
     slot="Slot number where the item type is located"
 )
-
 @app_commands.choices(item=item_choices)
 async def useitem(ctx: commands.Context, item: str, quantity: int = 1, slot: int = 1):
-    await ctx.defer()
-
-    if await activate_roblox_window():
-        await GameButtonScanner()
-
-        # Get positions of inventory buttons
-        inventory_menu_check = get_button_position("inventory_menu")
-        inventory_button = get_button_position("inventory")
-
-        # Check if positions were found
-        if inventory_button is None:
-            await ctx.send("Error: Inventory button not found.")
-            return
+    try:
+        await ctx.defer()
+        await asyncio.sleep(1)
         
-        autoit.send("{f2}")
-        await asyncio.sleep(0.3) 
+        if await activate_roblox_window():
+            await GameButtonScanner()
 
-        # Determine whether the inventory menu title is open or closed
-        is_opened = "opened" if inventory_menu_check else "closed"
-        await Inventory_UseItem(item, quantity, slot, inventory_button[0], inventory_button[1], is_opened)
+            # Get positions of inventory buttons
+            inventory_menu_check = get_button_position("inventory_menu")
+            inventory_button = get_button_position("inventory")
 
-        await ctx.send(f"Attempted to use {item} with amount: {quantity} from slot {slot}.")
-        await asyncio.sleep(0.5)
-        autoit.send("{f2}")        
-    else:
-        await ctx.send("Roblox window not found!")
+            # Check if positions were found
+            if inventory_button is None:
+                await ctx.send("Error: Inventory button not found.")
+                return
+
+            autoit.send("{f2}")
+            await asyncio.sleep(0.3) 
+
+            # Determine whether the inventory menu title is open or closed
+            is_opened = "opened" if inventory_menu_check else "closed"
+            await Inventory_UseItem(item, quantity, slot, inventory_button[0], inventory_button[1], is_opened)
+
+            await ctx.send(f"Attempted to use {item} with amount: {quantity} from slot {slot}.")
+            await asyncio.sleep(0.5)
+            autoit.send("{f2}")        
+        else:
+            await ctx.send("Roblox window not found!")
+
+    except discord.errors.NotFound as e:
+        print(f"Discord interaction expired or not found,: {e} (try again!)")
+    except Exception as e:
+        # Handle other unexpected exceptions
+        await ctx.send("An error occurred while processing the command.")
+        print(f"Unexpected error: {e}")
         
 """ RECONNECT """      
 async def reconnect_function(ctx: commands.Context = None):
