@@ -452,12 +452,6 @@ item_choices = [
     slot="Slot number where the item type is located"
 )
 
-@bot.hybrid_command()
-@app_commands.describe(
-    item="Choose an item to use",
-    quantity="Quantity of the item to use",
-    slot="Slot number where the item type is located"
-)
 @app_commands.choices(item=item_choices)
 async def useitem(ctx: commands.Context, item: str, quantity: int = 1, slot: int = 1):
     try:
