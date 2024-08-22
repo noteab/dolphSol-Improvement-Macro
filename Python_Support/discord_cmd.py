@@ -14,7 +14,7 @@ import pygetwindow as gw
 import time
 import io
 from io import BytesIO
-from PIL import Image, ImageEnhance, ImageDraw, ImageFont
+from PIL import Image, ImageEnhance, ImageDraw, ImageFont, ImageGrab
 import psutil
 import win32process
 import asyncio
@@ -86,10 +86,8 @@ biome_end_time = None
 is_auto_biome = config['is_auto_biome']
 glitch_ping_amount = config['glitch_ping_amount']
 
-
 def detect_glitch_biome(ocr_text):
-    """ HOW IT WORK:
-    Detects a glitched biome in the given OCR text.
+    """Detects a glitched biome in the given OCR text.
 
     Parameters:
     - ocr_text (str): The OCR text to analyze.
@@ -97,37 +95,28 @@ def detect_glitch_biome(ocr_text):
     Returns:
     - str: "Glitched" if a glitched biome is detected, else None.
     """
-    # Regex pattern to match potential glitched biome numbers with flexible brackets and misread characters
+
+    # Check if the OCR text matches any known normal biomes
+    if any(biome in ocr_text for biome in biomes):
+        return None
+
+    # Updated regex pattern to match 14 to 16 digits
     glitch_biome_pattern = re.compile(
-        r'[\[\{\(\|]?\s*[0O@©]\s*[\.,]\s*\d*[\da-zA-Z]*\s*[\]\}\)\|]?'
+        r'\[\s*\[0\]\.\d{14,16}\s*\]'  # Matches a [ 0.xxxxxxxxxxxxxx ] pattern with 14 to 16 digits
     )
 
     # Search for all potential matches in the OCR text
-    matches = ''
+    matches = glitch_biome_pattern.findall(ocr_text) if ocr_text else []
     
-    if ocr_text != None: matches = glitch_biome_pattern.findall(ocr_text)
-       
-   
-    if matches:
-        for match in matches:
-            potential_number = match.strip()
-
-            # Debugging Output
-            #ic(f"Potential Match Found: {match}")
-
-            normalized_number = potential_number.replace('@', '0').replace('©', '0').replace('O', '0')
-            normalized_number = normalized_number.replace(',', '.')
-            normalized_number = re.sub(r'[^\d.]', '', normalized_number)  # Remove all non-digit and non-period characters
-
-
-            # Validate if the normalized string is a valid decimal number
-            try:
-                float_value = float(normalized_number)
-                # Glitched biome numbers are between 0 and 1:
-                if 0.0 < float_value < 1.0:
-                    return "Glitched", normalized_number
-            except ValueError:
-                continue  # If conversion fails, proceed to check the next match one i guess?
+    for match in matches:
+        normalized_number = match.strip('[]').strip()
+        try:
+            # Convert the number part to a float to validate it
+            float_value = float(normalized_number)
+            if 0.0 < float_value < 1.0:  # Ensure it's a valid decimal number
+                return "Glitched", normalized_number
+        except ValueError:
+            continue  # If conversion fails, proceed to check the next match
 
     return None
 
@@ -159,11 +148,7 @@ async def GameButtonScanner():
         "reconnect_skip": cv2.imread(f"{MAIN_IMAGES_PATH}\\GameButtons\\reconnect_skip.png")
     }
 
-    window = gw.getWindowsWithTitle(ROBLOX_WINDOW_TITLE)[0]
-
-    region = (window.left, window.top, window.width, window.height - 10)
-
-    screen = pyautogui.screenshot(region=region)
+    screen = pyautogui.screenshot()
     screen_np = np.array(screen)
     screen_cv = cv2.cvtColor(screen_np, cv2.COLOR_RGB2BGR)
 
@@ -180,10 +165,10 @@ async def GameButtonScanner():
         button_cv = cv2.cvtColor(button_image, cv2.COLOR_RGB2BGR)
 
         # Check if the template (button_cv) is larger than the screenshot region (screen_cv)
-        if button_cv.shape[0] > screen_cv.shape[0] or button_cv.shape[1] > screen_cv.shape[1]:
-            print(f"Error: Button image '{button_name}' is larger than the your screen region. Skipping to prevent further error...")
-            print(f"Button size: {button_cv.shape}, Screen size: {screen_cv.shape}")
-            continue
+        # if button_cv.shape[0] > screen_cv.shape[0] or button_cv.shape[1] > screen_cv.shape[1]:
+        #     print(f"Error: Button image '{button_name}' is larger than the your screen region. Skipping to prevent further error...")
+        #     print(f"Button size: {button_cv.shape}, Screen size: {screen_cv.shape}")
+        #     continue
 
         res = cv2.matchTemplate(screen_cv, button_cv, cv2.TM_CCOEFF_NORMED)
         threshold = 0.8
@@ -295,15 +280,8 @@ async def Inventory_UseItem(item_to_use, item_quantity, item_slot, inventory_x, 
     item_usebutton_coords = convert_to_relative_coords(716, 580, screen_width, screen_height)
     item_firstslot_coords = convert_to_relative_coords(872, 385, screen_width, screen_height)
     
-    
-    click_item_category = (1238, 290) # higher y -> the mouse will go down (Use dolphSol window spy and get the client position, this is just a base xy position for 1920x1080)
-    search_bar_coords = (952, 338) # higher y -> the mouse will go down (Use dolphSol window spy and get the client position, this is just a base xy position for 1920x1080)
-    quantity_coords = (609, 580) # higher y -> the mouse will go down (Use dolphSol window spy and get the client position, this is just a base xy position for 1920x1080)
-    
-    item_usebutton_coords = (716, 580) # higher y -> the mouse will go down (Use dolphSol window spy and get the client position, this is just a base xy position for 1920x1080)
-    
     # Item slot:
-    item_firstslot_coords = (872, 385) # (Use dolphSol window spy and get the client position, this is just a base xy position for 1920x1080)
+    item_firstslot_coords = convert_to_relative_coords(872, 385, screen_width, screen_height) # (Use dolphSol window spy and get the client position, this is just a base xy position for 1920x1080)
     slot_offset = int(90 * screen_height / base_height) * (item_slot - 1)
     
     item_slot_coords = (
@@ -407,6 +385,8 @@ async def sync(ctx: commands.Context):
 @bot.hybrid_command()
 async def start(ctx: commands.Context):
     await ctx.defer()
+    await asyncio.sleep(1.4)
+    
     if await activate_roblox_window():
         for _ in range(5):
             autoit.send("{f1}")
@@ -419,6 +399,8 @@ async def start(ctx: commands.Context):
 @bot.hybrid_command()
 async def stop(ctx: commands.Context):
     await ctx.defer()
+    await asyncio.sleep(1.4)
+    
     if await activate_roblox_window():
         for _ in range(3):
             autoit.send("{f3}")
@@ -432,6 +414,8 @@ async def stop(ctx: commands.Context):
 @bot.hybrid_command()
 async def screenshot(ctx: commands.Context):
     await ctx.defer()
+    await asyncio.sleep(1.4)
+    
     await activate_roblox_window()
     time.sleep(0.5)
     screenshot = take_screenshot()
@@ -447,6 +431,8 @@ async def screenshot(ctx: commands.Context):
 @bot.hybrid_command()
 async def realign(ctx: commands.Context):
     await ctx.defer()
+    await asyncio.sleep(1.4)
+    
     if await activate_roblox_window():
         pyautogui.hotkey('ctrl', 'f2')
         await ctx.send("Realign command executed, please wait the aligning process is finish...", delete_after=15)
@@ -465,11 +451,18 @@ item_choices = [
     quantity="Quantity of the item to use",
     slot="Slot number where the item type is located"
 )
+
+@bot.hybrid_command()
+@app_commands.describe(
+    item="Choose an item to use",
+    quantity="Quantity of the item to use",
+    slot="Slot number where the item type is located"
+)
 @app_commands.choices(item=item_choices)
 async def useitem(ctx: commands.Context, item: str, quantity: int = 1, slot: int = 1):
     try:
         await ctx.defer()
-        await asyncio.sleep(1)
+        await asyncio.sleep(1.4)
         
         if await activate_roblox_window():
             await GameButtonScanner()
@@ -674,7 +667,7 @@ async def AUTO_BIOME_SEARCH_LOOP():
     
         
         result = detect_glitch_biome(biome_text)
-        if result:
+        if result != None:
             await activate_roblox_window()
             glitch_biome_detected, normalized_glitch_number = result
             cleaned_biome_text = glitch_biome_detected
@@ -725,7 +718,7 @@ async def wait_for_biome_duration(duration):
 
         
         result = detect_glitch_biome(biome_text)
-        if result:
+        if result != None:
             await activate_roblox_window()
             glitch_biome_detected, normalized_glitch_number = result
             cleaned_biome_text = glitch_biome_detected
@@ -795,10 +788,8 @@ async def item_crafting_image_process():
         "Flesh Device": cv2.imread(f"{MAIN_IMAGES_PATH}\\Jake_Shop\\flesh_device.png")
         
     }
-    
-    window = gw.getWindowsWithTitle(ROBLOX_WINDOW_TITLE)[0]
-    region = (window.left, window.top, window.width, window.height - 10)
-    screen = pyautogui.screenshot(region=region)
+
+    screen = pyautogui.screenshot()
     screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
     
     item_crafting_positions = []
@@ -915,7 +906,6 @@ async def AUTO_ITEM_CRAFTING_PATH_AND_CRAFT_LOGIC(item_to_craft):
             break
 
 
-    
 # @bot.hybrid_command()
 # async def item_craft_test(ctx: commands.Context, item_craft_test: str):
 #     await ctx.defer()
@@ -951,8 +941,6 @@ async def AUTO_ITEM_CRAFTING_LOOP():
 
             # Move to the next slot for the next loop iteration
             AUTO_ITEM_CRAFTING_LOOP.current_slot = (AUTO_ITEM_CRAFTING_LOOP.current_slot + 1) % len(slot_items)
-            
-
 
        
 ## AUTO ITEM CRAFTING MECHANIC ##
@@ -965,7 +953,8 @@ async def on_ready():
     AUTO_BIOME_SEARCH_LOOP.start()
     AUTO_ITEM_CRAFTING_LOOP.start()
     Disconnect_Detection_LOOP.start()
-    
     #await bot.tree.sync() # Uncomment it when you sync the bot for the first time like the tutorial video, after synced successfully, you can comment it or delete it to prevent bot ratelimit
+  
+  
 
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
