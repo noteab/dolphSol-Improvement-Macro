@@ -67,8 +67,7 @@ def update_craft_interval(interval):
     config['crafting_interval'] = interval
     save_config()
     print(f"Crafting Interval set to: {interval} minute(s)")
-
-
+    
 # Function to update the selected item in the config for Mari Merchant
 def update_mari_item(slot, value):
     config[f'mari_slot_{slot}'] = value
@@ -282,6 +281,24 @@ save_link_button.grid(row=2, column=0, columnspan=2, pady=10)
 
 
 # MERCHANT MAIN Section #
+# Function to save the state of the checkbox
+def save_auto_buy_setting():
+    config['enable_auto_merchant'] = auto_buy_var.get()
+    save_config()
+    
+# Merchant Auto Buy Section
+merchant_auto_buy_frame = ttk.Labelframe(merchant_tab, text="Merchant Auto Buy")
+merchant_auto_buy_frame.pack(fill="x", padx=10, pady=5)
+
+auto_buy_var = tk.BooleanVar(value=config.get('enable_auto_merchant', False))
+auto_buy_checkbox = ttk.Checkbutton(merchant_auto_buy_frame, text="Enable Merchant Auto Buy", variable=auto_buy_var, command=save_auto_buy_setting)
+auto_buy_checkbox.pack(anchor="w", padx=5, pady=2)
+
+description_label = ttk.Label(merchant_auto_buy_frame, text="(Requires having Merchant Teleporter (costs 40 Robux) and enabling it in DolphSol Item Scheduler)")
+description_label.pack(anchor="w", padx=5, pady=2)
+
+
+
 
 # Mari Merchant Items Section
 mari_items_frame = ttk.Labelframe(merchant_tab, text="Mari Shop Items")
