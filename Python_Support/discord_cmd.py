@@ -14,7 +14,7 @@ import pygetwindow as gw
 import time
 import io
 from io import BytesIO
-from PIL import Image, ImageEnhance, ImageDraw, ImageFont, ImageGrab
+from PIL import Image, ImageEnhance
 import psutil
 import win32process
 import asyncio
@@ -95,10 +95,6 @@ def detect_glitch_biome(ocr_text):
     Returns:
     - str: "Glitched" if a glitched biome is detected, else None.
     """
-
-    # Check if the OCR text matches any known normal biomes
-    if any(biome in ocr_text for biome in biomes):
-        return None
 
     # Updated regex pattern to match 14 to 16 digits
     glitch_biome_pattern = re.compile(
@@ -661,7 +657,7 @@ async def AUTO_BIOME_SEARCH_LOOP():
     
         
         result = detect_glitch_biome(biome_text)
-        if result != None:
+        if result:
             await activate_roblox_window()
             glitch_biome_detected, normalized_glitch_number = result
             cleaned_biome_text = glitch_biome_detected
@@ -712,7 +708,7 @@ async def wait_for_biome_duration(duration):
 
         
         result = detect_glitch_biome(biome_text)
-        if result != None:
+        if result:
             await activate_roblox_window()
             glitch_biome_detected, normalized_glitch_number = result
             cleaned_biome_text = glitch_biome_detected
@@ -936,7 +932,244 @@ async def AUTO_ITEM_CRAFTING_LOOP():
             # Move to the next slot for the next loop iteration
             AUTO_ITEM_CRAFTING_LOOP.current_slot = (AUTO_ITEM_CRAFTING_LOOP.current_slot + 1) % len(slot_items)
 
-       
+""" MERCHANT FEATURE """
+MERCHANT_Item_Position = []
+merchant_username_images = {
+        "mari": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari_Name.png"),
+        "jester": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester_Name.png")
+}
+
+def get_merchant_buttons_position(button_name):
+    for name, x, y in MERCHANT_Item_Position:
+        if name == button_name:
+            return (x, y)
+    return None
+
+
+async def Merchant_Specific_Item_SCANNING_Process(merchant_type):
+    global MERCHANT_Item_Position
+
+    # Merchant-specific items
+    Merchant_Items_Image = {
+        "mari": {
+            "Mixed Potion": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Mixed_Pot.png"),
+            # "Mixed Potion Green": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Mixed_Pot_Green.png"),
+            # "Mixed Potion Red": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Mixed_Pot_Red.png"),
+            "Fortune Spoid 1": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_1.png"),
+            "Fortune Spoid 3": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_3.png"),
+            "Lucky Penny": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_Penny.png"),
+            "Void Coin": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Void_Coin.png")
+        },
+        "jester": {
+            "Oblivion Potion": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Oblivion_Pot.png"),
+            "Heavenly Potion 2": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Heavenly_Pot2.png"),
+            "Merchant Tracker": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Tracker.png"),
+            "Rune Of Everything": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Rune_Everything.png")
+        }
+    }
+
+    if merchant_type not in Merchant_Items_Image:
+        print(f"No items found for merchant type: {merchant_type}")
+        return None
+
+    # Capture the current screen
+    screen = pyautogui.screenshot()
+    screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
+
+    MERCHANT_Item_Position = []
+
+    # Perform template matching for the merchant-specific items
+    for item_name, item_image in Merchant_Items_Image[merchant_type].items():
+        if item_image is None:
+            continue
+
+        # Perform template matching
+        res = cv2.matchTemplate(screen_cv, item_image, cv2.TM_CCOEFF_NORMED)
+        threshold = 0.8  # Adjust threshold as needed
+        loc = np.where(res >= threshold)
+
+        for pt in zip(*loc[::-1]):
+            center_x = pt[0] + item_image.shape[1] // 2
+            center_y = pt[1] + item_image.shape[0] // 2
+
+            # Draw rectangle around the detected item
+            cv2.rectangle(screen_cv, (pt[0], pt[1]), (pt[0] + item_image.shape[1], pt[1] + item_image.shape[0]), (0, 255, 0), 2)
+
+            MERCHANT_Item_Position.append((item_name, center_x, center_y))
+            print(f"Detected {item_name} at position ({center_x}, {center_y})")
+
+    # Save the result with rectangles drawn around detected items
+    detected_items_path = f"{MAIN_IMAGES_PATH}\\Detected_Items\\{merchant_type}_detected_items.png"
+    cv2.imwrite(detected_items_path, screen_cv)
+
+    return MERCHANT_Item_Position
+
+# Process merchant buttons , names and detect items
+async def Merchant_Button_SCANNING_Process():
+    global MERCHANT_Item_Position
+
+    # General buttons for all merchants
+    Merchant_Buttons_Image = {
+        "open_button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Jake_Shop\\jake_open_button.png"),
+        "Purchase_Amount": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Purchase_Amount.png"),
+        "Purchase_Button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Purchase_Button.png")
+    }
+
+    # Capture the current screen
+    screen = pyautogui.screenshot()
+    screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
+
+    MERCHANT_Item_Position = []
+    
+    # Perform template matching for the relevant buttons
+    for button_name, button_image in Merchant_Buttons_Image.items():
+        if button_image is None:
+            continue
+
+        # Perform template matching
+        res = cv2.matchTemplate(screen_cv, button_image, cv2.TM_CCOEFF_NORMED)
+        threshold = 0.8  # Adjust threshold as needed
+        loc = np.where(res >= threshold)
+        
+        detected = False
+        for pt in zip(*loc[::-1]):
+            if not detected:
+                detected = True
+                center_x = pt[0] + button_image.shape[1] // 2
+                center_y = pt[1] + button_image.shape[0] // 2
+                MERCHANT_Item_Position.append((button_name, center_x, center_y))
+    
+    return MERCHANT_Item_Position
+
+
+async def Merchant_Name_Process(merchant_type, debug=False):
+    """Process to detect the merchant by NPC name and return their name position."""
+    global merchant_username_images
+
+    if merchant_type not in merchant_username_images:
+        print(f"Invalid merchant type specified: {merchant_type}")
+        return None
+
+    merchant_name_image = merchant_username_images[merchant_type]
+
+    # Capture the current screen
+    screen = pyautogui.screenshot()
+    screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)  # Convert to BGR for template matching
+
+    # Perform template matching to find the NPC name on screen
+    res = cv2.matchTemplate(screen_cv, merchant_name_image, cv2.TM_CCOEFF_NORMED)
+    threshold = 0.8
+    loc = np.where(res >= threshold)
+
+    detected_positions = []
+
+    if len(loc[0]) > 0:
+        # Get the center positions of the detected merchant names
+        detected_positions = [(pt[0] + merchant_name_image.shape[1] // 2, pt[1] + merchant_name_image.shape[0] // 2) for pt in zip(*loc[::-1])]
+        if debug:
+            print(f"Debug: {merchant_type.capitalize()} detected at positions: {detected_positions}")
+        return detected_positions
+        
+    else:
+        if debug:
+            print(f"Debug: No {merchant_type.capitalize()} detected on screen.")
+        return None
+
+
+async def Merchant_Item_Buy_Process(merchant_type):
+    """Process to purchase items from the merchant"""
+    
+    # Call Merchant_Button_SCANNING_Process to detect the general buttons
+    button_positions = await Merchant_Button_SCANNING_Process()
+    
+    if not button_positions:
+        print(f"Could not detect the general buttons for {merchant_type}. Exiting process.")
+        return
+
+    # Check if the open button was detected and click it
+    await activate_roblox_window()
+    open_button_pos = get_merchant_buttons_position("open_button")
+    if open_button_pos:
+        autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
+        await asyncio.sleep(1.4)  # Wait for the merchant interface to open
+    else:
+        return
+
+    # Call Merchant_Specific_Item_SCANNING_Process to detect merchant-specific items
+    item_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type)
+    
+    if not item_positions:
+        print(f"No items detected for {merchant_type}.")
+        return
+
+    # Loop through each item to purchase it
+    for item_name, center_x, center_y in item_positions:
+        print(f"Attempting to purchase {item_name} at position ({center_x}, {center_y}).")
+
+        # Click on the detected item
+        item_found = True
+        autoit.mouse_click("left", center_x, center_y)
+        await asyncio.sleep(0.5)  # Small delay before processing purchase
+
+        # Check for the purchase amount and purchase button positions
+        purchase_amount_pos = get_merchant_buttons_position("Purchase_Amount")
+        purchase_button_pos = get_merchant_buttons_position("Purchase_Button")
+        
+        if purchase_amount_pos:
+            autoit.mouse_click("left", purchase_amount_pos[0], purchase_amount_pos[1])
+            await asyncio.sleep(0.4)
+            autoit.send("1")  # Assume purchasing 1 unit
+
+        if purchase_button_pos:
+            await asyncio.sleep(0.4)
+            autoit.mouse_click("left", purchase_button_pos[0], purchase_button_pos[1])
+            print(f"Purchased {item_name}.")
+
+        # Logic for handling items that need scrolling
+        for _ in range(4):  # Try to find the item up to 4 times
+            if not item_found:
+                print("Item not found, scrolling to search.")
+                autoit.mouse_move(321, 478)
+                autoit.mouse_wheel("down", 4)
+                await asyncio.sleep(1)
+            else:
+                break
+
+        if not item_found:
+            print(f"Item {item_name} not found after scrolling. Skipping to next item.")
+            autoit.mouse_wheel("up", 12)  # Reset scroll
+            await asyncio.sleep(1)
+
+
+
+@tasks.loop(seconds=10)
+async def AUTO_MERCHANT_DETECTION_LOOP():
+    """Automatically detect merchants and handle item buying process."""
+    auto_merchant_detection = config.get('enable_auto_merchant', False)
+    
+    if not auto_merchant_detection:
+        return
+    
+    # Define a dictionary for merchants and their corresponding process logic
+    merchants = {
+        'mari': False,
+        'jester': False
+    }
+
+    for merchant in merchants:
+        positions = await Merchant_Name_Process(merchant)
+        if positions:
+            print(f"{merchant.capitalize()} detected!")
+            merchants[merchant] = True
+            await Merchant_Item_Buy_Process(merchant)
+
+    # Delay longer if no merchants were detected
+    if not any(merchants.values()):
+        await asyncio.sleep(7)
+            
+""" MERCHANT FEATURE """
+
+      
 ## AUTO ITEM CRAFTING MECHANIC ##
 @bot.event
 async def on_ready():
@@ -947,6 +1180,7 @@ async def on_ready():
     AUTO_BIOME_SEARCH_LOOP.start()
     AUTO_ITEM_CRAFTING_LOOP.start()
     Disconnect_Detection_LOOP.start()
+    AUTO_MERCHANT_DETECTION_LOOP.start()
     #await bot.tree.sync() # Uncomment it when you sync the bot for the first time like the tutorial video, after synced successfully, you can comment it or delete it to prevent bot ratelimit
   
   
