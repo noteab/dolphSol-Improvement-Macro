@@ -1217,25 +1217,25 @@ runPath(pathName,voidPoints,noCenter = 0){
                 }
             }
 
-            blackCorners := 0
-            for i,point in scanPoints {
-                PixelGetColor, pColor, % point[1], % point[2], RGB
-                blackCorners += compareColors(pColor,0x000000) < 8
-            }
-            PixelGetColor, pColor, % rX+width*0.5, % rY+height*0.5, RGB
-            centerBlack := compareColors(pColor,0x000000) < 8
-            if (blackCorners = 3 && centerBlack){
-                if (!voidCooldown){
-                    voidCooldown := 5
-                    expectedVoids -= 1
-                    if (expectedVoids < 0){
-                        stopped := 1
-                        break
-                    }
-                }
-            }
-            Sleep, 225
-            voidCooldown := Max(0,voidCooldown-1)
+            ; blackCorners := 0
+            ; for i,point in scanPoints {
+            ;     PixelGetColor, pColor, % point[1], % point[2], RGB
+            ;     blackCorners += compareColors(pColor,0x000000) < 8
+            ; }
+            ; PixelGetColor, pColor, % rX+width*0.5, % rY+height*0.5, RGB
+            ; centerBlack := compareColors(pColor,0x000000) < 8
+            ; if (blackCorners = 3 && centerBlack){
+            ;     if (!voidCooldown){
+            ;         voidCooldown := 5
+            ;         expectedVoids -= 1
+            ;         if (expectedVoids < 0){
+            ;             stopped := 1
+            ;             break
+            ;         }
+            ;     }
+            ; }
+            ; Sleep, 225
+            ; voidCooldown := Max(0,voidCooldown-1)
         }
         ; elapsedTime := (A_TickCount - pathRuntime)//1000
         ; logMessage("[runPath] " pathName " completed in " elapsedTime " seconds")
