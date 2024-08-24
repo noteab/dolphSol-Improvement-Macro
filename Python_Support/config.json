@@ -14,7 +14,7 @@
         40
     ],
     "is_auto_biome": true,
-    "glitch_ping_amount": 3,
+    "glitch_ping_amount": 2,
     "buff_item_choices": [
         {
             "name": "Lucky Potion",
@@ -170,7 +170,7 @@
     ],
     "enable_auto_item_crafting": false,
     "crafting_interval": "5",
-    "slot_3": "None",
+    "slot_3": "Luck Glove",
     "slot_1": "None",
     "slot_2": "None",
     "enable_reconnect": true,
@@ -187,19 +187,34 @@
             "Item_To_Buy": "Lucky Penny"
         },
         {
-            "Item_To_Buy": "Fortune Spoid 3"
+            "Item_To_Buy": "Fortune Spoid 1"
         },
         {
             "Item_To_Buy": "Fortune Spoid 2"
         },
         {
-            "Item_To_Buy": "Fortune Spoid 1"
+            "Item_To_Buy": "Fortune Spoid 3"
+        },
+        {
+            "Item_To_Buy": "Lucky Potion"
         },
         {
             "Item_To_Buy": "Lucky Potion XL"
         },
         {
+            "Item_To_Buy": "Speed Potion"
+        },
+        {
+            "Item_To_Buy": "Speed Potion XL"
+        },
+        {
             "Item_To_Buy": "Mixed Potion"
+        },
+        {
+            "Item_To_Buy": "Gear A"
+        },
+        {
+            "Item_To_Buy": "Gear B"
         }
     ],
     "Jester_Item_Option": [
@@ -228,11 +243,11 @@
             "Item_To_Buy": "Random Potion Sack"
         }
     ],
-    "enable_auto_merchant": false,
+    "enable_auto_merchant": true,
     "mari_slot_1": "Mixed Potion",
-    "mari_slot_2": "None",
+    "mari_slot_2": "Fortune Spoid 1",
     "mari_slot_3": "None",
-    "jester_slot_1": "Oblivion Potion",
-    "jester_slot_2": "Merchant Tracker",
+    "jester_slot_1": "None",
+    "jester_slot_2": "None",
     "jester_slot_3": "None"
 }

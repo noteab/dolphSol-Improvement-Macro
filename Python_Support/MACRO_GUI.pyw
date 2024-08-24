@@ -287,7 +287,7 @@ def save_auto_buy_setting():
     save_config()
     
 # Merchant Auto Buy Section
-merchant_auto_buy_frame = ttk.Labelframe(merchant_tab, text="Merchant Auto Buy")
+merchant_auto_buy_frame = ttk.Labelframe(merchant_tab, text="Merchant Auto Buy (NOT WORK AT THE MOMENT, JUST A VISUAL GUI TO SHOW HOW IT WORK!)")
 merchant_auto_buy_frame.pack(fill="x", padx=10, pady=5)
 
 auto_buy_var = tk.BooleanVar(value=config.get('enable_auto_merchant', False))
