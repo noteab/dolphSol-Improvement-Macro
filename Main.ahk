@@ -963,6 +963,11 @@ resetZoom(){
         Click, WheelUp
         Sleep, 50
     }
+
+    Click, Right Down
+    MouseMove, A_ScreenWidth // 2, A_ScreenHeight
+    Click, Right Up
+
     Loop 10 {
         Click, WheelDown
         Sleep, 50
@@ -2098,7 +2103,7 @@ useItem(itemName, useAmount := 1) {
         logMessage("Pressing E for Merchant Teleport", 1)
         Sleep, 250
         Send, {E} ; Press E to interact with the NPC
-        Sleep, 20000
+        Sleep, 25000
     }
 }
 
