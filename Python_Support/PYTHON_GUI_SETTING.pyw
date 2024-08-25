@@ -314,7 +314,7 @@ for i in range(1, 4):
     combobox.bind('<<ComboboxSelected>>', lambda event, i=i: update_mari_item(i, mari_slot_vars[i-1].get()))  # Pass current value of `i`
 
 # Jester Merchant Items Section
-jester_items_frame = ttk.Labelframe(merchant_tab, text="Jester Shop Items")
+jester_items_frame = ttk.Labelframe(merchant_tab, text="Jester Shop Items (Exchange item to Dark Point will be available soon!!)")
 jester_items_frame.pack(fill="x", padx=10, pady=5)
 
 jester_item_options = [item['Item_To_Buy'] for item in config.get('Jester_Item_Option', [])]
