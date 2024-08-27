@@ -24,6 +24,7 @@ import numpy as np
 import pyautogui
 import json
 import re
+import math
 from ctypes import windll
 from icecream import ic
 
@@ -65,7 +66,7 @@ ROBLOX_WINDOW_TITLE = "Roblox"
 
 
 ## BIOME OCR ##
-biomes = ["Normal", "Hell", "Starfall", "Corruption", "Null", "Windy", "Snowy", "Rainy"]
+biomes = ["Normal", "Hell", "Starfall", "Corruption", "Glitched", "Null", "Windy", "Snowy", "Rainy"]
 biome_durations = {
     "Normal": 10, 
     "Hell": 660,
@@ -86,35 +87,45 @@ biome_end_time = None
 is_auto_biome = config['is_auto_biome']
 glitch_ping_amount = config['glitch_ping_amount']
 
+similar_characters = {
+    "1": "l",
+    "n": "m",
+    "m": "n",
+    "t": "f",
+    "f": "t",
+    "s": "S",
+    "S": "s",
+    "w": "W",
+    "W": "w"
+}
+
 def detect_glitch_biome(ocr_text):
-    """Detects a glitched biome in the given OCR text.
-
-    Parameters:
-    - ocr_text (str): The OCR text to analyze.
-
-    Returns:
-    - str: "Glitched" if a glitched biome is detected, else None.
-    """
-
-    # Updated regex pattern to match 14 to 16 digits
-    glitch_biome_pattern = re.compile(
-        r'\[\s*\[0\]\.\d{14,16}\s*\]'  # Matches a [ 0.xxxxxxxxxxxxxx ] pattern with 14 to 16 digits
-    )
-
-    # Search for all potential matches in the OCR text
-    matches = glitch_biome_pattern.findall(ocr_text) if ocr_text else []
+    if not ocr_text:
+        return None, None  # Return a tuple with two None values
     
-    for match in matches:
-        normalized_number = match.strip('[]').strip()
-        try:
-            # Convert the number part to a float to validate it
-            float_value = float(normalized_number)
-            if 0.0 < float_value < 1.0:  # Ensure it's a valid decimal number
-                return "Glitched", normalized_number
-        except ValueError:
-            continue  # If conversion fails, proceed to check the next match
+    # Print the raw OCR text for reference
+    print(f"Raw OCR text: {ocr_text}")
+    
+    # Clean the OCR text
+    cleaned_text = re.sub(r'\s', '', ocr_text)
+    cleaned_text = re.sub(r'^([\[\(\{\|IJ]+)', '', cleaned_text)
+    cleaned_text = re.sub(r'([\]\)\}\|IJ]+)$', '', cleaned_text)
 
-    return None
+    # Print the cleaned text
+    print(f"Cleaned OCR text: {cleaned_text}")
+
+    # Check for glitch biome characteristics
+    glitched_check = len(cleaned_text) - len(re.sub(r'\d', '', cleaned_text)) + (4 if '.' in cleaned_text else 0)
+
+    # Determine if it's a glitched biome based on the characteristics
+    if glitched_check >= 20:
+        print("Detected glitched biome")
+        normalized_number = re.search(r'(\d+(\.\d+)?)', cleaned_text)
+        return "Glitched", normalized_number.group(1) if normalized_number else None
+    
+    print("No glitch detected.")
+    return None, None
+
 
 ## BIOME OCR ##
 
@@ -654,14 +665,13 @@ async def AUTO_BIOME_SEARCH_LOOP():
         channel = bot.get_channel(int(os.getenv('DISCORD_CHANNEL_ID')))
         biome_text = MAIN_OCR("biome", biome_ocr_text_region)
         cleaned_biome_text = clean_ocr_result(biome_text)
-    
+        ic(cleaned_biome_text)
         
-        result = detect_glitch_biome(biome_text)
-        if result:
+        glitch_biome_detected, normalized_glitch_number = detect_glitch_biome(biome_text)  # Now expecting two values
+        if glitch_biome_detected:
             await activate_roblox_window()
-            glitch_biome_detected, normalized_glitch_number = result
             cleaned_biome_text = glitch_biome_detected
-            #ic(f"Glitched Biome Detected During Wait: {biome_text}")
+            # ic(f"Glitched Biome Detected During Wait: {biome_text}")
 
             if channel:
                 DISCORD_user_id = os.getenv('YOUR_DISCORD_USER_ID')
@@ -673,7 +683,7 @@ async def AUTO_BIOME_SEARCH_LOOP():
                         await asyncio.sleep(1)
                     await channel.send(file=discord.File(f'{MAIN_IMAGES_PATH}\\biome_region.png'))
 
-        if cleaned_biome_text and cleaned_biome_text != current_biome and cleaned_biome_text != "Normal":
+        if biome_text and cleaned_biome_text and cleaned_biome_text != current_biome and cleaned_biome_text != "Normal":
             current_biome = cleaned_biome_text
             biome_start_time = time.time()  # Reset start time for the new biome
             duration = biome_durations.get(cleaned_biome_text, 0)
@@ -707,11 +717,10 @@ async def wait_for_biome_duration(duration):
         channel = bot.get_channel(int(os.getenv('DISCORD_CHANNEL_ID')))
 
         
-        result = detect_glitch_biome(biome_text)
-        if result:
+        glitch_biome_detected, normalized_glitch_number = detect_glitch_biome(biome_text)  # Now expecting two values
+        if glitch_biome_detected:
             await activate_roblox_window()
-            glitch_biome_detected, normalized_glitch_number = result
-            cleaned_biome_text = glitch_biome_detected
+            current_biome = glitch_biome_detected
             #ic(f"Glitched Biome Detected During Wait: {biome_text}")
 
             if channel:
@@ -726,7 +735,7 @@ async def wait_for_biome_duration(duration):
                 biome_monitoring = True  # Reset monitoring after glitch biome detection and notification
                 return
 
-        if cleaned_biome_text and cleaned_biome_text != current_biome and cleaned_biome_text != "Normal":
+        if biome_text and cleaned_biome_text and cleaned_biome_text != current_biome and cleaned_biome_text != "Normal":
             current_biome = cleaned_biome_text
             biome_start_time = time.time()
             new_duration = biome_durations.get(cleaned_biome_text, 0)
@@ -947,6 +956,11 @@ def get_merchant_buttons_position(button_name):
     return None
 
 
+def is_Merchant_ITEM_nearby_OCR(position1, position2, threshold=7):
+    """Check if two positions are within a certain threshold distance."""
+    distance = math.sqrt((position1[0] - position2[0]) ** 2 + (position1[1] - position2[1]) ** 2)
+    return distance <= threshold
+
 async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name):
     global MERCHANT_Item_Position
 
@@ -979,6 +993,7 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name):
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_Pot.png"),
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_Pot_Green.png")
             ],
+            "Speed Potion L": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_PotL.png")],
             "Speed Potion XL": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_PotXL.png")],
             "Gear A": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\GearA.png")],
             "Gear B": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\GearB.png")],
@@ -991,6 +1006,26 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name):
             "Merchant Tracker": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Tracker.png")],
             "Rune Of Everything": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Rune_Everything.png")]
         }
+    }
+
+    # Keywords for OCR check, will add more.. :fish:
+    item_keywords = {
+        "Mixed Potion": ["mixed potion", "mixed pot"],
+        "Fortune Spoid 1": ["fortune spoid", "fortu", "for", "spoid", "fortune spoid |"],
+        "Fortune Spoid 2": ["fortune spoid", "fortu", "for", "spoid", "fortune spoid ||"],
+        "Fortune Spoid 3": ["fortune spoid", "fortu", "for", "spoid", "fortune spoid |||"],
+        "Lucky Potion": ["lucky potion", "lucky pot", "luck", "luc"],
+        "Lucky Potion XL": ["lucky potion xl", "lucky pot", "lucky xl"],
+        "Speed Potion L": ["speed potion l", "spe", "speed", "speed l"],
+        "Speed Potion XL": ["speed potion xl", "spe", "speed", "speed xl"],
+        "Gear A": ["gear", "ger", "gear a"],
+        "Gear B": ["gear", "ger", "gear b"],
+        "Lucky Penny": ["lucky penni", "luck", "luc", "pen", "penni"],
+        "Void Coin": ["voi", "void", "void coin", "coin"],
+        "Oblivion Potion": ["oblivi", "oblivion pot", "oblivion potion"],
+        "Heavenly Potion 2": ["heaven", "heavenly pot 2"],
+        "Merchant Tracker": ["tracker", "merch", "merchant", "merchant tracker"],
+        "Rune Of Everything": ["rune everything", "rune", "everything"]
     }
 
     if merchant_type not in Merchant_Items_Image or item_name not in Merchant_Items_Image[merchant_type]:
@@ -1016,40 +1051,36 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name):
         methods = [cv2.TM_CCOEFF_NORMED, cv2.TM_SQDIFF_NORMED]
         for method in methods:
             res = cv2.matchTemplate(screen_cv, item_image, method)
-            threshold = 0.7 if method == cv2.TM_CCOEFF_NORMED else 0.3  # Adjust threshold for each method
-            loc = np.where(res >= threshold if method == cv2.TM_CCOEFF_NORMED else res <= threshold)
+            similarity = res.max() if method == cv2.TM_CCOEFF_NORMED else res.min()
+            threshold = 0.65 if method == cv2.TM_CCOEFF_NORMED else 0.2
 
-            for pt in zip(*loc[::-1]):
-                center_x = pt[0] + item_image.shape[1] // 2
-                center_y = pt[1] + item_image.shape[0] // 2
+            #print(f"Method: {method}, Similarity: {similarity}, Threshold: {threshold} for: {item_name}")
 
-                # Extract the region of interest (ROI) for OCR validation
-                roi = screen_cv[pt[1]:pt[1] + item_image.shape[0], pt[0]:pt[0] + item_image.shape[1]]
+            if (method == cv2.TM_CCOEFF_NORMED and similarity >= threshold) or (method == cv2.TM_SQDIFF_NORMED and similarity <= threshold):
+                loc = np.where(res >= threshold if method == cv2.TM_CCOEFF_NORMED else res <= threshold)
+                for pt in zip(*loc[::-1]):
+                    center_x = pt[0] + item_image.shape[1] // 2
+                    center_y = pt[1] + item_image.shape[0] // 2
 
-                # Preprocess the ROI for better OCR accuracy
-                gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-                _, thresh_roi = cv2.threshold(gray_roi, 150, 255, cv2.THRESH_BINARY)
+                    # Extract the region of interest (ROI) for OCR validation
+                    roi = screen_cv[pt[1]:pt[1] + item_image.shape[0], pt[0]:pt[0] + item_image.shape[1]]
+                    gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+                    _, thresh_roi = cv2.threshold(gray_roi, 150, 255, cv2.THRESH_BINARY)
 
-                # Perform OCR to verify the detected item
-                ocr_result = pytesseract.image_to_string(thresh_roi, config='--psm 6').strip().lower()
-                ic(f"ocr item name: {ocr_result}")
-                
-                # If the OCR result matches the expected item name, consider it valid
-                if item_name.lower() in ocr_result:
-                    cv2.rectangle(screen_cv, (pt[0], pt[1]), (pt[0] + item_image.shape[1], pt[1] + item_image.shape[0]), (0, 255, 0), 2)
-                    MERCHANT_Item_Position.append((item_name, center_x, center_y))
-                    print(f"Detected {item_name} at position ({center_x}, {center_y})")
+                    ocr_result = pytesseract.image_to_string(thresh_roi, config='--psm 7').strip().lower()
+                    ic(f"OCR item name: {ocr_result}")
 
-                    # Set item_found to True once it detect the item (ocr combined)
-                    item_found = True
-                    break
+                    # Check if any keyword matches the OCR result
+                    if any(keyword in ocr_result for keyword in item_keywords.get(item_name, [])):
+                        cv2.rectangle(screen_cv, (pt[0], pt[1]), (pt[0] + item_image.shape[1], pt[1] + item_image.shape[0]), (0, 255, 0), 2)
+                        MERCHANT_Item_Position.append((item_name, center_x, center_y))
+                        cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected.png", screen_cv)
+                        item_found = True
+                        break
 
             if item_found:
                 break
-
-    # Save the result with rectangles drawn around detected items
-    cv2.imwrite(f"{MAIN_IMAGES_PATH}/{merchant_type}_detected_items.png", screen_cv)
-
+    
     return MERCHANT_Item_Position
 
 
@@ -1060,6 +1091,7 @@ async def Merchant_Button_SCANNING_Process():
     # General buttons for all merchants, you can add here if you want tho
     Merchant_Buttons_Image = {
         "open_button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Jake_Shop\\jake_open_button.png"),
+        "jester_open_button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Jake_Shop\\Jester_Open_Button.png"),
         "Exchange_Button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Exchange.png")
         # "Purchase_Amount": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Purchase_Amount.png"),
         # "Purchase_Button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Purchase_Button.png")
@@ -1177,7 +1209,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
             break
         else:
             attempts += 1
-            await asyncio.sleep(1)  # Small delay before retrying
+            await asyncio.sleep(1)
 
     if not button_positions:
         print(f"Failed to detect general buttons for {merchant_type} after {max_attempts} attempts. Exiting process.")
@@ -1185,8 +1217,9 @@ async def Merchant_Item_Buy_Process(merchant_type):
 
     await activate_roblox_window()
     await asyncio.sleep(1)
-
-    open_button_pos = get_merchant_buttons_position("open_button")
+    autoit.send("{F2}")
+    
+    open_button_pos = get_merchant_buttons_position("open_button") or get_merchant_buttons_position("jester_open_button")
     if open_button_pos:
         autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
         await asyncio.sleep(0.7)
@@ -1203,7 +1236,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
         attempts = 0
 
         # Retry loop for detecting the specific item, including scroll and rescan
-        while attempts < max_attempts:
+        while attempts < 3:
             item_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name)
 
             if item_positions:
@@ -1212,8 +1245,8 @@ async def Merchant_Item_Buy_Process(merchant_type):
             else:
                 print(f"No items detected for {item_name}. Retrying...")
                 attempts += 1
-                await MERCHANT_scroll_and_rescan(merchant_type, item_name)  # Scroll and rescan for items
-                await asyncio.sleep(5)
+                await MERCHANT_scroll_and_rescan(merchant_type, item_name)
+                await asyncio.sleep(3)
 
         if not item_positions:
             print(f"Failed to detect {item_name} after {max_attempts} attempts. Skipping to next item.")
@@ -1241,15 +1274,57 @@ async def Merchant_Item_Buy_Process(merchant_type):
 
                 if purchase_button_pos:
                     autoit.mouse_click("left", purchase_button_pos[0], purchase_button_pos[1])
-                    await asyncio.sleep(3.85)
+                    await asyncio.sleep(4)
                     item_scroll_pos = convert_to_relative_coords(926, 707, Merchant_screen_width, Merchant_screen_height)
                     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
                     autoit.mouse_wheel("up", 8)
                     await asyncio.sleep(1)
                 break
 
+async def Merchant_Webhook_Sender(Merchant_Name):
+    """Sends a webhook message with a screenshot if a merchant is detected."""
+    screenshot = take_screenshot()
+    DISCORD_user_id = os.getenv('YOUR_DISCORD_USER_ID')
+    channel = bot.get_channel(int(os.getenv('DISCORD_CHANNEL_ID')))
+    
+    if screenshot:
+        with BytesIO() as image_binary:
+            screenshot.save(image_binary, 'PNG')
+            image_binary.seek(0)
 
-@tasks.loop(seconds=7)
+            # Prepare the embed with the screenshot based on the merchant name
+            if Merchant_Name == "mari":
+                embed = discord.Embed(
+                    title="Mari Detected!",
+                    description="The Mari merchant has been detected on your screen.",
+                    color=discord.Color.blue()  # You can customize the color
+                )
+                embed.set_thumbnail(url="https://static.wikia.nocookie.net/sol-rng/images/3/37/MARI_HIGH_QUALITYY.png/revision/latest?cb=20240704045119")
+                embed.add_field(name="Screenshot", value="", inline=False)
+                embed.set_image(url="attachment://epic_ss.png")
+                embed.set_footer(text="Auto Merchant Detection")
+
+            elif Merchant_Name == "jester":
+                embed = discord.Embed(
+                    title=f"Jester Detected!",
+                    description="The Jester merchant has been detected on your screen",
+                    color=discord.Color.purple()  # You can customize the color
+                )
+                embed.set_thumbnail(url="https://static.wikia.nocookie.net/sol-rng/images/d/db/Headshot_of_Jester.png/revision/latest?cb=20240630142936")  # Replace with actual image URL
+                embed.add_field(name="Screenshot", value="", inline=False)
+                embed.set_image(url="attachment://epic_ss.png")
+                embed.set_footer(text="Auto Merchant Detection")
+            
+            if channel:
+                print(f"Found channel: {channel.name}. Sending embed with screenshot...")
+                await channel.send(f"<@{DISCORD_user_id}>", embed=embed, file=discord.File(fp=image_binary, filename='epic_ss.png'))
+            else:
+                print("Channel not found or invalid channel ID.")
+    else:
+        print("Roblox window not found!")
+        
+
+@tasks.loop(seconds=5)
 async def AUTO_MERCHANT_DETECTION_LOOP():
     """Automatically detect merchants and handle item buying process."""
     global Merchant_ON_PROCESS_LOOP
@@ -1270,9 +1345,9 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
         positions = await Merchant_Name_Process(merchant)
         if positions:
             print(f"{merchant.capitalize()} detected!")
+            await Merchant_Webhook_Sender(merchant)
             merchants[merchant] = True
             Merchant_ON_PROCESS_LOOP = True
-            print(f"Starting item buy process for {merchant}.")
             await Merchant_Item_Buy_Process(merchant)
             Merchant_ON_PROCESS_LOOP = False
 
