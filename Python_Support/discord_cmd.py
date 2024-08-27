@@ -1091,7 +1091,7 @@ async def Merchant_Button_SCANNING_Process():
     # General buttons for all merchants, you can add here if you want tho
     Merchant_Buttons_Image = {
         "open_button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Jake_Shop\\jake_open_button.png"),
-        "jester_open_button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Jake_Shop\\Jester_Open_Button.png"),
+        "jester_open_button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester_Open_Button.png"),
         "Exchange_Button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Exchange.png")
         # "Purchase_Amount": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Purchase_Amount.png"),
         # "Purchase_Button": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Purchase_Button.png")
