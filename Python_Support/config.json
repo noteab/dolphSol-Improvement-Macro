@@ -249,11 +249,17 @@
             "Item_To_Buy": "Random Potion Sack"
         }
     ],
-    "enable_auto_merchant": true,
-    "mari_slot_1": "Mixed Potion",
-    "mari_slot_2": "Fortune Spoid 1",
+    "enable_auto_merchant": false,
+    "mari_slot_1": "None",
+    "mari_slot_2": "None",
     "mari_slot_3": "None",
     "jester_slot_1": "None",
     "jester_slot_2": "None",
-    "jester_slot_3": "None"
+    "jester_slot_3": "None",
+    "mari_amount_1": 1,
+    "mari_amount_2": 1,
+    "mari_amount_3": 1,
+    "jester_amount_1": 1,
+    "jester_amount_2": 1,
+    "jester_amount_3": 1
 }
