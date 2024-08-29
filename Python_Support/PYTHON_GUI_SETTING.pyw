@@ -78,12 +78,26 @@ def update_jester_item(slot, value):
     config[f'jester_slot_{slot}'] = value
     save_config()
     
+# Function to update and save the amount for Mari items
+def update_mari_amount(slot, amount):
+    config[f'mari_amount_{slot}'] = amount
+    save_config()
+
+# Function to update and save the amount for Jester items
+def update_jester_amount(slot, amount):
+    config[f'jester_amount_{slot}'] = amount
+    save_config()
+
+# Save auto merchant option
+def save_auto_buy_setting():
+    config['enable_auto_merchant'] = auto_buy_var.get()
+    save_config()
+    
 # Update Bot Info in .env
 def update_bot_info():
     set_key(ENV_FILE_PATH, 'DISCORD_BOT_TOKEN', bot_token_var.get())
     set_key(ENV_FILE_PATH, 'DISCORD_CHANNEL_ID', channel_id_var.get())
     set_key(ENV_FILE_PATH, 'YOUR_DISCORD_USER_ID', user_id_var.get())
-
 
 
 # Toggle Auto Biome
@@ -101,7 +115,7 @@ def update_biome_region():
     display_bounding_box()
 
 # Display Bounding Box with scaling
-def display_bounding_box(scaling_factor=0.65):
+def display_bounding_box(scaling_factor=0.85):
     # Clear previous bounding box by refreshing the screen
     cv2.destroyAllWindows()
 
@@ -281,11 +295,7 @@ save_link_button.grid(row=2, column=0, columnspan=2, pady=10)
 
 
 # MERCHANT MAIN Section #
-# Function to save the state of the checkbox
-def save_auto_buy_setting():
-    config['enable_auto_merchant'] = auto_buy_var.get()
-    save_config()
-    
+ 
 # Merchant Auto Buy Section
 merchant_auto_buy_frame = ttk.Labelframe(merchant_tab, text="Merchant Auto Buy (NOT WORK AT THE MOMENT, JUST A VISUAL GUI TO SHOW HOW IT WORK!)")
 merchant_auto_buy_frame.pack(fill="x", padx=10, pady=5)
@@ -297,21 +307,25 @@ auto_buy_checkbox.pack(anchor="w", padx=5, pady=2)
 description_label = ttk.Label(merchant_auto_buy_frame, text="(Requires having Merchant Teleporter (costs 40 Robux) and enabling it in DolphSol Item Scheduler)")
 description_label.pack(anchor="w", padx=5, pady=2)
 
-
-
-
 # Mari Merchant Items Section
 mari_items_frame = ttk.Labelframe(merchant_tab, text="Mari Shop Items")
 mari_items_frame.pack(fill="x", padx=10, pady=5)
 
 mari_item_options = [item['Item_To_Buy'] for item in config.get('Mari_Item_Option', [])]
 mari_slot_vars = [tk.StringVar(value=config.get(f'mari_slot_{i+1}', "None")) for i in range(3)]
+mari_amount_vars = [tk.IntVar(value=config.get(f'mari_amount_{i+1}', 1)) for i in range(3)]
 
 for i in range(1, 4):
     ttk.Label(mari_items_frame, text=f"Item Slot {i}:").grid(row=i-1, column=0, sticky="w", padx=5, pady=2)
     combobox = ttk.Combobox(mari_items_frame, textvariable=mari_slot_vars[i-1], values=mari_item_options, state="readonly", width=20)
     combobox.grid(row=i-1, column=1, padx=5, pady=2)
     combobox.bind('<<ComboboxSelected>>', lambda event, i=i: update_mari_item(i, mari_slot_vars[i-1].get()))  # Pass current value of `i`
+    ttk.Label(mari_items_frame, text="Amount:").grid(row=i-1, column=2, sticky="w", padx=5, pady=2)
+    
+    spinbox = ttk.Spinbox(mari_items_frame, from_=1, to=60, textvariable=mari_amount_vars[i-1], width=5, wrap=True)
+    spinbox.grid(row=i-1, column=3, padx=5, pady=2)
+    
+    mari_amount_vars[i-1].trace_add('write', lambda *args, i=i: update_mari_amount(i, mari_amount_vars[i-1].get() or "1"))
 
 # Jester Merchant Items Section
 jester_items_frame = ttk.Labelframe(merchant_tab, text="Jester Shop Items (Exchange item to Dark Point will be available soon!!)")
@@ -319,12 +333,20 @@ jester_items_frame.pack(fill="x", padx=10, pady=5)
 
 jester_item_options = [item['Item_To_Buy'] for item in config.get('Jester_Item_Option', [])]
 jester_slot_vars = [tk.StringVar(value=config.get(f'jester_slot_{i+1}', "None")) for i in range(3)]
+jester_amount_vars = [tk.IntVar(value=config.get(f'jester_amount_{i+1}', 1)) for i in range(3)]
 
 for i in range(1, 4):
     ttk.Label(jester_items_frame, text=f"Item Slot {i}:").grid(row=i-1, column=0, sticky="w", padx=5, pady=2)
     combobox = ttk.Combobox(jester_items_frame, textvariable=jester_slot_vars[i-1], values=jester_item_options, state="readonly", width=20)
     combobox.grid(row=i-1, column=1, padx=5, pady=2)
-    combobox.bind('<<ComboboxSelected>>', lambda event, i=i: update_jester_item(i, jester_slot_vars[i-1].get()))
+    combobox.bind('<<ComboboxSelected>>', lambda event, i=i: update_jester_item(i, jester_slot_vars[i-1].get()))  # Pass current value of `i`
+    ttk.Label(jester_items_frame, text="Amount:").grid(row=i-1, column=2, sticky="w", padx=5, pady=2)
+    
+    spinbox = ttk.Spinbox(jester_items_frame, from_=1, to=60, textvariable=jester_amount_vars[i-1], width=5, wrap=True)
+    spinbox.grid(row=i-1, column=3, padx=5, pady=2)
+    
+    jester_amount_vars[i-1].trace_add('write', lambda *args, i=i: update_jester_amount(i, jester_amount_vars[i-1].get() or "1"))
+
 
 # MERCHANT MAIN Section #
 
