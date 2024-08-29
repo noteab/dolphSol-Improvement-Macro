@@ -30,9 +30,9 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 
 
-global currentVersion := "v1.5.0"
+global currentVersion := "v1.5.0" ; change this to 1.5.0 version so it wont popup the update anymore
 global currentPatch := "08/08"
-global version := "v1.4.0" . " (Improvement by Noteab 10/8) " ; fake v1.4.0 version so it wont popup the update anymore
+global version := "v1.0.0" . " (Experimental by Noteab 26/8) " 
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -967,6 +967,7 @@ resetZoom(){
     Click, Right Down
     MouseMove, A_ScreenWidth // 2, A_ScreenHeight
     Click, Right Up
+
 
     Loop 10 {
         Click, WheelDown
@@ -2100,10 +2101,10 @@ useItem(itemName, useAmount := 1) {
 
     ; Special case for "Merchant Teleport"
     if (itemName = "Merchant Teleport") {
-        logMessage("Pressing E for Merchant Teleport", 1)
+        logMessage("Pressing E for Merchant (if they spawned and wait for my python do the job)", 1)
         Sleep, 250
         Send, {E} ; Press E to interact with the NPC
-        Sleep, 25000
+        Sleep, 9500
     }
 }
 
