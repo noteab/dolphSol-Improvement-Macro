@@ -1,7 +1,7 @@
 (!) If you reached here, welcome to my improvement version of dolphSol by Noteab, a big thanks to Amraki and Stewart for making this unoffical patch and motivate me to make an modification of this version for a better experience of every macro users out there! Their changes on the latest patch have been applied to show credit and keep respect of their hard-working update :)
 
 
-== INSTALLATION & INSTRUCTION GUIDE (V.105 UPDATED 17/08/2024) == (IMPORTANT STEP)
+== INSTALLATION & INSTRUCTION GUIDE (V.105 UPDATED 29/08/2024) == (IMPORTANT STEP)
 Full Tutorial video about Python installation and macro bot setup: https://streamable.com/8t4c65 (WATCH THE VIDEO I REPEAT YALL WHAT THE VIDEO!!!) 
 
 
@@ -12,9 +12,7 @@ Full Tutorial video about Python installation and macro bot setup: https://strea
 
 
 * NOTES *
-- Install package in requirements: pip install -r requirements.txt
-- I have put uninstall_package (do this when everything messed up, this will be a fresh with no python packages after uninstall then redo the install requirements.txt): pip uninstall -r uninstall_packages.txt -y
-
+- Both install and uninstall packages is in bat file in "Installation" folder, just open that bat file and it will auto install for you.
 
 
 == FAQ (Will add more question soon) ==

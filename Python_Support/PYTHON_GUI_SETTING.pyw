@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import BooleanVar, filedialog, messagebox
 from tkinter import BooleanVar
 import json
 from pathlib import Path
@@ -28,7 +29,23 @@ def load_config():
 def save_config():
     with open(CONFIG_FILE_PATH, 'w') as file:
         json.dump(config, file, indent=4)
-
+        
+# Function to import a previous config file
+def import_config():
+    file_path = filedialog.askopenfilename(
+        title="Select a Config File",
+        filetypes=(("JSON files", "*.json"), ("All files", "*.*"))
+    )
+    if file_path:
+        try:
+            with open(file_path, 'r') as file:
+                new_config = json.load(file)
+                config.update(new_config)
+                save_config()  # Save the imported config to the existing config.json
+                messagebox.showinfo("Success", "Configuration imported successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load the config file.\n{e}")
+            
 config = load_config()
 
 # Toggle Auto-reconnect:
@@ -158,6 +175,11 @@ main_tab = ttk.Frame(notebook, width=350, height=350)
 main_tab.pack_propagate(False)
 notebook.add(main_tab, text="< Main >")
 
+# Setting tab
+setting_tab = ttk.Frame(notebook, width=350, height=350)
+setting_tab.pack_propagate(False)
+notebook.add(setting_tab, text="< Settings >")
+
 
 # Biome setting tab
 biome_tab = ttk.Frame(notebook, width=350, height=350)
@@ -166,12 +188,12 @@ notebook.add(biome_tab, text="< Biomes >")
 
 # Reconnect Private Server tab
 reconnect_tab = ttk.Frame(notebook, width=350, height=350)
-main_tab.pack_propagate(False)
+reconnect_tab.pack_propagate(False)
 notebook.add(reconnect_tab, text="< Reconnect PS >")
 
 # NPC/Merchant Tab
 merchant_tab = ttk.Frame(notebook, width=350, height=350)
-main_tab.pack_propagate(False)
+reconnect_tab.pack_propagate(False)
 notebook.add(merchant_tab, text="< Merchant/NPC Auto Buy>")
 
 # Bot setting tab
@@ -297,7 +319,7 @@ save_link_button.grid(row=2, column=0, columnspan=2, pady=10)
 # MERCHANT MAIN Section #
  
 # Merchant Auto Buy Section
-merchant_auto_buy_frame = ttk.Labelframe(merchant_tab, text="Merchant Auto Buy (NOT WORK AT THE MOMENT, JUST A VISUAL GUI TO SHOW HOW IT WORK!)")
+merchant_auto_buy_frame = ttk.Labelframe(merchant_tab, text="Merchant Auto Buy (SEMI-WORKING, SOME ITEM WONT WORK OR FALSE PURCHASE SO BE AWARE OF THIS!)")
 merchant_auto_buy_frame.pack(fill="x", padx=10, pady=5)
 
 auto_buy_var = tk.BooleanVar(value=config.get('enable_auto_merchant', False))
@@ -372,6 +394,13 @@ user_id_entry.grid(row=2, column=1, padx=5, pady=5)
 
 update_button = ttk.Button(bot_info_frame, text="Update Bot Info", command=update_bot_info)
 update_button.grid(row=3, column=0, columnspan=2, pady=10)
+
+# Bot Info Section
+
+# Import Config Button in Settings Tab
+import_config_button = ttk.Button(setting_tab, text="Import Config", command=import_config)
+import_config_button.pack(pady=20, padx=10, anchor="center")
+
 
 # Pack notebook (tabs) to main window
 notebook.pack(expand=True, fill="both", padx=10, pady=10)
