@@ -14,7 +14,7 @@ LOCAL_VERSION_FILE = os.path.join(BASE_DIR, "VERSION.txt")
 MAIN_AHK_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/Main.ahk"
 LOCAL_MAIN_AHK_PATH = os.path.join(BASE_DIR, "..", "Main.ahk")  # Path to Main.ahk outside Python_Support
 EXTRACT_PATH = BASE_DIR
-FILES_TO_KEEP = {".env"}  # Set of filenames to preserve
+FILES_TO_KEEP = {".env", "config.json"}  # Set of filenames to preserve
 
 def extract_version(content):
     try:
