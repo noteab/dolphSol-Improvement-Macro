@@ -12,8 +12,8 @@ GITHUB_VERSION_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvem
 ZIP_DOWNLOAD_URL = "https://github.com/noteab/dolphSol-Improvement-Macro/archive/refs/heads/Noteab-Improvement.zip"
 LOCAL_VERSION_FILE = os.path.join(BASE_DIR, "VERSION.txt")
 MAIN_AHK_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/Main.ahk"
-LOCAL_MAIN_AHK_PATH = os.path.join(BASE_DIR, "Main.ahk")
-EXTRACT_PATH = os.getcwd()
+LOCAL_MAIN_AHK_PATH = os.path.join(BASE_DIR, "..", "Main.ahk")  # Path to Main.ahk outside Python_Support
+EXTRACT_PATH = BASE_DIR
 FILES_TO_KEEP = {".env"}  # Set of filenames to preserve
 
 def extract_version(content):
@@ -58,38 +58,43 @@ def download_update():
         response = requests.get(ZIP_DOWNLOAD_URL)
         if response.status_code == 200:
             zip_file = ZipFile(BytesIO(response.content))
-
+            
             # Extract to a temporary directory
             with tempfile.TemporaryDirectory() as temp_dir:
                 zip_file.extractall(temp_dir)
-
+                
                 extracted_folder_name = zip_file.namelist()[0].split('/')[0]
                 extracted_python_support = os.path.join(temp_dir, extracted_folder_name, "Python_Support")
-
+                
                 if not os.path.exists(extracted_python_support):
                     print(f"Path {extracted_python_support} does not exist. Aborting update.")
                     time.sleep(4)
                     return
+                
+                # Overwrite the current Python_Support directory files
+                for root, dirs, files in os.walk(extracted_python_support):
+                    relative_path = os.path.relpath(root, extracted_python_support)
+                    destination_dir = os.path.join(EXTRACT_PATH, relative_path)
 
-                # Define the destination folder name with the updated patch version
-                dest_folder_name = f"Python_Support (Experimental {get_github_version()})"
-                dest_folder_path = os.path.join(EXTRACT_PATH, dest_folder_name)
+                    if not os.path.exists(destination_dir):
+                        os.makedirs(destination_dir)
 
-                # Move the extracted Python_Support folder to the destination folder
-                if os.path.exists(dest_folder_path):
-                    shutil.rmtree(dest_folder_path)  # Remove existing folder if it exists
-
-                shutil.copytree(extracted_python_support, dest_folder_path)
-
-                print(f"Update downloaded successfully! The updated files are in the folder '{dest_folder_name}'.")
-                print("Please manually update your files from this folder.")
-                time.sleep(8)
-
+                    for file in files:
+                        src_file = os.path.join(root, file)
+                        dest_file = os.path.join(destination_dir, file)
+                        if os.path.basename(file) in FILES_TO_KEEP and os.path.exists(dest_file):
+                            continue
+                        shutil.copy2(src_file, dest_file)
+                
+                print("Update applied directly to the current Python_Support folder.")
+                time.sleep(4)
+                
                 # Download and update the Main.ahk file
                 download_main_ahk()
-
+        
         else:
             raise Exception("Failed to download the latest version from GitHub")
+    
     except Exception as e:
         print(f"An error occurred during the update process: {e}")
         import traceback
