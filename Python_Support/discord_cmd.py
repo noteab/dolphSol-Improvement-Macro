@@ -1373,7 +1373,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
     autoit.mouse_wheel("up", 7)
     await asyncio.sleep(0.5)
-    autoit.mouse_wheel("down", 4)  # Scroll down to the right side
+    autoit.mouse_wheel("down", 6)  # Scroll down to the right side
     await asyncio.sleep(1.3)
 
     # Buy items on the right side
