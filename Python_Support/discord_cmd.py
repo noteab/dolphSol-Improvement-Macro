@@ -29,10 +29,13 @@ import matplotlib.pyplot as plt
 from ctypes import windll
 from icecream import ic
 
+
 # Load configuration json! (So cool_)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE_PATH = os.path.join(BASE_DIR, 'config.json')
 MAIN_IMAGES_PATH = os.path.join(BASE_DIR, 'images')
+
+loop_lock = asyncio.Lock()
 
 def load_config():
     with open(CONFIG_FILE_PATH, 'r') as f:
@@ -913,31 +916,29 @@ async def AUTO_ITEM_CRAFTING_PATH_AND_CRAFT_LOGIC(item_to_craft):
 @tasks.loop(minutes=int(config['crafting_interval']))
 async def AUTO_ITEM_CRAFTING_LOOP():
     auto_item_crafting = config['enable_auto_item_crafting']
-    
+
     if auto_item_crafting:
-        if await activate_roblox_window():
-            slot_items = [
-                config.get("slot_1"),
-                config.get("slot_2"),
-                config.get("slot_3")
-            ]
+        async with loop_lock:
+            if await activate_roblox_window():
+                slot_items = [
+                    config.get("slot_1"),
+                    config.get("slot_2"),
+                    config.get("slot_3")
+                ]
 
-            if not hasattr(AUTO_ITEM_CRAFTING_LOOP, 'current_slot'):
-                AUTO_ITEM_CRAFTING_LOOP.current_slot = 0
+                if not hasattr(AUTO_ITEM_CRAFTING_LOOP, 'current_slot'):
+                    AUTO_ITEM_CRAFTING_LOOP.current_slot = 0
 
-            # Get the item to craft for the current slot
-            item_to_craft = slot_items[AUTO_ITEM_CRAFTING_LOOP.current_slot]
+                item_to_craft = slot_items[AUTO_ITEM_CRAFTING_LOOP.current_slot]
 
-            # Check if the item is valid
-            if item_to_craft and item_to_craft.strip().lower() != "none":
-                print(f"Preparing to craft item in Slot {AUTO_ITEM_CRAFTING_LOOP.current_slot + 1}: {item_to_craft}")
-                await AUTO_ITEM_CRAFTING_PATH_AND_CRAFT_LOGIC(item_to_craft) 
-                print(f"Crafted item in Slot {AUTO_ITEM_CRAFTING_LOOP.current_slot + 1}: {item_to_craft}")
-            else:
-                print(f"No valid item assigned to Slot {AUTO_ITEM_CRAFTING_LOOP.current_slot + 1}. Skipping...")
+                if item_to_craft and item_to_craft.strip().lower() != "none":
+                    print(f"Preparing to craft item in Slot {AUTO_ITEM_CRAFTING_LOOP.current_slot + 1}: {item_to_craft}")
+                    await AUTO_ITEM_CRAFTING_PATH_AND_CRAFT_LOGIC(item_to_craft) 
+                    print(f"Crafted item in Slot {AUTO_ITEM_CRAFTING_LOOP.current_slot + 1}: {item_to_craft}")
+                else:
+                    print(f"No valid item assigned to Slot {AUTO_ITEM_CRAFTING_LOOP.current_slot + 1}. Skipping...")
 
-            # Move to the next slot for the next loop iteration
-            AUTO_ITEM_CRAFTING_LOOP.current_slot = (AUTO_ITEM_CRAFTING_LOOP.current_slot + 1) % len(slot_items)
+                AUTO_ITEM_CRAFTING_LOOP.current_slot = (AUTO_ITEM_CRAFTING_LOOP.current_slot + 1) % len(slot_items)
 
 """ MERCHANT FEATURE """
 Merchant_ON_PROCESS_LOOP = False
@@ -945,7 +946,12 @@ MERCHANT_Item_Position = []
 MERCHANT_SHOP_BUTTON_Position = []
 merchant_headshot_images = {
         "mari": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari_Headshot.png"),
-        "jester": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester_Headshot.png")}
+        "jester": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester_Headshot.png")
+}
+merchant_shop_title_images = {
+        "mari": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari_Shop.png"),
+        "jester": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester_Shop.png")
+}
 
 def get_merchant_buttons_position(button_name):
     for name, x, y in MERCHANT_SHOP_BUTTON_Position:
@@ -1235,6 +1241,39 @@ async def Merchant_Headshot_Process(merchant_type, debug=False):
         if debug:
             print(f"Debug: No {merchant_type.capitalize()} detected on screen.")
         return None
+    
+async def Merchant_Shop_Title_Process(merchant_type, debug=False):
+    """Process to detect the merchant's shop title and return the position if found."""
+    global merchant_shop_title_images
+    
+    if merchant_type not in merchant_shop_title_images:
+        print(f"Invalid merchant type specified: {merchant_type}")
+        return None
+
+    shop_title_image = merchant_shop_title_images[merchant_type]  # Shop title image is the second item
+
+    # Capture the current screen
+    screen = pyautogui.screenshot()
+    screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)  # Convert to BGR for template matching
+
+    # Perform template matching to find the shop title on screen
+    res = cv2.matchTemplate(screen_cv, shop_title_image, cv2.TM_CCOEFF_NORMED)
+    threshold = 0.7
+    loc = np.where(res >= threshold)
+
+    detected_positions = []
+
+    if len(loc[0]) > 0:
+        # Get the center positions of the detected shop titles
+        detected_positions = [(pt[0] + shop_title_image.shape[1] // 2, pt[1] + shop_title_image.shape[0] // 2) for pt in zip(*loc[::-1])]
+        if debug:
+            print(f"Debug: {merchant_type.capitalize()} shop title detected at positions: {detected_positions}")
+        return detected_positions
+
+    else:
+        if debug:
+            print(f"Debug: No {merchant_type.capitalize()} shop title detected on screen.")
+        return None
 
 def get_merchant_item_config_slots(config):
     merchant_item_slots = {
@@ -1264,13 +1303,20 @@ async def MERCHANT_scroll_and_rescan(merchant_type, item_name):
     return item_positions
 
 async def check_merchant_presence(merchant_type, retries=8):
-    """Check the presence of the merchant by scanning their headshot image multiple times."""
+    """Check the presence of the merchant by scanning both headshot and shop title images multiple times."""
     for _ in range(retries):
+        # Check for the shop title if headshot is not found
         merchant_positions = await Merchant_Headshot_Process(merchant_type)
         if merchant_positions:
             return True
-        await asyncio.sleep(0.3)
-    return False
+        
+        # Check for the shop title if headshot is not found
+        shop_title_positions = await Merchant_Shop_Title_Process(merchant_type)
+        if shop_title_positions:
+            return True
+        
+        await asyncio.sleep(1.2)  # Adjust time between checks as needed
+    return False  # Merchant not found after all retries
 
 async def Merchant_Item_Buy_Process(merchant_type):
     """Process to purchase items from the merchant, while checking if the merchant is still present."""
@@ -1300,13 +1346,21 @@ async def Merchant_Item_Buy_Process(merchant_type):
     if not button_positions:
         print(f"Failed to detect general buttons for {merchant_type} after {max_attempts} attempts. Exiting process.")
         return
-
-    await activate_roblox_window()
-    await asyncio.sleep(1)
+    
+    await asyncio.sleep(0.25)
     autoit.send("{F2}")
+    await asyncio.sleep(0.3)
+    await activate_roblox_window()
+    await asyncio.sleep(0.4)
     
     jester_open_button_pos = get_merchant_buttons_position("jester_open_button")
     open_button_pos = get_merchant_buttons_position("open_button")
+    
+    # Fallback to manual pixel coordinates if button positions are not found by image detection
+    if not open_button_pos:
+        open_button_pos = convert_to_relative_coords(609, 858, Merchant_screen_width, Merchant_screen_height)  # Fallback to pixel method if failed to detect open button
+    if not jester_open_button_pos:
+        jester_open_button_pos = convert_to_relative_coords(609, 858, Merchant_screen_width, Merchant_screen_height)  # Fallback to pixel method if failed to detect open button
     
     if open_button_pos:
         autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
@@ -1316,10 +1370,9 @@ async def Merchant_Item_Buy_Process(merchant_type):
         await asyncio.sleep(0.7)
 
     # Step 1: Scroll down to the right side (where rare items should be)
-    #print("Scrolling down to the right side to prioritize rare items...")
     item_scroll_pos = convert_to_relative_coords(926, 707, Merchant_screen_width, Merchant_screen_height)
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
-    autoit.mouse_wheel("up", 9)
+    autoit.mouse_wheel("up", 7)
     await asyncio.sleep(0.5)
     autoit.mouse_wheel("down", 4)  # Scroll down to the right side
     await asyncio.sleep(1.3)
@@ -1328,13 +1381,11 @@ async def Merchant_Item_Buy_Process(merchant_type):
     for slot_name, (item_name, amount) in merchant_item_slots[merchant_type].items():
         if item_name == "None":
             continue
-
-        # Check if the merchant is still present before each purchase attempt
-        if not await check_merchant_presence(merchant_type, retries=8):
-            #print(f"{merchant_type.capitalize()} is no longer available. Canceling the purchase process.")
-            await merchant_reset_macro_phase()
-            return
-
+        # # Check if the merchant is still present before each purchase attempt
+        # if not await check_merchant_presence(merchant_type, retries=8):
+        #     await merchant_reset_macro_phase()
+        #     return
+        
         print(f"Attempting to purchase item {item_name} from the right side with amount {amount}.")
         item_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.65)
         
@@ -1376,7 +1427,6 @@ async def Merchant_Item_Buy_Process(merchant_type):
 
         # Check if the merchant is still present before each purchase attempt
         if not await check_merchant_presence(merchant_type, retries=8):
-            #print(f"{merchant_type.capitalize()} is no longer available. Canceling the purchase process.")
             await merchant_reset_macro_phase()
             return
 
@@ -1416,7 +1466,11 @@ async def merchant_reset_macro_phase():
     autoit.send("r")
     await asyncio.sleep(0.5)
     autoit.send("{ENTER}")
-    await asyncio.sleep(1.5)
+    await asyncio.sleep(1)
+    autoit.mouse_wheel("up", 10)
+    await asyncio.sleep(1.2)
+    autoit.mouse_wheel("down", 12)
+    await asyncio.sleep(1.2)
     autoit.send("{F2}")
     
 
@@ -1468,31 +1522,32 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
     """Automatically detect merchants and handle item buying process."""
     global Merchant_ON_PROCESS_LOOP
 
-    if Merchant_ON_PROCESS_LOOP: return  # (Skip loop if a process is already running) (very formally, dont mind it)
+    if Merchant_ON_PROCESS_LOOP:
+        return  # Skip loop if a process is already running
 
     auto_merchant_detection = config.get('enable_auto_merchant', False)
-    
-    if not auto_merchant_detection: return
-    
-    # A dictionary for merchants and their corresponding process logic
-    merchants = {
-        'mari': False,
-        'jester': False
-    }
 
-    for merchant in merchants:
-        positions = await Merchant_Headshot_Process(merchant)
-        if positions:
-            print(f"{merchant.capitalize()} detected!")
-            await Merchant_Webhook_Sender(merchant)
-            merchants[merchant] = True
-            Merchant_ON_PROCESS_LOOP = True
-            await Merchant_Item_Buy_Process(merchant)
-            Merchant_ON_PROCESS_LOOP = False
+    if not auto_merchant_detection:
+        return
 
-    # Delay longer if no merchants were detected
-    if not any(merchants.values()):
-        await asyncio.sleep(3)
+    async with loop_lock:  #Lock this loop to prevent interfere action fron auto craft loop or other loops
+        merchants = {
+            'mari': False,
+            'jester': False
+        }
+
+        for merchant in merchants:
+            positions = await Merchant_Headshot_Process(merchant)
+            if positions:
+                print(f"{merchant.capitalize()} detected!")
+                await Merchant_Webhook_Sender(merchant)
+                merchants[merchant] = True
+                Merchant_ON_PROCESS_LOOP = True
+                await Merchant_Item_Buy_Process(merchant)
+                Merchant_ON_PROCESS_LOOP = False
+
+        if not any(merchants.values()):
+            await asyncio.sleep(3)  # Delay longer if no merchants were detected
             
 """ MERCHANT FEATURE """
 

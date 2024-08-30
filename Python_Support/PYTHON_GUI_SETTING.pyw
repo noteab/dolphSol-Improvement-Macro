@@ -66,7 +66,7 @@ def save_private_server_link():
         save_config()
         print(f"Private server code extracted: {code}")
     except IndexError:
-        print("Invalid link format. Please ensure the link contains 'privateServerLinkCode='.")
+        messagebox.showerror("Error", f"Invalid link format. Please ensure the link contains 'privateServerLinkCode=' by convert a sharelink code to privateServerLinkCode!")
 
 # Toggle Auto Item Add
 def toggle_auto_item_add():
@@ -165,7 +165,7 @@ def display_bounding_box(scaling_factor=0.85):
 # Initialize main window
 root = tk.Tk()
 root.title("Python DolphSol SETTING (Noteab)")
-root.geometry("750x300")
+root.geometry("750x350")
 
 # Create notebook (tabs)
 notebook = ttk.Notebook(root)
