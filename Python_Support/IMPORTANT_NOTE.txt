@@ -1,8 +1,8 @@
 (!) If you reached here, welcome to my improvement version of dolphSol by Noteab, a big thanks to Amraki and Stewart for making this unoffical patch and motivate me to make an modification of this version for a better experience of every macro users out there! Their changes on the latest patch have been applied to show credit and keep respect of their hard-working update :)
 
 
-== INSTALLATION & INSTRUCTION GUIDE (V.105 UPDATED 29/08/2024) == (IMPORTANT STEP)
-Full Tutorial video about Python installation and macro bot setup: https://streamable.com/8t4c65 (WATCH THE VIDEO I REPEAT YALL WHAT THE VIDEO!!!) 
+== INSTALLATION & INSTRUCTION GUIDE (V1.05 UPDATED 30/08/2024) == (IMPORTANT STEP)
+Full Tutorial video about Python installation and macro bot setup: https://streamable.com/8t4c65 (WATCH THE VIDEO I REPEAT YALL WATCH THE VIDEO!!!) 
 
 
 (1) Download Python (latest version): https://www.python.org/downloads/ --> Also enable "add PATH to python" option

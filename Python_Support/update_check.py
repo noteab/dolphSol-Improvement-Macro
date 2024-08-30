@@ -6,14 +6,15 @@ import shutil
 import tempfile
 import time
 
-
 """ GITHUB UPDATE NOTIFIER """
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 GITHUB_VERSION_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/Python_Support/VERSION.txt"
 ZIP_DOWNLOAD_URL = "https://github.com/noteab/dolphSol-Improvement-Macro/archive/refs/heads/Noteab-Improvement.zip"
 LOCAL_VERSION_FILE = os.path.join(BASE_DIR, "VERSION.txt")
+MAIN_AHK_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/Main.ahk"
+LOCAL_MAIN_AHK_PATH = os.path.join(BASE_DIR, "Main.ahk")
 EXTRACT_PATH = os.getcwd()
-FILES_TO_KEEP = {".env", "config.txt"}  # Set of filenames to preserve
+FILES_TO_KEEP = {".env"}  # Set of filenames to preserve
 
 def extract_version(content):
     try:
@@ -37,6 +38,20 @@ def get_local_version():
             return extract_version(file.read())
     else:
         return None
+
+def download_main_ahk():
+    try:
+        response = requests.get(MAIN_AHK_URL)
+        if response.status_code == 200:
+            with open(LOCAL_MAIN_AHK_PATH, 'wb') as file:
+                file.write(response.content)
+            print("Main.ahk updated successfully!")
+        else:
+            raise Exception("Failed to download Main.ahk from GitHub")
+    except Exception as e:
+        print(f"An error occurred while updating Main.ahk: {e}")
+        import traceback
+        traceback.print_exc()
 
 def download_update():
     try:
@@ -69,6 +84,10 @@ def download_update():
                 print(f"Update downloaded successfully! The updated files are in the folder '{dest_folder_name}'.")
                 print("Please manually update your files from this folder.")
                 time.sleep(8)
+
+                # Download and update the Main.ahk file
+                download_main_ahk()
+
         else:
             raise Exception("Failed to download the latest version from GitHub")
     except Exception as e:
@@ -92,7 +111,6 @@ def check_for_updates():
         print(f"An error occurred: {e}")
         import traceback
         traceback.print_exc()
-
 
 check_for_updates()
 """ GITHUB UPDATE NOTIFIER """

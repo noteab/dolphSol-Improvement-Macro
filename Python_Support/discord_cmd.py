@@ -959,7 +959,7 @@ def get_merchant_buttons_position(button_name):
             return (x, y)
     return None
 
-def is_Merchant_ITEM_nearby_OCR(position1, position2, threshold=7):
+def is_Merchant_ITEM_nearby(position1, position2, threshold=7):
     """Check if two positions are within a certain threshold distance."""
     distance = math.sqrt((position1[0] - position2[0]) ** 2 + (position1[1] - position2[1]) ** 2)
     return distance <= threshold
@@ -1064,14 +1064,13 @@ def feature_based_matching(screen_cv, template, ratio_threshold=0.60):
                 detected_height = dst[:, 0, 1].max() - dst[:, 0, 1].min()
                 
                 # Compare with template size to avoid cutoff
-                if detected_width >= w * 0.85 and detected_height >= h * 0.85:
+                if detected_width >= w * 0.95 and detected_height >= h * 0.95:
                     screen_cv = cv2.polylines(screen_cv, [np.int32(dst)], True, (0, 255, 0), 3, cv2.LINE_AA)
                     return (int(dst[0][0][0]), int(dst[0][0][1])), screen_cv
-                else:
-                    print("Bounding box detected but is smaller than expected.")
+                
             else:
                 return None, screen_cv
-
+            
     return None, screen_cv
 
 
@@ -1347,9 +1346,9 @@ async def Merchant_Item_Buy_Process(merchant_type):
         print(f"Failed to detect general buttons for {merchant_type} after {max_attempts} attempts. Exiting process.")
         return
     
-    await asyncio.sleep(0.25)
+    await asyncio.sleep(0.5)
     autoit.send("{F2}")
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.5)
     await activate_roblox_window()
     await asyncio.sleep(0.4)
     
@@ -1417,7 +1416,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
 
     # Step 2: Scroll back up to the left side (common items)
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
-    autoit.mouse_wheel("up", 4)
+    autoit.mouse_wheel("up", 7)
     await asyncio.sleep(1.5)
 
     # Buy items on the left side
@@ -1468,8 +1467,8 @@ async def merchant_reset_macro_phase():
     autoit.send("{ENTER}")
     await asyncio.sleep(1)
     autoit.mouse_wheel("up", 10)
-    await asyncio.sleep(1.2)
-    autoit.mouse_wheel("down", 12)
+    await asyncio.sleep(1.5)
+    autoit.mouse_wheel("down", 10)
     await asyncio.sleep(1.2)
     autoit.send("{F2}")
     
