@@ -1153,7 +1153,7 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
 
             # Debug circle
             cv2.circle(screen_with_match, (center_x, center_y), 10, (0, 255, 0), 3)
-            cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected_debug.png", screen_with_match)
+            #cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected_debug.png", screen_with_match)
 
             all_matches.append((item_name, center_x, center_y, ratio_threshold))
             break
@@ -1162,7 +1162,7 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
         best_match = all_matches[0]
         
         # Save the result with rectangles box
-        cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected.png", screen_with_match)
+        #cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected.png", screen_with_match)
         return best_match[:3]  # Return best match to item name, center_x, center_y
     else:
         print(f"No match found for {item_name}.")
