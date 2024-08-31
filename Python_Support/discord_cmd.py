@@ -1063,8 +1063,8 @@ def feature_based_matching(screen_cv, template, ratio_threshold=0.60):
                 detected_width = dst[:, 0, 0].max() - dst[:, 0, 0].min()
                 detected_height = dst[:, 0, 1].max() - dst[:, 0, 1].min()
                 
-                ic(f"detected_width: {detected_width}", f"withd: {w}")
-                ic(f"detected_height: {detected_height}", f"withd: {h}")
+                #ic(f"detected_width: {detected_width}", f"withd: {w}")
+                #ic(f"detected_height: {detected_height}", f"withd: {h}")
                 
                 # Compare with template size to avoid cutoff
                 if detected_width >= w * 0.85 and detected_height >= h * 0.85:
@@ -1229,7 +1229,7 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
         if item_image is None:
             continue
 
-        print(f"Scanning for {item_name} with adjusted ratio threshold...")
+        #print(f"Scanning for {item_name} with adjusted ratio threshold...")
 
         # Ensure both the screen and item images are in the same data type (uint8)
         if screen_cv.dtype != np.uint8:
@@ -1247,7 +1247,7 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
             center_x = x + detected_width // 2
             center_y = y + detected_height // 2
             
-            print(f"Detected {item_name} at center ({center_x}, {center_y}) with size ({detected_width}, {detected_height}).")
+            #print(f"Detected {item_name} at center ({center_x}, {center_y}) with size ({detected_width}, {detected_height}).")
 
             # Debug circle
             cv2.circle(screen_with_match, (center_x, center_y), 10, (0, 255, 0), 3)
