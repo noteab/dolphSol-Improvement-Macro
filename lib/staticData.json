@@ -6,10 +6,10 @@
         "updateNotes":"Something new!"
     },
     "biomes": ["Windy", "Rainy", "Snowy", "Hell", "Starfall", "Corruption", "Null", "Glitched"],
-    "scheduleItems": ["Strange Controller", "Biome Randomizer", "Lucky Potion", "Speed Potion", "Fortune Potion I", "Fortune Potion II", "Fortune Potion III", "Haste Potion I", "Haste Potion II", "Haste Potion III", "Heavenly Potion I", "Heavenly Potion II"],
+    "scheduleItems": ["Strange Controller", "Biome Randomizer", "Lucky Potion", "Speed Potion", "Fortune Potion I", "Fortune Potion II", "Fortune Potion III", "Haste Potion I", "Haste Potion II", "Haste Potion III", "Heavenly Potion I", "Heavenly Potion II", "Merchant Teleport", "Oblivion Potion"],
     "stars": {
         "495104": {
-            "name": "Undead",
+            "name": "Undead [1/10 Undead : Devil]",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/e/eb/UndeadAura.gif",             
             "rarity": 12000
         },
@@ -86,17 +86,7 @@
         "16771690": {
             "name": "Star Rider",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/f/fb/Star_Rider_In_Collection.png",
-            "rarity": 50000,
-            "mutations": [
-                {
-                    "name": "Star Rider : Starfish Rider",
-                    "image": "https://static.wikia.nocookie.net/sol-rng/images/2/28/StarfishRiderCollection2.gif",
-                    "rarity": 250000,
-                    "requirements": {
-                        "is100k": 1
-                    }
-                }
-            ]
+            "rarity": 50000
         },
         "16751631": {
             "name": "Solar",
@@ -235,13 +225,13 @@
             ]
         },
         "16740978": {
-            "name": "Watermelon",
+            "name": "Watermelon [Cutscene Replay]",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/5/56/Watermelon_Collection.png",
             "rarity": 320000
         },
         "9937663": {
             "name": "Celestial",
-            "image": "https://static.wikia.nocookie.net/sol-rng/images/5/5b/Celestial_rework_crop.gif",
+            "image": "https://static.wikia.nocookie.net/sol-rng/images/6/60/CelestialAura.gif",
             "rarity": 350000,
             "mutations": [
                 {
@@ -261,7 +251,7 @@
             "rarity": 500000
         },
         "5390591": {
-            "name": "Twilight [From Nighttime]",
+            "name": "Twilight",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/b/b4/TwilightInCollection.gif",
             "rarity": 600000
         },
@@ -316,8 +306,7 @@
         "3104511": {
             "name": "BOUNDED : UNBOUND",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/6/65/Unbound_E7_Collection2.gif",
-            "rarity": 2000000,
-            "cornerColor": 3355443
+            "rarity": 2000000
         },
         "5334015": {
             "name": "Gravitational [Cutscene Replay]",
@@ -375,10 +364,9 @@
             "cornerColor": 3355443
         },
         "5719807": {
-            "name": "Twilight",
+            "name": "Twilight [1/2 Iridescent Memory]",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/b/b4/TwilightInCollection.gif",
-            "rarity": 6000000,
-            "cornerColor": 2433075
+            "rarity": 6000000
         },
         "7808256": {
             "name": "Hades",
@@ -427,16 +415,10 @@
             "rarity": 35000000,
             "cornerColor": 10000536
         },
-        "5456852": {
-            "name": "Memory, The Fallen",
-            "image": "https://static.wikia.nocookie.net/sol-rng/images/3/35/Memory_Collections.gif",
-            "rarity": 50000000
-        },
         "6029232": {
             "name": "Matrix",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/b/b0/MatrixCollections.gif",
-            "rarity": 50000000,
-            "cornerColor": 3184771
+            "rarity": 50000000
         },
         "6443774": {
             "name": "Twilight : Iridescent Memory",
@@ -484,7 +466,7 @@
             "biome": {"name": "Corruption", "factor":5}
         },
         "3906303": {
-            "name": "Shard Surfer",
+            "name": "Shard Surfer [Cutscene Replay]",
             "image": "https://static.wikia.nocookie.net/sol-rng/images/3/37/ShardSurferCollectionGifv2.gif",
             "rarity": 225000000,
             "cornerColor": 2058136,
