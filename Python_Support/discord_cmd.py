@@ -25,7 +25,6 @@ import pyautogui
 import json
 import re
 import math
-import matplotlib.pyplot as plt
 from ctypes import windll
 from icecream import ic
 
@@ -942,6 +941,7 @@ async def AUTO_ITEM_CRAFTING_LOOP():
 
 """ MERCHANT FEATURE """
 Merchant_ON_PROCESS_LOOP = False
+detected_positions = set()
 MERCHANT_Item_Position = []
 MERCHANT_SHOP_BUTTON_Position = []
 merchant_headshot_images = {
@@ -1063,8 +1063,11 @@ def feature_based_matching(screen_cv, template, ratio_threshold=0.60):
                 detected_width = dst[:, 0, 0].max() - dst[:, 0, 0].min()
                 detected_height = dst[:, 0, 1].max() - dst[:, 0, 1].min()
                 
+                ic(f"detected_width: {detected_width}", f"withd: {w}")
+                ic(f"detected_height: {detected_height}", f"withd: {h}")
+                
                 # Compare with template size to avoid cutoff
-                if detected_width >= w * 0.95 and detected_height >= h * 0.95:
+                if detected_width >= w * 0.85 and detected_height >= h * 0.85:
                     screen_cv = cv2.polylines(screen_cv, [np.int32(dst)], True, (0, 255, 0), 3, cv2.LINE_AA)
                     return (int(dst[0][0][0]), int(dst[0][0][1])), screen_cv
                 
@@ -1075,56 +1078,151 @@ def feature_based_matching(screen_cv, template, ratio_threshold=0.60):
 
 
 async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.63):
+    """Scan for a specific item in the merchant's inventory and return the position if found."""
+    
+    # Image dictionary for merchant items
     Merchant_Items_Image = {
         "mari": {
             "Mixed Potion": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Mixed_Pot.png"),
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Mixed_Pot_Green.png")
             ],
+            
+            "Mixed Potion Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Mixed Potion_Shop_Item_Name.png")
+            ],
+            
             "Fortune Spoid 1": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_1.png"),
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_1_Blue.png"),
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_1_Blue.png")
             ],
-            "Fortune Spoid 2": [
+            
+            "Fortune Spoid 1 Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Fortune Spoid 1_Shop_Item_Name.png")
+            ],
+            
+            "Fortune Spoid 2 ": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_2.png"),
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_2_Blue.png")
             ],
-            "Fortune Spoid 3": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_3.png")
+            
+            "Fortune Spoid 2 Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Fortune Spoid 2_Shop_Item_Name.png")
             ],
+            
+            "Fortune Spoid 3": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_3.png"),
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Fortune Spoid 3_Shop_Item_Name.png")
+            ],
+            
+            "Fortune Spoid 3 Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Fortune Spoid 3_Shop_Item_Name.png")
+            ],
+            
             "Lucky Potion": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_Pot.png"),
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_Pot_Green.png")
             ],
-            "Lucky Potion XL": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_PotXL.png")],
+            
+            "Lucky Potion Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Lucky Potion_Shop_Item_Name.png")
+            ],
+            
+            "Lucky Potion XL": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_PotXL.png")
+            ],
+            
+            "Lucky Potion XL Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Lucky Potion XL_Shop_Item_Name.png")
+            ],
+            
             "Speed Potion": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_Pot.png"),
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_Pot_Green.png")
             ],
-            "Speed Potion L": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_PotL.png")],
-            "Speed Potion XL": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_PotXL.png")],
-            "Gear A": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\GearA.png")],
-            "Gear B": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\GearB.png")],
-            "Lucky Penny": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_Penny.png")],
-            "Void Coin": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Void_Coin.png")]
+            
+            "Speed Potion Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Speed Potion_Shop_Item_Name.png")
+            ],
+             
+            "Speed Potion L": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_PotL.png")
+            ],
+            
+            "Speed Potion L Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Speed Potion L_Shop_Item_Name.png")
+            ],
+            
+            "Speed Potion XL": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_PotXL.png")
+            ],
+            
+            "Speed Potion XL Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Speed Potion XL_Shop_Item_Name.png")
+            ],
+            
+            "Gear A": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\GearA.png")
+            ],
+            
+            "Gear A Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Gear A_Shop_Item_Name.png")
+            ],
+            
+            "Gear B": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\GearB.png")   
+            ],
+            
+            "Gear B Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Gear B_Shop_Item_Name.png")       
+            ],
+            
+            "Lucky Penny": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_Penny.png")     
+            ],
+            
+            "Lucky Penny Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Lucky Penny_Shop_Item_Name.png")               
+            ],
+            
+            "Void Coin": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Void_Coin.png"),
+            ],
+            
+            "Void Coin Item Name": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Void Coin_Shop_Item_Name.png")  
+            ] 
         },
         "jester": {
-            "Oblivion Potion": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Oblivion_Pot.png")],
-            "Heavenly Potion 2": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Heavenly_Pot2.png")],
-            "Merchant Tracker": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Tracker.png")],
-            "Rune Of Everything": [cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Rune_Everything.png")]
+            "Oblivion Potion": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Oblivion_Pot.png"),
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Item_Shop_Name\\Oblivion Potion_Shop_Item_Name.png")  
+            ],
+            "Heavenly Potion 2": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Heavenly_Pot2.png"),
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Item_Shop_Name\\Heavenly Potion 2_Shop_Item_Name.png")
+            ],
+            "Merchant Tracker": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Tracker.png"),
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Item_Shop_Name\\Merchant Tracker_Shop_Item_Name.png")
+            ],
+            "Rune Of Everything": [
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Rune_Everything.png"),
+                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Item_Shop_Name\\Rune Of Everything_Shop_Item_Name.png")
+            ]
         }
     }
 
     if merchant_type not in Merchant_Items_Image or item_name not in Merchant_Items_Image[merchant_type]:
         return None
 
+    # Take a screenshot of the screen
     screen = pyautogui.screenshot()
     screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
 
     all_matches = []
 
-    # Feature-based matching for the specific item
+    # Get the list of images associated with the item
     item_images = Merchant_Items_Image[merchant_type][item_name]
 
     for item_image in item_images:
@@ -1153,20 +1251,18 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
 
             # Debug circle
             cv2.circle(screen_with_match, (center_x, center_y), 10, (0, 255, 0), 3)
-            #cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected_debug.png", screen_with_match)
+            cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected_debug.png", screen_with_match)
 
             all_matches.append((item_name, center_x, center_y, ratio_threshold))
             break
 
     if all_matches:
         best_match = all_matches[0]
-        
-        # Save the result with rectangles box
-        #cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected.png", screen_with_match)
-        return best_match[:3]  # Return best match to item name, center_x, center_y
+        return best_match[:3]
     else:
         print(f"No match found for {item_name}.")
         return None
+
 
 # Process merchant buttons , names and detect items
 async def Merchant_Button_SCANNING_Process():
@@ -1241,37 +1337,51 @@ async def Merchant_Headshot_Process(merchant_type, debug=False):
             print(f"Debug: No {merchant_type.capitalize()} detected on screen.")
         return None
     
-async def Merchant_Shop_Title_Process(merchant_type, debug=False):
+async def Merchant_Shop_Title_Process(merchant_type, debug=True):
     """Process to detect the merchant's shop title and return the position if found."""
     global merchant_shop_title_images
     
     if merchant_type not in merchant_shop_title_images:
-        print(f"Invalid merchant type specified: {merchant_type}")
         return None
 
-    shop_title_image = merchant_shop_title_images[merchant_type]  # Shop title image is the second item
+    shop_title_image = merchant_shop_title_images[merchant_type]
+
+    if shop_title_image is None:
+        print(f"Error: Shop title image for {merchant_type} is not loaded properly.")
+        return None
 
     # Capture the current screen
     screen = pyautogui.screenshot()
-    screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)  # Convert to BGR for template matching
+    screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
 
-    # Perform template matching to find the shop title on screen
-    res = cv2.matchTemplate(screen_cv, shop_title_image, cv2.TM_CCOEFF_NORMED)
-    threshold = 0.7
-    loc = np.where(res >= threshold)
+    # Ensure both images are in the correct dtype for template matching
+    if screen_cv.dtype != np.uint8:
+        screen_cv = screen_cv.astype(np.uint8)
+    if shop_title_image.dtype != np.uint8:
+        shop_title_image = shop_title_image.astype(np.uint8)
 
-    detected_positions = []
+    try:
+        # Perform template matching to find the shop title on screen
+        res = cv2.matchTemplate(screen_cv, shop_title_image, cv2.TM_CCOEFF_NORMED)
+        threshold = 0.7
+        loc = np.where(res >= threshold)
 
-    if len(loc[0]) > 0:
-        # Get the center positions of the detected shop titles
-        detected_positions = [(pt[0] + shop_title_image.shape[1] // 2, pt[1] + shop_title_image.shape[0] // 2) for pt in zip(*loc[::-1])]
-        if debug:
-            print(f"Debug: {merchant_type.capitalize()} shop title detected at positions: {detected_positions}")
-        return detected_positions
+        detected_positions = []
 
-    else:
-        if debug:
-            print(f"Debug: No {merchant_type.capitalize()} shop title detected on screen.")
+        if len(loc[0]) > 0:
+            # Get the center positions of the detected shop titles
+            detected_positions = [(pt[0] + shop_title_image.shape[1] // 2, pt[1] + shop_title_image.shape[0] // 2) for pt in zip(*loc[::-1])]
+            if debug:
+                print(f"Debug: {merchant_type.capitalize()} shop title detected at positions: {detected_positions}")
+            return detected_positions
+
+        else:
+            if debug:
+                print(f"Debug: No {merchant_type.capitalize()} shop title detected on screen.")
+            return None
+
+    except cv2.error as e:
+        print(f"OpenCV error during template matching: {e}")
         return None
 
 def get_merchant_item_config_slots(config):
@@ -1304,17 +1414,12 @@ async def MERCHANT_scroll_and_rescan(merchant_type, item_name):
 async def check_merchant_presence(merchant_type, retries=8):
     """Check the presence of the merchant by scanning both headshot and shop title images multiple times."""
     for _ in range(retries):
-        # Check for the shop title if headshot is not found
-        merchant_positions = await Merchant_Headshot_Process(merchant_type)
-        if merchant_positions:
-            return True
         
-        # Check for the shop title if headshot is not found
         shop_title_positions = await Merchant_Shop_Title_Process(merchant_type)
         if shop_title_positions:
             return True
         
-        await asyncio.sleep(1.2)  # Adjust time between checks as needed
+        await asyncio.sleep(1.4)
     return False  # Merchant not found after all retries
 
 async def Merchant_Item_Buy_Process(merchant_type):
@@ -1331,7 +1436,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
     
     # Set to track bought items
     bought_items = set()
-    
+
     # Retry loop for Merchant_Button_SCANNING_Process
     while attempts < max_attempts:
         button_positions = await Merchant_Button_SCANNING_Process()
@@ -1352,14 +1457,18 @@ async def Merchant_Item_Buy_Process(merchant_type):
     await activate_roblox_window()
     await asyncio.sleep(0.4)
     
+    # Get button positions (fallback to manual pixel coordinates if detection fails)
     jester_open_button_pos = get_merchant_buttons_position("jester_open_button")
     open_button_pos = get_merchant_buttons_position("open_button")
     
-    # Fallback to manual pixel coordinates if button positions are not found by image detection
     if not open_button_pos:
-        open_button_pos = convert_to_relative_coords(609, 858, Merchant_screen_width, Merchant_screen_height)  # Fallback to pixel method if failed to detect open button
+        open_button_pos = convert_to_relative_coords(609, 870, Merchant_screen_width, Merchant_screen_height)  # Fallback to pixel method
+        autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
+        await asyncio.sleep(0.7)
     if not jester_open_button_pos:
-        jester_open_button_pos = convert_to_relative_coords(609, 858, Merchant_screen_width, Merchant_screen_height)  # Fallback to pixel method if failed to detect open button
+        jester_open_button_pos = convert_to_relative_coords(609, 870, Merchant_screen_width, Merchant_screen_height)  # Fallback to pixel method
+        autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
+        await asyncio.sleep(0.7)
     
     if open_button_pos:
         autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
@@ -1373,87 +1482,118 @@ async def Merchant_Item_Buy_Process(merchant_type):
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
     autoit.mouse_wheel("up", 7)
     await asyncio.sleep(0.5)
-    autoit.mouse_wheel("down", 6)  # Scroll down to the right side
-    await asyncio.sleep(1.3)
+    autoit.mouse_wheel("down", 4)  # Scroll down to the right side
+    await asyncio.sleep(1.6)
 
+    merchant_present = await Merchant_Shop_Title_Process(merchant_type)
+    if not merchant_present:
+        print(f"{merchant_type.capitalize()} shop title not found. Resetting macro.")
+        await merchant_reset_macro_phase()
+        return
+    
+    # Send Merchant's Item Screenshot
+    await Merchant_Items_Webhook_Sender(merchant_type, "(right side)")
+    
     # Buy items on the right side
     for slot_name, (item_name, amount) in merchant_item_slots[merchant_type].items():
         if item_name == "None":
             continue
-        # # Check if the merchant is still present before each purchase attempt
-        # if not await check_merchant_presence(merchant_type, retries=8):
-        #     await merchant_reset_macro_phase()
-        #     return
         
         print(f"Attempting to purchase item {item_name} from the right side with amount {amount}.")
+        
+        # Step 1: Detect the item button
         item_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.65)
         
         if item_positions:
             detected_item_name, center_x, center_y = item_positions
             print(f"Detected {detected_item_name} at ({center_x}, {center_y}).")
-
-            # Click on the detected item position
+            
             await asyncio.sleep(0.6)
             autoit.mouse_click("left", center_x, center_y)
             await asyncio.sleep(0.75)
+                
+            # Scan for the specific item shop name image
+            item_shop_name_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type, f"{item_name} Item Name", threshold=0.75, ratio_threshold=0.65)
 
-            # Perform button scanning to find purchase-related buttons
-            purchase_amount_pos = convert_to_relative_coords(659, 596, Merchant_screen_width, Merchant_screen_height)
-            purchase_button_pos = convert_to_relative_coords(702, 648, Merchant_screen_width, Merchant_screen_height)
+            if item_shop_name_positions:
+                print(f"Double-check successful for {item_name}. Proceeding with purchase.")
 
-            # If positions for purchase amount or purchase button are found, perform clicks
-            if purchase_amount_pos:
-                autoit.mouse_click("left", purchase_amount_pos[0], purchase_amount_pos[1])
-                autoit.send(str(amount))  # Use the amount from the config
-                await asyncio.sleep(0.85)
+                # Perform button scanning to find purchase-related buttons
+                purchase_amount_pos = convert_to_relative_coords(659, 596, Merchant_screen_width, Merchant_screen_height)
+                purchase_button_pos = convert_to_relative_coords(702, 648, Merchant_screen_width, Merchant_screen_height)
 
-            if purchase_button_pos:
-                autoit.mouse_click("left", purchase_button_pos[0], purchase_button_pos[1])
-                await asyncio.sleep(4)
+                # If positions for purchase amount or purchase button are found, perform clicks
+                if purchase_amount_pos:
+                    autoit.mouse_click("left", purchase_amount_pos[0], purchase_amount_pos[1])
+                    autoit.send(str(amount))
+                    await asyncio.sleep(0.85)
 
-            # Log the item as bought
-            bought_items.add(item_name)
+                if purchase_button_pos:
+                    autoit.mouse_click("left", purchase_button_pos[0], purchase_button_pos[1])
+                    await asyncio.sleep(4)
 
+                # Log the item as bought
+                bought_items.add(item_name)
+            else:
+                print(f"Double-check failed for {item_name}. Skipping purchase.")
+        
     # Step 2: Scroll back up to the left side (common items)
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
-    autoit.mouse_wheel("up", 7)
+    autoit.mouse_wheel("up", 8)
     await asyncio.sleep(1.5)
 
+    # Check again if the merchant is still present before buying from the left side
+    merchant_present = await Merchant_Shop_Title_Process(merchant_type)
+    if not merchant_present:
+        print(f"{merchant_type.capitalize()} shop title not found. Resetting macro.")
+        await merchant_reset_macro_phase()
+        return
+
+    # Send Merchant's Item Screenshot
+    await Merchant_Items_Webhook_Sender(merchant_type, "left side")
+    
     # Buy items on the left side
     for slot_name, (item_name, amount) in merchant_item_slots[merchant_type].items():
         if item_name == "None" or item_name in bought_items:  # Skip if the item was already bought
             continue
 
-        # Check if the merchant is still present before each purchase attempt
-        if not await check_merchant_presence(merchant_type, retries=8):
-            await merchant_reset_macro_phase()
-            return
-
         print(f"Attempting to purchase item {item_name} from the left side with amount {amount}.")
+        
+        # Step 1: Detect the item button
         item_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.65)
         
         if item_positions:
             detected_item_name, center_x, center_y = item_positions
             print(f"Detected {detected_item_name} at ({center_x}, {center_y}).")
-
-            # Click on the detected item position
-            await asyncio.sleep(1.0)
+            
+            await asyncio.sleep(0.6)
             autoit.mouse_click("left", center_x, center_y)
             await asyncio.sleep(0.75)
+            
+            # Step 2: Double-check with the item shop name
+            item_shop_name_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type, f"{item_name} Item Name", threshold=0.75, ratio_threshold=0.65)
 
-            # Perform button scanning to find purchase-related buttons
-            purchase_amount_pos = convert_to_relative_coords(659, 596, Merchant_screen_width, Merchant_screen_height)
-            purchase_button_pos = convert_to_relative_coords(702, 648, Merchant_screen_width, Merchant_screen_height)
+            if item_shop_name_positions:
+                print(f"Double-check successful for {item_name}. Proceeding with purchase.")
 
-            # If positions for purchase amount or purchase button are found, perform clicks
-            if purchase_amount_pos:
-                autoit.mouse_click("left", purchase_amount_pos[0], purchase_amount_pos[1])
-                autoit.send(str(amount))
-                await asyncio.sleep(0.85)
+                # Perform button scanning to find purchase-related buttons
+                purchase_amount_pos = convert_to_relative_coords(659, 596, Merchant_screen_width, Merchant_screen_height)
+                purchase_button_pos = convert_to_relative_coords(702, 648, Merchant_screen_width, Merchant_screen_height)
 
-            if purchase_button_pos:
-                autoit.mouse_click("left", purchase_button_pos[0], purchase_button_pos[1])
-                await asyncio.sleep(4)
+                # If positions for purchase amount or purchase button are found, perform clicks
+                if purchase_amount_pos:
+                    autoit.mouse_click("left", purchase_amount_pos[0], purchase_amount_pos[1])
+                    autoit.send(str(amount))
+                    await asyncio.sleep(0.85)
+
+                if purchase_button_pos:
+                    autoit.mouse_click("left", purchase_button_pos[0], purchase_button_pos[1])
+                    await asyncio.sleep(4)
+
+                # Log the item as bought
+                bought_items.add(item_name)
+            else:
+                print(f"Double-check failed for {item_name}. Skipping purchase.")
 
     # Reset Roblox character and resume macro
     await merchant_reset_macro_phase()
@@ -1466,7 +1606,7 @@ async def merchant_reset_macro_phase():
     await asyncio.sleep(0.5)
     autoit.send("{ENTER}")
     await asyncio.sleep(1)
-    autoit.mouse_wheel("up", 10)
+    autoit.mouse_wheel("up", 12)
     await asyncio.sleep(1.5)
     autoit.mouse_wheel("down", 10)
     await asyncio.sleep(1.2)
@@ -1476,7 +1616,6 @@ async def merchant_reset_macro_phase():
 async def Merchant_Webhook_Sender(Merchant_Name):
     """Sends a webhook message with a screenshot if a merchant is detected."""
     screenshot = take_screenshot()
-    shop_screenshot = take_screenshot()
     DISCORD_user_id = os.getenv('YOUR_DISCORD_USER_ID')
     channel = bot.get_channel(int(os.getenv('DISCORD_CHANNEL_ID')))
     
@@ -1485,36 +1624,62 @@ async def Merchant_Webhook_Sender(Merchant_Name):
             screenshot.save(image_binary, 'PNG')
             image_binary.seek(0)
 
-            # Prepare the embed with the screenshot based on the merchant name
-            if Merchant_Name == "mari":
-                embed = discord.Embed(
-                    title="Mari Detected!",
-                    description="Mari has been detected on your screen.",
-                    color=discord.Color.blue()  # You can customize the color
-                )
-                embed.set_thumbnail(url="https://static.wikia.nocookie.net/sol-rng/images/3/37/MARI_HIGH_QUALITYY.png/revision/latest?cb=20240704045119")
-                embed.add_field(name="Screenshot", value="", inline=False)
-                embed.set_image(url="attachment://epic_ss.png")
-                embed.set_footer(text="Auto Merchant Detection")
-
-            elif Merchant_Name == "jester":
-                embed = discord.Embed(
-                    title=f"Jester Detected!",
-                    description="Jester has been detected on your screen",
-                    color=discord.Color.purple()  # You can customize the color
-                )
-                embed.set_thumbnail(url="https://static.wikia.nocookie.net/sol-rng/images/d/db/Headshot_of_Jester.png/revision/latest?cb=20240630142936")  # Replace with actual image URL
-                embed.add_field(name="Screenshot", value="", inline=False)
-                embed.set_image(url="attachment://epic_ss.png")
-                embed.set_footer(text="Auto Merchant Detection")
+            # Prepare the embed with the screenshot
+            embed = discord.Embed(
+                title=f"{Merchant_Name.capitalize()} Detected!",
+                description=f"{Merchant_Name.capitalize()} has been detected on your screen.",
+                color=discord.Color.blue() if Merchant_Name == "mari" else discord.Color.purple()
+            )
             
+            thumbnail_url = (
+                "https://static.wikia.nocookie.net/sol-rng/images/3/37/MARI_HIGH_QUALITYY.png/revision/latest?cb=20240704045119"
+                if Merchant_Name == "mari" else
+                "https://static.wikia.nocookie.net/sol-rng/images/d/db/Headshot_of_Jester.png/revision/latest?cb=20240630142936"
+            )
+            
+            embed.set_thumbnail(url=thumbnail_url)
+            embed.set_image(url="attachment://epic_ss.png")
+            embed.add_field(name="Merchant Face Screenshot", value="", inline=False)
+            embed.set_footer(text="Auto Merchant Detection")
+
             if channel:
-                await channel.send(f"<@{DISCORD_user_id}>", embed=embed, file=discord.File(fp=image_binary, filename='epic_ss.png'))
+                await channel.send(
+                    f"<@{DISCORD_user_id}>", 
+                    embed=embed, 
+                    file=discord.File(fp=image_binary, filename='epic_ss.png')
+                )
             else:
                 print("Channel not found or invalid channel ID.")
     else:
         print("Roblox window not found!")
-        
+
+async def Merchant_Items_Webhook_Sender(Merchant_Name, extra_info):
+    """Sends a webhook message with a screenshot of the merchant's items."""
+    screenshot = take_screenshot()
+    DISCORD_user_id = os.getenv('YOUR_DISCORD_USER_ID')
+    channel = bot.get_channel(int(os.getenv('DISCORD_CHANNEL_ID')))
+    
+    if screenshot:
+        with BytesIO() as inventory_binary:
+            screenshot.save(inventory_binary, 'PNG')
+            inventory_binary.seek(0)
+            
+            # Create the embed for inventory
+            inventory_embed = discord.Embed(
+                title=f"{Merchant_Name.capitalize()}'s Shop Items",
+                color=discord.Color.blue() if Merchant_Name == "mari" else discord.Color.purple()
+            )
+            inventory_embed.add_field(name=f"Item Screenshot {extra_info}", value="", inline=False)
+            inventory_embed.set_image(url="attachment://inventory_ss.png")
+            inventory_embed.set_footer(text="Auto Merchant Detection")
+            
+            if channel:
+                await channel.send(
+                    embed=inventory_embed, 
+                    file=discord.File(fp=inventory_binary, filename='inventory_ss.png')
+                )
+            else:
+                print("Channel not found or invalid channel ID.")
 
 @tasks.loop(seconds=5)
 async def AUTO_MERCHANT_DETECTION_LOOP():
