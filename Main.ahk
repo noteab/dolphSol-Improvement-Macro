@@ -219,7 +219,7 @@ global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?pr
 
 ; Must be called in correct order
 loadData() ; Load config data
-updateStaticData() ; Get latest data for update check, aura names, etc.
+; updateStaticData() ; Get latest data for update check, aura names, etc.
 
 ; Disable OCR mode if resolution isn't supported
 ; Now enabling the mode will notify of requirements
