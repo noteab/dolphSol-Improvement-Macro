@@ -56,4 +56,10 @@ configHeader := "; dolphSol Settings`n;   Do not put spaces between equals`n;   
 FileDelete, % targetDir . "\settings\config.ini"
 FileAppend, % configHeader, % targetDir . "\settings\config.ini"
 
+FileDelete, % targetDir . "\lib\macro_log.txt"
+FileAppend, % "", % targetDir . "\lib\macro_log.txt"
+
+FileDelete, % targetDir . "\lib\macro_status_log.txt"
+FileAppend, % "", % targetDir . "\lib\macro_status_log.txt"
+
 MsgBox, ,Release Process Complete,% "The directory " . targetDir . " is ready for release!"

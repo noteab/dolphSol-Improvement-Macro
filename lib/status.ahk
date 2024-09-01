@@ -2,6 +2,10 @@
 #noenv
 #persistent
 
+
+global loggingEnabled := 1 ; disabled for public release, set to 1 to enable
+
+
 OnError("LogError")
 OnExit, ShowCursor
 
@@ -17,7 +21,6 @@ Gdip_Startup()
 
 global mainDir
 RegExMatch(A_ScriptDir, "(.*)\\", mainDir)
-global loggingEnabled := 1
 global lastLoggedMessage := ""
 
 global configPath := mainDir . "settings\config.ini"
@@ -75,7 +78,7 @@ if (!ErrorLevel){
 FileRead, staticDataContent, % "staticData.json"
 global staticData := Jxon_Load(staticDataContent)[1]
 
-; Added in v1.4.0 - Does this improve anything?
+; for defaulting <1m auras to have a black corner
 for i,v in staticData.stars {
     if (v.rarity < 1000000 && !v.mutations){
         v.cornerColor := 0
@@ -248,21 +251,21 @@ getINIData(path){
     readingPoint := 0
 
     ls := StrSplit(retrieved,"`n")
-    for i,v in ls {
-        ; Remove any carriage return characters
-        v := Trim(v, "`r")
+        for i,v in ls {
+            ; Remove any carriage return characters
+            v := Trim(v, "`r")
 
-        isHeader := RegExMatch(v,"\[(.*)]")
-        if (v && readingPoint && !isHeader){
-            RegExMatch(v,"(.*)(?==)",index)
-            RegExMatch(v,"(?<==)(.*)",value)
-            if (index){
-                retrievedData[index] := value
+            isHeader := RegExMatch(v,"\[(.*)]")
+            if (v && readingPoint && !isHeader){
+                RegExMatch(v,"(.*)(?==)",index)
+                RegExMatch(v,"(?<==)(.*)",value)
+                if (index){
+                    retrievedData[index] := value
+                }
+            } else if (isHeader){
+                readingPoint := 1
             }
-        } else if (isHeader){
-            readingPoint := 1
         }
-    }
     return retrievedData
 }
 
@@ -358,8 +361,8 @@ Class CreateFormData {
                 For i, FileName in v
                 {
                     str := BoundaryLine . CRLF
-                        . "Content-Disposition: form-data; name=""" . k . """; filename=""" . FileName . """" . CRLF
-                        . "Content-Type: " . this.MimeType(FileName) . CRLF . CRLF
+                    . "Content-Disposition: form-data; name=""" . k . """; filename=""" . FileName . """" . CRLF
+                    . "Content-Type: " . this.MimeType(FileName) . CRLF . CRLF
 
                     this.StrPutUTF8( str )
                     this.LoadFromFile( Filename )
@@ -368,8 +371,8 @@ Class CreateFormData {
                 }
             } Else {
                 str := BoundaryLine . CRLF
-                    . "Content-Disposition: form-data; name=""" . k """" . CRLF . CRLF
-                    . v . CRLF
+                . "Content-Disposition: form-data; name=""" . k """" . CRLF . CRLF
+                . v . CRLF
                 this.StrPutUTF8( str )
             }
         }
@@ -552,6 +555,7 @@ identifyBiome(inputStr){
             matchingBiome := "Glitched"
         }
     }
+
 
     return matchingBiome
 }
@@ -912,7 +916,7 @@ logMessage(message, indent := 0) {
         return
     }
     
-    logFile := mainDir . "\macro_status_log.txt"
+    logFile := mainDir . "\lib\macro_status_log.txt"
     
     ; Check the log file size and truncate if necessary
     if (FileExist(logFile) && FileGetSize(logFile) > maxLogSize) {

@@ -4,6 +4,8 @@
 
 */
 
+; Thank you to amraki, and the others (so sorry i forgot) for creating this entire script
+
 ; Create the Item Scheduler settings popup
 ShowItemSchedulerSettings() {
     global
@@ -248,6 +250,10 @@ LoadItemSchedulerOptions() {
 
 ; Function to highlight coordinates
 HighlightItemCoordinates() {
+    if (!GetRobloxHWND()){
+        MsgBox, 262144, Roblox Not Found, Please make sure that Roblox is open to test coordinates.
+        return
+    }
     ; Highlight where mouse will click to automatically use items
     ; For user to test accuracy
 
