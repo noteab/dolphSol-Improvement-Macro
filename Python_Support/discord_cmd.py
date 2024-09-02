@@ -161,41 +161,48 @@ async def GameButtonScanner():
     screen = pyautogui.screenshot()
     screen_np = np.array(screen)
     screen_cv = cv2.cvtColor(screen_np, cv2.COLOR_RGB2BGR)
+    screen_edges = cv2.Canny(screen_cv, 50, 150)
 
     button_count = 0
     debug_image = screen_np.copy()
+    scale_factors = [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4] 
     
-
     for button_name, button_image in button_images.items():
-        # Ensure the image was loaded successfully
         if button_image is None:
             continue
         
-        button_cv = cv2.cvtColor(button_image, cv2.COLOR_RGB2BGR)
-
-        # Check if the template (button_cv) is larger than the screenshot region (screen_cv)
-        # if button_cv.shape[0] > screen_cv.shape[0] or button_cv.shape[1] > screen_cv.shape[1]:
-        #     print(f"Error: Button image '{button_name}' is larger than the your screen region. Skipping to prevent further error...")
-        #     print(f"Button size: {button_cv.shape}, Screen size: {screen_cv.shape}")
-        #     continue
-
-        res = cv2.matchTemplate(screen_cv, button_cv, cv2.TM_CCOEFF_NORMED)
-        threshold = 0.8
-        loc = np.where(res >= threshold)
+        # Convert button image to grayscale and detect edges
+        button_gray = cv2.cvtColor(button_image, cv2.COLOR_BGR2GRAY)
+        button_edges = cv2.Canny(button_gray, 50, 150)
 
         detected = False
-        for pt in zip(*loc[::-1]):
-            if not detected:
-                button_count += 1
-                detected = True
-                center_x = pt[0] + button_image.shape[1] // 2
-                center_y = pt[1] + button_image.shape[0] // 2
-                game_button_positions.append((button_name, center_x, center_y))
-            cv2.rectangle(debug_image, pt, (pt[0] + button_image.shape[1], pt[1] + button_image.shape[0]), (0, 255, 0), 1)
+        for scale in scale_factors:
+            scaled_button_edges = cv2.resize(button_edges, (0, 0), fx=scale, fy=scale)
+
+            if scaled_button_edges.shape[0] > screen_edges.shape[0] or scaled_button_edges.shape[1] > screen_edges.shape[1]:
+                continue
+
+            # Perform template matching on the edge-detected images
+            res = cv2.matchTemplate(screen_edges, scaled_button_edges, cv2.TM_CCOEFF_NORMED)
+            threshold = 0.7
+            loc = np.where(res >= threshold)
+
+            for pt in zip(*loc[::-1]):
+                if not detected:
+                    button_count += 1
+                    detected = True
+                    center_x = pt[0] + scaled_button_edges.shape[1] // 2
+                    center_y = pt[1] + scaled_button_edges.shape[0] // 2
+                    game_button_positions.append((button_name, center_x, center_y))
+                    cv2.rectangle(debug_image, pt, (pt[0] + scaled_button_edges.shape[1], pt[1] + scaled_button_edges.shape[0]), (0, 255, 0), 1)
+
+            if detected:
+                break
 
     # Optional: Save the debug image to see where buttons were detected
     # cv2.imwrite(f"{MAIN_IMAGES_PATH}/debug_game_buttons.png", debug_image)
     # ic(game_button_positions)
+    
     return button_count, game_button_positions
 
 
@@ -1006,7 +1013,7 @@ def feature_based_matching(screen_cv, template, ratio_threshold=0.60):
     return None, screen_cv
 
 
-async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.85):
+async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.75):
     """Scan for a specific item in the merchant's inventory and return the position if found."""
     
     Merchant_Items_Image = {
@@ -1175,20 +1182,33 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
             screen_gray = cv2.cvtColor(screen_cv, cv2.COLOR_BGR2GRAY)
             template_gray = cv2.cvtColor(item_image, cv2.COLOR_BGR2GRAY)
 
-            res = cv2.matchTemplate(screen_gray, template_gray, cv2.TM_CCOEFF_NORMED)
+            # Apply Canny edge
+            screen_can = cv2.Canny(screen_gray, 50, 150)
+            template_edges = cv2.Canny(template_gray, 50, 150)
+            
+            res = cv2.matchTemplate(screen_can, template_edges, cv2.TM_CCOEFF_NORMED)
             loc = np.where(res >= threshold)
 
             detected = False
             for pt in zip(*loc[::-1]):
                 if not detected:
                     detected = True
-                    center_x = pt[0] + template_gray.shape[1] // 2
-                    center_y = pt[1] + template_gray.shape[0] // 2
+                    center_x = pt[0] + template_edges.shape[1] // 2
+                    center_y = pt[1] + template_edges.shape[0] // 2
 
-                    cv2.circle(screen_cv, (center_x, center_y), 10, (0, 255, 0), 3)
-                    cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_debug.png", screen_cv)
+                    # Region of interest for feature matching
+                    x, y = pt[0], pt[1]
+                    roi = screen_cv[y:y + template_gray.shape[0], x:x + template_gray.shape[1]]
 
-                    all_matches.append((item_name, center_x, center_y, threshold))
+                    # Perform feature-based matching
+                    best_match, roi_with_match = feature_based_matching(roi, item_image, ratio_threshold=ratio_threshold)
+
+                    if best_match:
+                        cv2.circle(screen_cv, (center_x, center_y), 10, (0, 255, 0), 3)
+                        cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_debug.png", screen_cv)
+                        all_matches.append((item_name, center_x, center_y, threshold))
+                    else:
+                        print(f"Feature-based check failed for {item_name}.")
                     break
         else:
             best_match, screen_with_match = feature_based_matching(screen_cv, item_image, ratio_threshold=ratio_threshold)
@@ -1213,7 +1233,7 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
     else:
         print(f"No match found for {item_name}.")
         return None
-
+    
 
 async def Merchant_Button_SCANNING_Process(debug=False):
     global MERCHANT_SHOP_BUTTON_Position
@@ -1233,7 +1253,7 @@ async def Merchant_Button_SCANNING_Process(debug=False):
     MERCHANT_SHOP_BUTTON_Position = []
 
     # multi-scale matching
-    scales = [1.5, 1.4, 1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3]
+    scales = [1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
 
     for button_name, button_image in Merchant_Buttons_Image.items():
         if button_image is None:
@@ -1280,39 +1300,70 @@ async def Merchant_Button_SCANNING_Process(debug=False):
     return MERCHANT_SHOP_BUTTON_Position
 
 async def Merchant_Headshot_Process(merchant_type, debug=False):
-    """Process to detect the merchant by NPC name and return their name position."""
+    """Process to detect the merchant by NPC headshot and return their name position."""
+
     merchant_headshot_images = {
         "mari": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari_Headshot.png"),
         "jester": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester_Headshot.png")
     }
-    
+
     if merchant_type not in merchant_headshot_images:
         print(f"Invalid merchant type specified: {merchant_type}")
         return None
 
-    merchant_name_image = merchant_headshot_images[merchant_type]
+    merchant_headshot_image = merchant_headshot_images[merchant_type]
 
+    if merchant_headshot_image is None:
+        print(f"Error: Headshot image for {merchant_type} is not loaded properly.")
+        return None
+
+    merchant_headshot_gray = cv2.cvtColor(merchant_headshot_image, cv2.COLOR_BGR2GRAY)
     screen = pyautogui.screenshot()
-    screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)  # Convert to BGR
+    screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
 
-    res = cv2.matchTemplate(screen_cv, merchant_name_image, cv2.TM_CCOEFF_NORMED)
-    threshold = 0.75
+    # Convert the screen to grayscale
+    screen_gray = cv2.cvtColor(screen_cv, cv2.COLOR_BGR2GRAY)
+    scales = [1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3]
+
+    for scale in scales:
+        resized_headshot = cv2.resize(merchant_headshot_gray, (0, 0), fx=scale, fy=scale)
+
+        # Match template with resized headshot
+        res = cv2.matchTemplate(screen_gray, resized_headshot, cv2.TM_CCOEFF_NORMED)
+        threshold = 0.75
+        loc = np.where(res >= threshold)
+
+        if len(loc[0]) > 0:
+            detected_positions = [
+                (pt[0] + resized_headshot.shape[1] // 2, pt[1] + resized_headshot.shape[0] // 2)
+                for pt in zip(*loc[::-1])
+            ]
+            if debug:
+                print(f"Debug: {merchant_type.capitalize()} headshot detected at scale {scale} at positions: {detected_positions}")
+            return detected_positions
+
+
+    edges_headshot = cv2.Canny(merchant_headshot_gray, 50, 150)
+    edges_screen = cv2.Canny(screen_gray, 50, 150)
+
+    res = cv2.matchTemplate(edges_screen, edges_headshot, cv2.TM_CCOEFF_NORMED)
     loc = np.where(res >= threshold)
 
-    detected_positions = []
-
     if len(loc[0]) > 0:
-        detected_positions = [(pt[0] + merchant_name_image.shape[1] // 2, pt[1] + merchant_name_image.shape[0] // 2) for pt in zip(*loc[::-1])]
+        detected_positions = [
+            (pt[0] + edges_headshot.shape[1] // 2, pt[1] + edges_headshot.shape[0] // 2)
+            for pt in zip(*loc[::-1])
+        ]
         if debug:
-            print(f"Debug: {merchant_type.capitalize()} detected at positions: {detected_positions}")
+            print(f"Debug: {merchant_type.capitalize()} headshot detected using edge detection at positions: {detected_positions}")
         return detected_positions
-        
-    else:
-        if debug:
-            print(f"Debug: No {merchant_type.capitalize()} detected on screen.")
-        return None
+
+    if debug:
+        print(f"Debug: No {merchant_type.capitalize()} headshot detected on screen.")
     
-async def Merchant_Shop_Title_Process(merchant_type, debug=True):
+    return None
+    
+async def Merchant_Shop_Title_Process(merchant_type, debug=False):
     """Process to detect the merchant's shop title and return the position if found."""
     
     merchant_shop_title_images = {
@@ -1329,14 +1380,14 @@ async def Merchant_Shop_Title_Process(merchant_type, debug=True):
         print(f"Error: Shop title image for {merchant_type} is not loaded properly.")
         return None
 
-    # Convert to grayscale
+
     shop_title_image_gray = cv2.cvtColor(shop_title_image, cv2.COLOR_BGR2GRAY)
     screen = pyautogui.screenshot()
     screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
     
     # Convert screen to grayscale
     screen_gray = cv2.cvtColor(screen_cv, cv2.COLOR_BGR2GRAY)
-    scales = [1.5, 1.4, 1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3]  
+    scales = [1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3]  
 
     for scale in scales:
         resized_shop_title = cv2.resize(shop_title_image_gray, (0, 0), fx=scale, fy=scale)
@@ -1406,179 +1457,148 @@ async def check_merchant_presence(merchant_type, retries=8):
             return True
         
         await asyncio.sleep(1.4)
-    return False  # Merchant not found after all retries
+    return False
 
+async def purchase_items(merchant_type, item_slots, bought_items, side, screen_width, screen_height, max_retries=5):
+    """Helper function to handle item purchases with retry mechanism and dynamic ratio threshold."""
+    
+    for slot_name, (item_name, amount) in item_slots.items():
+        if item_name == "None" or item_name in bought_items:
+            continue
+
+        print(f"Attempting to purchase item {item_name} from the {side} side with amount {amount}.")
+
+        item_positions = None
+        for attempt in range(max_retries):
+            item_positions = await Merchant_Specific_Item_SCANNING_Process(
+                merchant_type, item_name, threshold=0.75, ratio_threshold=0.65
+            )
+            if item_positions: 
+                break
+            else: 
+                await asyncio.sleep(0.25)
+
+        if not item_positions:
+            print(f"Failed to detect item {item_name} after {max_retries} attempts. Skipping item.")
+            continue
+
+        detected_item_name, center_x, center_y = item_positions
+        print(f"Detected {detected_item_name} at ({center_x}, {center_y}).")
+
+        await asyncio.sleep(0.2)
+        autoit.mouse_click("left", center_x, center_y)
+        await asyncio.sleep(0.5)
+
+        # Retry loop for double-checking with the item shop name with decreasing ratio threshold
+        item_shop_name_positions = None
+        initial_ratio_threshold = 0.77
+        
+        for attempt in range(max_retries):
+            current_ratio_threshold = initial_ratio_threshold - (0.1 * attempt)
+            item_shop_name_positions = await Merchant_Specific_Item_SCANNING_Process(
+                merchant_type, f"{item_name} Item Name", threshold=0.75, ratio_threshold=current_ratio_threshold
+            )
+            if item_shop_name_positions:
+                print(f"Double-check successful for {item_name} on attempt {attempt + 1} with ratio threshold {current_ratio_threshold:.2f}.")
+                break
+            else:
+                print(f"Double-check failed for {item_name} on attempt {attempt + 1} with ratio threshold {current_ratio_threshold:.2f}. Retrying...")
+                await asyncio.sleep(0.35)
+
+        if not item_shop_name_positions:
+            print(f"Failed to double-check item {item_name} after {max_retries} attempts. Skipping purchase.")
+            continue
+
+        # Perform button scanning to find purchase-related buttons
+        purchase_amount_pos = convert_to_relative_coords(659, 596, screen_width, screen_height)
+        purchase_button_pos = convert_to_relative_coords(702, 648, screen_width, screen_height)
+
+        if purchase_amount_pos:
+            autoit.mouse_click("left", purchase_amount_pos[0], purchase_amount_pos[1])
+            autoit.send(str(amount))
+            await asyncio.sleep(0.25)
+
+        if purchase_button_pos:
+            autoit.mouse_click("left", purchase_button_pos[0], purchase_button_pos[1])
+            await asyncio.sleep(4)
+
+        # Log the item as bought
+        bought_items.add(item_name)
+            
 async def Merchant_Item_Buy_Process(merchant_type):
     """Process to purchase items from the merchant, while checking if the merchant is still present."""
+    
     Merchant_screen_width, Merchant_screen_height = get_screen_resolution()
     config = load_config()
     merchant_item_slots = get_merchant_item_config_slots(config)
-    
+
     max_attempts = 10
     attempts = 0
     button_positions = None
     bought_items = set()
 
     # Retry loop for Merchant_Button_SCANNING_Process
-    while attempts < max_attempts:
+    while attempts < 6:
         button_positions = await Merchant_Button_SCANNING_Process()
         if button_positions:
             print(f"Detected general buttons for {merchant_type}.")
             break
         else:
             attempts += 1
-            await asyncio.sleep(1.2)
+            await asyncio.sleep(0.25)
 
     if not button_positions:
         print(f"Failed to detect general buttons for {merchant_type} after {max_attempts} attempts. Using pixel coord method..")
-    
-    await asyncio.sleep(0.5)
+        
+    await asyncio.sleep(0.2)
     autoit.send("{F2}")
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.2)
     await activate_roblox_window()
-    await asyncio.sleep(0.4)
-    
-    # Get button positions (fallback to manual pixel coordinates if detection fails)
-    jester_open_button_pos = get_merchant_buttons_position("jester_open_button")
+
+    # open button (manual pixel coordinates)
     open_button_pos = get_merchant_buttons_position("open_button")
     
     if not open_button_pos:
-        open_button_pos = convert_to_relative_coords(609, 870, Merchant_screen_width, Merchant_screen_height)  # Fallback to pixel method
+        open_button_pos = convert_to_relative_coords(609, 875, Merchant_screen_width, Merchant_screen_height)  # Fallback to pixel method
         autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
-        await asyncio.sleep(0.7)
-    if not jester_open_button_pos:
-        jester_open_button_pos = convert_to_relative_coords(609, 870, Merchant_screen_width, Merchant_screen_height)  # Fallback to pixel method
-        autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
-        await asyncio.sleep(0.7)
-    
+        await asyncio.sleep(0.65)
+
     if open_button_pos:
         autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
-        await asyncio.sleep(0.7)
-    elif jester_open_button_pos:
-        autoit.mouse_click("left", jester_open_button_pos[0], jester_open_button_pos[1])
-        await asyncio.sleep(0.7)
+        await asyncio.sleep(0.65)
 
     # Step 1: Scroll down to the right side (where rare items should be here i think)
-    item_scroll_pos = convert_to_relative_coords(926, 707, Merchant_screen_width, Merchant_screen_height)
+    item_scroll_pos = convert_to_relative_coords(926, 720, Merchant_screen_width, Merchant_screen_height)
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
     autoit.mouse_wheel("up", 7)
     await asyncio.sleep(0.5)
     autoit.mouse_wheel("down", 4)
-    await asyncio.sleep(1.6)
-    
+    await asyncio.sleep(0.4)
+
     # Send Merchant's Item Screenshot
     await Merchant_Items_Webhook_Sender(merchant_type, "(Right Side)")
-    
-    # Buy items on the right side
-    for slot_name, (item_name, amount) in merchant_item_slots[merchant_type].items():
-        if item_name == "None":
-            continue
-        
-        print(f"Attempting to purchase item {item_name} from the right side with amount {amount}.")
-        
-        # Step 1: Detect the item button
-        item_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.45)
-        
-        if item_positions:
-            detected_item_name, center_x, center_y = item_positions
-            print(f"Detected {detected_item_name} at ({center_x}, {center_y}).")
-            
-            await asyncio.sleep(0.6)
-            autoit.mouse_click("left", center_x, center_y)
-            await asyncio.sleep(0.75)
-                
-            # Scan for the specific item shop name image
-            item_shop_name_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type, f"{item_name} Item Name", threshold=0.75, ratio_threshold=0.53)
+    await purchase_items(merchant_type, merchant_item_slots[merchant_type], bought_items, "right", Merchant_screen_width, Merchant_screen_height)
 
-            if item_shop_name_positions:
-                print(f"Double-check successful for {item_name}. Proceeding with purchase.")
-
-                # Perform button scanning to find purchase-related buttons
-                purchase_amount_pos = convert_to_relative_coords(659, 596, Merchant_screen_width, Merchant_screen_height)
-                purchase_button_pos = convert_to_relative_coords(702, 648, Merchant_screen_width, Merchant_screen_height)
-
-                # If positions for purchase amount or purchase button are found, perform clicks
-                if purchase_amount_pos:
-                    autoit.mouse_click("left", purchase_amount_pos[0], purchase_amount_pos[1])
-                    autoit.send(str(amount))
-                    await asyncio.sleep(0.85)
-
-                if purchase_button_pos:
-                    autoit.mouse_click("left", purchase_button_pos[0], purchase_button_pos[1])
-                    await asyncio.sleep(4)
-
-                # Log the item as bought
-                bought_items.add(item_name)
-            else:
-                print(f"Double-check failed for {item_name}. Skipping purchase.")
-        
     # Step 2: Scroll back up to the left side (common items)
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
     autoit.mouse_wheel("up", 8)
-    await asyncio.sleep(1.5)
-
-    # Check if merchant is still here
-    merchant_present = await Merchant_Shop_Title_Process(merchant_type)
-    if not merchant_present:
-        print(f"{merchant_type.capitalize()} shop title not found. Resetting macro.")
-        await merchant_reset_macro_phase()
-        return
+    await asyncio.sleep(0.4)
 
     # Send Merchant's Item Screenshot
     await Merchant_Items_Webhook_Sender(merchant_type, "(Left Side)")
-    
-    # Buy items on the left side
-    for slot_name, (item_name, amount) in merchant_item_slots[merchant_type].items():
-        if item_name == "None" or item_name in bought_items:
-            continue
-
-        print(f"Attempting to purchase item {item_name} from the left side with amount {amount}.")
-        
-        # Step 1: Detect the item button
-        item_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.48)
-        
-        if item_positions:
-            detected_item_name, center_x, center_y = item_positions
-            print(f"Detected {detected_item_name} at ({center_x}, {center_y}).")
-            
-            await asyncio.sleep(0.6)
-            autoit.mouse_click("left", center_x, center_y)
-            await asyncio.sleep(0.75)
-            
-            # Step 2: Double-check with the item shop name
-            item_shop_name_positions = await Merchant_Specific_Item_SCANNING_Process(merchant_type, f"{item_name} Item Name", threshold=0.75, ratio_threshold=0.48)
-
-            if item_shop_name_positions:
-                print(f"Double-check successful for {item_name}. Proceeding with purchase.")
-                
-                purchase_amount_pos = convert_to_relative_coords(659, 596, Merchant_screen_width, Merchant_screen_height)
-                purchase_button_pos = convert_to_relative_coords(702, 648, Merchant_screen_width, Merchant_screen_height)
-
-                if purchase_amount_pos:
-                    autoit.mouse_click("left", purchase_amount_pos[0], purchase_amount_pos[1])
-                    autoit.send(str(amount))
-                    await asyncio.sleep(0.85)
-
-                if purchase_button_pos:
-                    autoit.mouse_click("left", purchase_button_pos[0], purchase_button_pos[1])
-                    await asyncio.sleep(4)
-
-                # Log the item
-                bought_items.add(item_name)
-            else:
-                print(f"Double-check failed for {item_name}. Skipping purchase.")
+    await purchase_items(merchant_type, merchant_item_slots[merchant_type], bought_items, "left", Merchant_screen_width, Merchant_screen_height)
 
     await merchant_reset_macro_phase()
 
 async def merchant_reset_macro_phase():
-    await asyncio.sleep(1.3)
+    await asyncio.sleep(0.2)
     autoit.send("{ESC}")
     autoit.send("r")
     await asyncio.sleep(0.4)
     autoit.send("{ENTER}")
     await asyncio.sleep(1.3)
     autoit.mouse_wheel("up", 12)
-    await asyncio.sleep(1.5)
+    await asyncio.sleep(1.7)
     autoit.mouse_wheel("down", 10)
     await asyncio.sleep(1.2)
     autoit.send("{F2}")
@@ -1652,7 +1672,7 @@ async def Merchant_Items_Webhook_Sender(Merchant_Name, extra_info):
             else:
                 print("Channel not found or invalid channel ID.")
 
-@tasks.loop(seconds=5)
+@tasks.loop(seconds=3)
 async def AUTO_MERCHANT_DETECTION_LOOP():
     """Automatically detect merchants and handle item buying process."""
     global Merchant_ON_PROCESS_LOOP
@@ -1682,7 +1702,7 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
                 Merchant_ON_PROCESS_LOOP = False
 
         if not any(merchants.values()):
-            await asyncio.sleep(3)  # Delay longer if no merchants were detected
+            await asyncio.sleep(0.85)  # Delay longer if no merchants were detected
             
 """ MERCHANT FEATURE """
 
