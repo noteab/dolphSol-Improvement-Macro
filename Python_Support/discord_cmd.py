@@ -1491,7 +1491,7 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
 
         # Retry loop for double-checking with the item shop name with decreasing ratio threshold
         item_shop_name_positions = None
-        initial_ratio_threshold = 0.77
+        initial_ratio_threshold = 0.8
         
         for attempt in range(max_retries):
             current_ratio_threshold = initial_ratio_threshold - (0.1 * attempt)
@@ -1503,7 +1503,7 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
                 break
             else:
                 print(f"Double-check failed for {item_name} on attempt {attempt + 1} with ratio threshold {current_ratio_threshold:.2f}. Retrying...")
-                await asyncio.sleep(0.35)
+                await asyncio.sleep(0.12)
 
         if not item_shop_name_positions:
             print(f"Failed to double-check item {item_name} after {max_retries} attempts. Skipping purchase.")
@@ -1545,7 +1545,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
             break
         else:
             attempts += 1
-            await asyncio.sleep(0.25)
+            await asyncio.sleep(0.15)
 
     if not button_positions:
         print(f"Failed to detect general buttons for {merchant_type} after {max_attempts} attempts. Using pixel coord method..")
@@ -1578,15 +1578,15 @@ async def Merchant_Item_Buy_Process(merchant_type):
     # Send Merchant's Item Screenshot
     await Merchant_Items_Webhook_Sender(merchant_type, "(Right Side)")
     await purchase_items(merchant_type, merchant_item_slots[merchant_type], bought_items, "right", Merchant_screen_width, Merchant_screen_height)
-
+    
     # Step 2: Scroll back up to the left side (common items)
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
     autoit.mouse_wheel("up", 8)
     await asyncio.sleep(0.4)
 
     # Send Merchant's Item Screenshot
-    await Merchant_Items_Webhook_Sender(merchant_type, "(Left Side)")
     await purchase_items(merchant_type, merchant_item_slots[merchant_type], bought_items, "left", Merchant_screen_width, Merchant_screen_height)
+    await Merchant_Items_Webhook_Sender(merchant_type, "(Left Side)")
 
     await merchant_reset_macro_phase()
 
@@ -1597,7 +1597,7 @@ async def merchant_reset_macro_phase():
     await asyncio.sleep(0.4)
     autoit.send("{ENTER}")
     await asyncio.sleep(1.3)
-    autoit.mouse_wheel("up", 12)
+    autoit.mouse_wheel("up", 15)
     await asyncio.sleep(1.7)
     autoit.mouse_wheel("down", 10)
     await asyncio.sleep(1.2)
