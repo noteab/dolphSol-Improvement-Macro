@@ -1256,13 +1256,6 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
     else:
         print(f"No match found for {item_name}.")
         return None
-
-    if all_matches:
-        best_match = all_matches[0]
-        return best_match[:3]
-    else:
-        print(f"No match found for {item_name}.")
-        return None
     
 
 async def Merchant_Button_SCANNING_Process(debug=False):
