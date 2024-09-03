@@ -26,6 +26,7 @@ import json
 import re
 import math
 from ctypes import windll
+
 from icecream import ic
 
 
@@ -1027,7 +1028,6 @@ def feature_based_matching(screen_cv, template, ratio_threshold=0.60):
             
     return None, screen_cv
 
-
 async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.75):
     """Scan for a specific item in the merchant's inventory and return the position if found."""
     
@@ -1249,6 +1249,13 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
 
                 all_matches.append((item_name, center_x, center_y, ratio_threshold))
                 break
+
+    if all_matches:
+        best_match = all_matches[0]
+        return best_match[:3]
+    else:
+        print(f"No match found for {item_name}.")
+        return None
 
     if all_matches:
         best_match = all_matches[0]
@@ -1553,41 +1560,43 @@ async def Merchant_Item_Buy_Process(merchant_type):
     button_positions = None
     bought_items = set()
 
-    # Retry loop for Merchant_Button_SCANNING_Process
-    while attempts < 5:
-        button_positions = await Merchant_Button_SCANNING_Process()
-        if button_positions:
-            print(f"Detected general buttons for {merchant_type}.")
-            break
-        else:
-            attempts += 1
-            await asyncio.sleep(0.25)
+    #  # Retry loop for Merchant_Button_SCANNING_Process
+    # while attempts < 5:
+    #     button_positions = await Merchant_Button_SCANNING_Process()
+    #     if button_positions:
+    #         print(f"Detected general buttons for {merchant_type}.")
+    #         break
+    #     else:
+    #         attempts += 1
+    #         await asyncio.sleep(0.25)
 
-    if not button_positions:
-        print(f"Failed to detect general buttons for {merchant_type} after {max_attempts} attempts. Using pixel coord method..")
-        
-    await asyncio.sleep(0.2)
+    # if not button_positions:
+    #     print(f"Failed to detect general buttons for {merchant_type} after {max_attempts} attempts. Using pixel coord method..")
+    
+    await asyncio.sleep(5.6)
     autoit.send("{F2}")
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.5)
     await activate_roblox_window()
-
-    # open button (manual pixel coordinates)
+    await asyncio.sleep(0.4)
+    
+    # Get button positions (fallback to manual pixel coordinates if detection fails)
+    # jester_open_button_pos = get_merchant_buttons_position("jester_open_button")
+    # open_button_pos = get_merchant_buttons_position("open_button")
+    
     open_button_pos = convert_to_relative_coords(609, 875, Merchant_screen_width, Merchant_screen_height)
-
-    if open_button_pos:
-        autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
-        await asyncio.sleep(0.65)
+    autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
 
     # Step 1: Scroll down to the right side (where rare items should be here i think)
+    await asyncio.sleep(0.5)
     item_scroll_pos = convert_to_relative_coords(926, 720, Merchant_screen_width, Merchant_screen_height)
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
     autoit.mouse_wheel("up", 8)
     await asyncio.sleep(0.5)
-    autoit.mouse_wheel("down", 4)
+    autoit.mouse_wheel("down", 3)
     await asyncio.sleep(0.4)
 
     # Send Merchant's Item Screenshot
-    await Merchant_Items_Webhook_Sender(merchant_type, "(Right Side)")
+    await Merchant_Items_Webhook_Sender(merchant_type, "")
     await purchase_items(merchant_type, merchant_item_slots[merchant_type], bought_items, "right", Merchant_screen_width, Merchant_screen_height)
     
     # Step 2: Scroll back up to the left side (common items)
@@ -1597,19 +1606,17 @@ async def Merchant_Item_Buy_Process(merchant_type):
 
     # Send Merchant's Item Screenshot
     await purchase_items(merchant_type, merchant_item_slots[merchant_type], bought_items, "left", Merchant_screen_width, Merchant_screen_height)
-    await Merchant_Items_Webhook_Sender(merchant_type, "(Left Side)")
 
     await merchant_reset_macro_phase()
 
 async def merchant_reset_macro_phase():
-    await asyncio.sleep(0.2)
     autoit.send("{ESC}")
     autoit.send("r")
     await asyncio.sleep(0.4)
     autoit.send("{ENTER}")
     await asyncio.sleep(1.3)
     autoit.mouse_wheel("up", 15)
-    await asyncio.sleep(1.7)
+    await asyncio.sleep(1.2)
     autoit.mouse_wheel("down", 10)
     await asyncio.sleep(1.2)
     autoit.send("{F2}")
