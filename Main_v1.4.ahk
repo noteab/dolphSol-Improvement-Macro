@@ -2095,7 +2095,7 @@ useItem(itemName, useAmount := 1) {
         logMessage("Pressing E for Merchant (if they spawned and wait for my python do the job)", 1)
         Sleep, 250
         Send, {E} ; Press E to interact with the NPC
-        Sleep, 14500
+        Sleep, 21500
     }
 }
 
