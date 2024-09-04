@@ -13,3 +13,4 @@ pyautogui
 icecream
 requests
 pytest-shutil
+fuzzywuzzy
