@@ -262,5 +262,11 @@
     "mari_amount_3": 1,
     "jester_amount_1": 1,
     "jester_amount_2": 1,
-    "jester_amount_3": 1
+    "jester_amount_3": 1,
+    "MERCHANT_OCR_TEXT_REGION": [
+        759,
+        386,
+        323,
+        29
+    ]
 }
