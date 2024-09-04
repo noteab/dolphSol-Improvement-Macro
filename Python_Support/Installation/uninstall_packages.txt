@@ -32,3 +32,4 @@ pytweening==1.2.0
 pywin32==306
 six==1.16.0
 yarl==1.9.4
+fuzzywuzzy==0.18.0
