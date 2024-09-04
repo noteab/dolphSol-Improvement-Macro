@@ -25,6 +25,7 @@ import pyautogui
 import json
 import re
 import math
+from fuzzywuzzy import fuzz
 from ctypes import windll
 
 from icecream import ic
@@ -42,7 +43,8 @@ def load_config():
         config = json.load(f)
     
     default_config = {
-        "merchant_detection_method": "headshot"
+        "merchant_detection_method": "headshot",
+        "MERCHANT_OCR_TEXT_REGION": [759, 386, 323, 29]
     }
     
     for key, value in default_config.items():
@@ -1028,7 +1030,7 @@ def feature_based_matching(screen_cv, template, ratio_threshold=0.60):
             
     return None, screen_cv
 
-async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.75):
+async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.75, ocr_double_check=False):
     """Scan for a specific item in the merchant's inventory and return the position if found."""
     
     Merchant_Items_Image = {
@@ -1038,146 +1040,91 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Mixed_Pot_Green.png")
             ],
             
-            "Mixed Potion Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Mixed Potion_Shop_Item_Name.png")
-            ],
             
             "Fortune Spoid 1": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_1.png"),
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_1_Blue.png")
             ],
             
-            "Fortune Spoid 1 Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Fortune Spoid 1_Shop_Item_Name.png")
-            ],
             
             "Fortune Spoid 2 ": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_2.png"),
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_2_Blue.png")
             ],
             
-            "Fortune Spoid 2 Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Fortune Spoid 2_Shop_Item_Name.png")
-            ],
             
             "Fortune Spoid 3": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Fortune_Spoid_3.png"),
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Fortune Spoid 3_Shop_Item_Name.png")
             ],
             
-            "Fortune Spoid 3 Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Fortune Spoid 3_Shop_Item_Name.png")
-            ],
             
             "Lucky Potion": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_Pot.png"),
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_Pot_Green.png")
             ],
-            
-            "Lucky Potion Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Lucky Potion_Shop_Item_Name.png")
-            ],
+        
             
             "Lucky Potion XL": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_PotXL.png")
             ],
             
-            "Lucky Potion XL Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Lucky Potion XL_Shop_Item_Name.png")
-            ],
             
             "Speed Potion": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_Pot.png"),
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_Pot_Green.png")
             ],
             
-            "Speed Potion Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Speed Potion_Shop_Item_Name.png")
-            ],
              
             "Speed Potion L": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_PotL.png")
             ],
             
-            "Speed Potion L Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Speed Potion L_Shop_Item_Name.png")
-            ],
             
             "Speed Potion XL": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Speed_PotXL.png")
             ],
             
-            "Speed Potion XL Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Speed Potion XL_Shop_Item_Name.png")
-            ],
             
             "Gear A": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\GearA.png")
             ],
             
-            "Gear A Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Gear A_Shop_Item_Name.png")
-            ],
             
             "Gear B": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\GearB.png")   
             ],
-            
-            "Gear B Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Gear B_Shop_Item_Name.png")       
-            ],
+        
             
             "Lucky Penny": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Lucky_Penny.png")     
             ],
             
-            "Lucky Penny Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Lucky Penny_Shop_Item_Name.png")               
-            ],
             
             "Void Coin": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Void_Coin.png"),
             ],
             
-            "Void Coin Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari's\\Item_Shop_Name\\Void Coin_Shop_Item_Name.png")  
-            ] 
         },
         "jester": {
             "Oblivion Potion": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Oblivion_Pot.png"),
             ],
             
-            "Oblivion Potion Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Item_Shop_Name\\Oblivion Potion_Shop_Item_Name.png")  
-            ],
-                
             "Heavenly Potion 2": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Heavenly_Pot2.png")
             ],
-            
-            "Heavenly Potion 2 Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Item_Shop_Name\\Heavenly Potion 2_Shop_Item_Name.png")
-            ],
-            
+                       
             "Merchant Tracker": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Tracker.png")
-            ],
-            
-            "Merchant Tracker Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Item_Shop_Name\\Merchant Tracker_Shop_Item_Name.png")
             ],
             
             "Rune Of Everything": [
                 cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Rune_Everything.png")
             ],
             
-            "Rune Of Everything Item Name": [
-                cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester's\\Item_Shop_Name\\Rune Of Everything_Shop_Item_Name.png")
-            ]
         }
     }
-
 
     if merchant_type not in Merchant_Items_Image or item_name not in Merchant_Items_Image[merchant_type]:
         return None
@@ -1185,70 +1132,57 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
     # Capture the current screen
     screen_resolution = get_screen_resolution()
     base_resolution = screen_resolution
-    
+
     screen = pyautogui.screenshot()
     screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
     screen_resolution = screen_cv.shape[1], screen_cv.shape[0]
 
     all_matches = []
-
-    # Get the list of images associated with the item
+    
     item_images = Merchant_Items_Image[merchant_type][item_name]
 
     for item_image in item_images:
         if item_image is None:
             continue
-
-        # Scale the template image based on the user's screen resolution
+        
         scaling_factor = (screen_resolution[0] / base_resolution[0], screen_resolution[1] / base_resolution[1])
         scaled_item_image = cv2.resize(item_image, (0, 0), fx=scaling_factor[0], fy=scaling_factor[1])
 
-        if "_Item Name" in item_name:
-            screen_gray = cv2.cvtColor(screen_cv, cv2.COLOR_BGR2GRAY)
-            template_gray = cv2.cvtColor(scaled_item_image, cv2.COLOR_BGR2GRAY)
+        # OCR double check
+        if ocr_double_check:
+            MERCHANT_OCR_TEXT_REGION = config.get("MERCHANT_OCR_TEXT_REGION", [759, 386, 323, 29])
+            x, y, w, h = MERCHANT_OCR_TEXT_REGION
+            cropped_region = screen_cv[y:y+h, x:x+w]
 
-            # Apply Canny edge detection
-            screen_can = cv2.Canny(screen_gray, 50, 150)
-            template_edges = cv2.Canny(template_gray, 50, 150)
+            # Perform OCR on the cropped region
+            extracted_text = pytesseract.image_to_string(cropped_region, config='--psm 7').strip()
             
-            res = cv2.matchTemplate(screen_can, template_edges, cv2.TM_CCOEFF_NORMED)
-            loc = np.where(res >= threshold)
+            #ic(f"Extracted OCR Text: {extracted_text}")
+            
+            match_score = fuzz.ratio(extracted_text.lower(), item_name.lower())
 
-            detected = False
-            for pt in zip(*loc[::-1]):
-                if not detected:
-                    detected = True
-                    center_x = pt[0] + template_edges.shape[1] // 2
-                    center_y = pt[1] + template_edges.shape[0] // 2
-
-                    # Region for feature matching
-                    x, y = pt[0], pt[1]
-                    roi = screen_cv[y:y + template_gray.shape[0], x:x + template_gray.shape[1]]
-
-                    # feature-based matching
-                    best_match, roi_with_match = feature_based_matching(roi, scaled_item_image, ratio_threshold=ratio_threshold)
-
-                    if best_match:
-                        cv2.circle(screen_cv, (center_x, center_y), 10, (0, 255, 0), 3)
-                        cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_debug.png", screen_cv)
-                        all_matches.append((item_name, center_x, center_y, threshold))
-                    break
+            if match_score > 80:
+                print(f"OCR Match: '{extracted_text}' (score: {match_score}) matches expected '{item_name}'")
+                center_x, center_y = x + w // 2, y + h // 2
+                all_matches.append((item_name, center_x, center_y, ratio_threshold))
+            else:
+                print(f"OCR Mismatch: Expected '{item_name}', but got '{extracted_text}' with match score {match_score}")
+                
         else:
+            
             best_match, screen_with_match = feature_based_matching(screen_cv, scaled_item_image, ratio_threshold=ratio_threshold)
 
             if best_match:
                 x, y = best_match
                 detected_width, detected_height = scaled_item_image.shape[1], scaled_item_image.shape[0]
-                
                 center_x = x + detected_width // 2
                 center_y = y + detected_height // 2
-                
+
                 # Debug
                 cv2.circle(screen_with_match, (center_x, center_y), 10, (0, 255, 0), 3)
                 cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected_debug.png", screen_with_match)
 
                 all_matches.append((item_name, center_x, center_y, ratio_threshold))
-                break
 
     if all_matches:
         best_match = all_matches[0]
@@ -1347,7 +1281,6 @@ async def Merchant_Headshot_Process(merchant_type, debug=False):
 
     # Get the detection method and current screen resolution
     scan_method = config.get('merchant_detection_method', 'headshot').lower()
-    screen_width, screen_height = get_screen_resolution()
     
     if scan_method not in merchant_images[merchant_type]:
         print(f"Invalid scan method '{scan_method}' for merchant type '{merchant_type}'")
@@ -1359,93 +1292,41 @@ async def Merchant_Headshot_Process(merchant_type, debug=False):
         print(f"Error: {scan_method.capitalize()} image for {merchant_type} is not loaded properly.")
         return None
 
-    # Use current screen resolution as the base for scaling
-    scaling_factor_x = screen_width / 1920
-    scaling_factor_y = screen_height / 1080 
-    resized_merchant_image = cv2.resize(merchant_image, (0, 0), fx=scaling_factor_x, fy=scaling_factor_y)
-    
+    # Define a threshold for template matching
+    threshold = 0.75
+
     # Capture the current screen
+    start_time = time.time()
     screen = pyautogui.screenshot()
     screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
-    
-    # Perform template matching
-    res = cv2.matchTemplate(screen_cv, resized_merchant_image, cv2.TM_CCOEFF_NORMED)
-    threshold = 0.8
-    loc = np.where(res >= threshold)
 
-    detected_positions = []
+    # scales for faster detection
+    detected_positions = None
+    scales = [1.2, 1.1, 1.0, 0.9, 0.8] 
 
-    # Check if any positions were detected
-    if len(loc[0]) > 0:
-        detected_positions = [
-            (pt[0] + resized_merchant_image.shape[1] // 2, pt[1] + resized_merchant_image.shape[0] // 2)
-            for pt in zip(*loc[::-1])
-        ]
+    for scale in scales:
+        resized_merchant_image = cv2.resize(merchant_image, (0, 0), fx=scale, fy=scale)
+        res = cv2.matchTemplate(screen_cv, resized_merchant_image, cv2.TM_CCOEFF_NORMED)
+        loc = np.where(res >= threshold)
+
+        if len(loc[0]) > 0:
+            detected_positions = [
+                (pt[0] + resized_merchant_image.shape[1] // 2, pt[1] + resized_merchant_image.shape[0] // 2)
+                for pt in zip(*loc[::-1])
+            ]
+            break
+
+    end_time = time.time()
+
+    if detected_positions:
         if debug:
-            print(f"Debug: {merchant_type.capitalize()} detected using {scan_method} at positions: {detected_positions}")
+            print(f"Debug: {merchant_type.capitalize()} detected using {scan_method} at positions: {detected_positions} in {end_time - start_time:.2f} seconds")
         return detected_positions
     else:
         if debug:
-            print(f"Debug: No {merchant_type.capitalize()} detected using {scan_method} on screen.")
+            print(f"Debug: No {merchant_type.capitalize()} detected using {scan_method} on screen. Time taken: {end_time - start_time:.2f} seconds")
         return None
     
-async def Merchant_Shop_Title_Process(merchant_type, debug=False):
-    """Process to detect the merchant's shop title and return the position if found."""
-    
-    merchant_shop_title_images = {
-        "mari": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Mari_Shop.png"),
-        "jester": cv2.imread(f"{MAIN_IMAGES_PATH}\\Merchants\\Jester_Shop.png")
-    }
-    
-    if merchant_type not in merchant_shop_title_images:
-        return None
-
-    shop_title_image = merchant_shop_title_images[merchant_type]
-
-    if shop_title_image is None:
-        print(f"Error: Shop title image for {merchant_type} is not loaded properly.")
-        return None
-
-
-    shop_title_image_gray = cv2.cvtColor(shop_title_image, cv2.COLOR_BGR2GRAY)
-    screen = pyautogui.screenshot()
-    screen_cv = cv2.cvtColor(np.array(screen), cv2.COLOR_RGB2BGR)
-    
-    # Convert screen to grayscale
-    screen_gray = cv2.cvtColor(screen_cv, cv2.COLOR_BGR2GRAY)
-    scales = [1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3]  
-
-    for scale in scales:
-        resized_shop_title = cv2.resize(shop_title_image_gray, (0, 0), fx=scale, fy=scale)
-        
-        res = cv2.matchTemplate(screen_gray, resized_shop_title, cv2.TM_CCOEFF_NORMED)
-        threshold = 0.7
-        loc = np.where(res >= threshold)
-        
-        detected_positions = []
-
-        if len(loc[0]) > 0:
-            detected_positions = [(pt[0] + resized_shop_title.shape[1] // 2, pt[1] + resized_shop_title.shape[0] // 2) for pt in zip(*loc[::-1])]
-            if debug:
-                print(f"Debug: {merchant_type.capitalize()} shop title detected at scale {scale} at positions: {detected_positions}")
-            return detected_positions
-
-    edges_shop_title = cv2.Canny(shop_title_image_gray, 50, 150)
-    edges_screen = cv2.Canny(screen_gray, 50, 150)
-
-    res = cv2.matchTemplate(edges_screen, edges_shop_title, cv2.TM_CCOEFF_NORMED)
-    loc = np.where(res >= threshold)
-
-    if len(loc[0]) > 0:
-        detected_positions = [(pt[0] + edges_shop_title.shape[1] // 2, pt[1] + edges_shop_title.shape[0] // 2) for pt in zip(*loc[::-1])]
-        if debug:
-            print(f"Debug: {merchant_type.capitalize()} shop title detected using edge detection at positions: {detected_positions}")
-        return detected_positions
-
-    if debug:
-        print(f"Debug: No {merchant_type.capitalize()} shop title detected on screen.")
-    
-    return None
 
 def get_merchant_item_config_slots(config):
     merchant_item_slots = {
@@ -1477,7 +1358,7 @@ async def MERCHANT_scroll_and_rescan(merchant_type, item_name):
 
 async def purchase_items(merchant_type, item_slots, bought_items, side, screen_width, screen_height, max_retries=6):
     """Helper function to handle item purchases with retry mechanism and dynamic ratio threshold."""
-    
+
     for slot_name, (item_name, amount) in item_slots.items():
         if item_name == "None" or item_name in bought_items:
             continue
@@ -1487,11 +1368,11 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
         item_positions = None
         for attempt in range(max_retries):
             item_positions = await Merchant_Specific_Item_SCANNING_Process(
-                merchant_type, item_name, threshold=0.75, ratio_threshold=0.78
+                merchant_type, item_name, threshold=0.75, ratio_threshold=0.75, ocr_double_check=False
             )
-            if item_positions: 
+            if item_positions:
                 break
-            else: 
+            else:
                 await asyncio.sleep(0.25)
 
         if not item_positions:
@@ -1505,21 +1386,20 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
         autoit.mouse_click("left", center_x, center_y)
         await asyncio.sleep(0.5)
 
-        # Retry loop for double-checking with the item shop name with decreasing ratio threshold
+        # Retry loop for double-checking the item shop name using OCR
         item_shop_name_positions = None
         initial_ratio_threshold = 0.8
         
         for attempt in range(max_retries):
             current_ratio_threshold = initial_ratio_threshold - (0.05 * attempt)
             item_shop_name_positions = await Merchant_Specific_Item_SCANNING_Process(
-                merchant_type, f"{item_name} Item Name", threshold=0.75, ratio_threshold=current_ratio_threshold
+                merchant_type, item_name, threshold=0.75, ratio_threshold=current_ratio_threshold, ocr_double_check=True
             )
             if item_shop_name_positions:
-                print(f"Double-check successful for {item_name} on attempt {attempt + 1} with ratio threshold {current_ratio_threshold:.2f}.")
+                print(f"Double-check successful for {item_name} on attempt {attempt + 1} with OCR.")
                 break
             else:
-                print(f"Double-check failed for {item_name} on attempt {attempt + 1} with ratio threshold {current_ratio_threshold:.2f}. Retrying...")
-                await asyncio.sleep(0.12)
+                await asyncio.sleep(0.25)
 
         if not item_shop_name_positions:
             print(f"Failed to double-check item {item_name} after {max_retries} attempts. Skipping purchase.")
@@ -1554,7 +1434,8 @@ async def Merchant_Item_Buy_Process(merchant_type):
     bought_items = set()
 
     #  # Retry loop for Merchant_Button_SCANNING_Process
-    # while attempts < 5:
+    # while attempts < 5:r
+    
     #     button_positions = await Merchant_Button_SCANNING_Process()
     #     if button_positions:
     #         print(f"Detected general buttons for {merchant_type}.")
@@ -1566,7 +1447,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
     # if not button_positions:
     #     print(f"Failed to detect general buttons for {merchant_type} after {max_attempts} attempts. Using pixel coord method..")
     
-    await asyncio.sleep(5.6)
+    await asyncio.sleep(4.2)
     autoit.send("{F2}")
     await asyncio.sleep(0.5)
     await activate_roblox_window()
@@ -1587,6 +1468,8 @@ async def Merchant_Item_Buy_Process(merchant_type):
     await asyncio.sleep(0.5)
     autoit.mouse_wheel("down", 3)
     await asyncio.sleep(0.4)
+    autoit.mouse_move(item_scroll_pos[0] + 70, item_scroll_pos[1] + 70)
+    await asyncio.sleep(0.3)
 
     # Send Merchant's Item Screenshot
     await Merchant_Items_Webhook_Sender(merchant_type, "")
@@ -1596,6 +1479,8 @@ async def Merchant_Item_Buy_Process(merchant_type):
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
     autoit.mouse_wheel("up", 8)
     await asyncio.sleep(0.4)
+    autoit.mouse_move(item_scroll_pos[0] + 70, item_scroll_pos[1] + 70)
+    await asyncio.sleep(0.3)
 
     # Send Merchant's Item Screenshot
     await purchase_items(merchant_type, merchant_item_slots[merchant_type], bought_items, "left", Merchant_screen_width, Merchant_screen_height)
@@ -1683,7 +1568,7 @@ async def Merchant_Items_Webhook_Sender(Merchant_Name, extra_info):
             else:
                 print("Channel not found or invalid channel ID.")
 
-@tasks.loop(seconds=4)
+@tasks.loop(seconds=2)
 async def AUTO_MERCHANT_DETECTION_LOOP():
     """Automatically detect merchants and handle item buying process."""
     global Merchant_ON_PROCESS_LOOP
@@ -1723,8 +1608,10 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
             finally: Merchant_ON_PROCESS_LOOP = False
 
         if not any(merchants.values()):
-            await asyncio.sleep(2)
-            
+            await asyncio.sleep(0.5)
+    
+    await asyncio.sleep(0) 
+      
 """ MERCHANT FEATURE """
 
 
