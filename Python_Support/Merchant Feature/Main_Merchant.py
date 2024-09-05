@@ -48,6 +48,7 @@ def save_config(config):
         json.dump(config, f, indent=4)
 
 config = load_config()
+pytesseract.pytesseract.tesseract_cmd = config['TESSERACT_CMD']
 
 ## Coordinate ##
 def get_screen_resolution():
@@ -101,7 +102,7 @@ Merchant_ON_PROCESS_LOOP = False
 detected_positions = set()
 MERCHANT_Item_Position = []
 MERCHANT_SHOP_BUTTON_Position = []
-merchant_detection_cooldown = 0
+merchant_cooldown_end_time = 0
 
 def get_merchant_buttons_position(button_name):
     for name, x, y in MERCHANT_SHOP_BUTTON_Position:
@@ -502,9 +503,12 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
         print(f"Attempting to purchase item {item_name} from the {side} side with amount {amount}.")
 
         item_positions = None
+        initial_ratio_threshold_ocr = 0.85
+        
         for attempt in range(max_retries):
+            current_ratio_threshold = initial_ratio_threshold_ocr - (0.05 * attempt)
             item_positions = await Merchant_Specific_Item_SCANNING_Process(
-                merchant_type, item_name, threshold=0.75, ratio_threshold=0.75, ocr_double_check=False
+                merchant_type, item_name, threshold=0.75, ratio_threshold=current_ratio_threshold, ocr_double_check=False
             )
             if item_positions:
                 break
@@ -524,10 +528,10 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
 
         # Retry loop for double-checking the item shop name using OCR
         item_shop_name_positions = None
-        initial_ratio_threshold = 0.8
+        
         
         for attempt in range(max_retries):
-            current_ratio_threshold = initial_ratio_threshold - (0.05 * attempt)
+            current_ratio_threshold = initial_ratio_threshold_ocr - (0.05 * attempt)
             item_shop_name_positions = await Merchant_Specific_Item_SCANNING_Process(
                 merchant_type, item_name, threshold=0.75, ratio_threshold=current_ratio_threshold, ocr_double_check=True
             )
@@ -586,7 +590,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
     else:
         open_button_pos = next((x, y) for name, x, y in button_positions if "open_button" in name)
 
-    await asyncio.sleep(0.7)
+    await asyncio.sleep(1.2)
     autoit.send("{F2}")
     await asyncio.sleep(0.5)
     await activate_roblox_window()
@@ -622,18 +626,12 @@ async def Merchant_Item_Buy_Process(merchant_type):
     await merchant_reset_macro_phase()
 
 async def merchant_reset_macro_phase():
-    await asyncio.sleep(0.2)
-    autoit.send("{ESC}")
-    autoit.send("r")
-    await asyncio.sleep(0.4)
-    autoit.send("{ENTER}")
     await asyncio.sleep(1.3)
     autoit.mouse_wheel("up", 15)
     await asyncio.sleep(1.2)
-    autoit.mouse_wheel("down", 12)
-    await asyncio.sleep(1.2)
-
-    autoit.send("{F2}")
+    autoit.mouse_wheel("down", 10)
+    await asyncio.sleep(0.5)
+    autoit.send("^{F2}")
     
 async def send_webhook_notification(webhook_url, content, embed, merchant_face_image_binary=None, inventory_image_binary=None):
     form_data = aiohttp.FormData()
@@ -700,7 +698,7 @@ async def Merchant_Webhook_Sender(Merchant_Name):
                 merchant_image_binary.seek(0)
                 await send_webhook_notification(webhook_url, message_content, embed, merchant_face_image_binary=merchant_image_binary)
             except Exception as e:
-                print(f"Failed to send webhook to {webhook_url}: {e}")
+                pass
             finally:
                 merchant_image_binary.close()
 
@@ -733,15 +731,19 @@ async def Merchant_Items_Webhook_Sender(Merchant_Name, extra_info):
         print("Roblox window not found!")
         
 
+
+
 @tasks.loop(seconds=2)
 async def AUTO_MERCHANT_DETECTION_LOOP():
     """Automatically detect merchants and handle the item buying process."""
     global Merchant_ON_PROCESS_LOOP
-    global merchant_detection_cooldown
+    global merchant_cooldown_end_time
 
     try:
-        if merchant_detection_cooldown > 0:
-            merchant_detection_cooldown -= 2
+        current_time = time.time()
+        
+        # Check if cooldown period has expired
+        if current_time < merchant_cooldown_end_time:
             return
 
         # Check if another process is already running
@@ -783,17 +785,16 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
                 finally:
                     Merchant_ON_PROCESS_LOOP = False
 
-                    # Set cooldown after successful purchase
                     if any(merchants.values()):
-                        merchant_detection_cooldown = 240  # 4-minute cooldown to prevent mass pinging
+                        merchant_cooldown_end_time = current_time + 240 
 
             # wait a little bit for the next loop
             if not any(merchants.values()):
                 await asyncio.sleep(0.5)
 
     except Exception as e:
-        print(f"Error in detection loop: {e}")
-    
+        pass
+
     finally:
         await asyncio.sleep(0)
         
