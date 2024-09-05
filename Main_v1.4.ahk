@@ -32,7 +32,7 @@ CoordMode, Mouse, Screen
 
 global currentVersion := "v1.5.0"
 global currentPatch := "08/08"
-global version := "v1.4.0" . " (Experimental Python - Noteab 01/9) " ; fake v1.4.0 version so it wont popup the update anymore
+global version := "v1.4.0" . " (Experimental Python - Noteab 06/9) " ; fake v1.4.0 version so it wont popup the update anymore
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -2093,9 +2093,9 @@ useItem(itemName, useAmount := 1) {
 
     if (itemName = "Merchant Teleport") {
         logMessage("Pressing E for Merchant (if they spawned and wait for my python do the job)", 1)
-        Sleep, 250
+        Sleep, 500
         Send, {E} ; Press E to interact with the NPC
-        Sleep, 21500
+        Sleep, 17500
     }
 }
 
@@ -4389,13 +4389,12 @@ return
 #If running || reconnecting
     F2::handlePause()
 
-    ^F2::
-        handlePause()
-        Sleep, 500
+    ^F2:: ; merchant realign after buy stuffs from them
+        Sleep, 1500
         alignCamera()
         Sleep, 500
         reset()
-        Sleep, 1500
+        Sleep, 2500
         handlePause()
         return
         
