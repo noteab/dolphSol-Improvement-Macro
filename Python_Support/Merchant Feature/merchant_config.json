@@ -98,5 +98,9 @@
     "mari_ping_userid": "1126179378502582292",
     "jester_ping_userid": "1126179378502582292",
     "merchant_ps_link_enabled": false,
-    "merchant_private_server_link": "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode=32298586609622054575296790862586"
+    "merchant_private_server_link": "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode=32298586609622054575296790862586",
+    "MERCHANT_OPEN_BUTTON_POSITION": [
+        616, 
+        883
+    ]
 }
