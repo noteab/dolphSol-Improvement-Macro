@@ -11,6 +11,8 @@ import numpy as np
 import pyautogui
 from tkinter import Toplevel
 from PIL import ImageGrab
+from pynput import mouse
+import threading
 
 # Set up the paths
 BASE_DIR = Path(__file__).resolve().parent
@@ -71,6 +73,46 @@ def save_auto_buy_setting():
     config['enable_auto_merchant'] = auto_buy_var.get()
     save_config()
 
+# MERCHANT OPEN BUTTON TRACKER:   
+def select_merchant_open_button_position():
+    instruction_label.config(text="Click anywhere on the screen to assign the Merchant open button position...")
+
+    # Create a dim screen overlay (fullscreen)
+    dim_window = tk.Toplevel(root)
+    dim_window.attributes("-fullscreen", True)
+    dim_window.attributes("-alpha", 0.3)  # Set transparency (30%)
+    dim_window.config(bg="black")
+
+    # Label to tell the user to click to select position
+    dim_instruction_label = tk.Label(dim_window, text="Click anywhere to assign the Merchant open button position.", bg="black", fg="white", font=("Arial", 16))
+    dim_instruction_label.pack(pady=20)
+
+    # Reset the global variable to store the merchant open button position
+    global merchant_open_button_position
+    merchant_open_button_position = None
+
+    # Callback function triggered on mouse click
+    def on_click(x, y, button, pressed):
+        if pressed:
+            global merchant_open_button_position
+            merchant_open_button_position = (x, y)
+            print(f"Selected merchant open button position: {merchant_open_button_position}")
+            config['MERCHANT_OPEN_BUTTON_POSITION'] = merchant_open_button_position
+            save_config()
+            listener.stop()  # Stop the mouse listener after click
+            instruction_label.config(text="Merchant open button position saved successfully!")
+            dim_window.destroy()  # Close the dim window after selection
+
+    # Start a new thread for the mouse listener
+    def start_mouse_listener():
+        global listener
+        listener = mouse.Listener(on_click=on_click)
+        listener.start()
+        listener.join()
+
+    # Start the thread for the mouse listener
+    listener_thread = threading.Thread(target=start_mouse_listener)
+    listener_thread.start()
 
 # Initialize main window
 root = tk.Tk()
@@ -96,7 +138,6 @@ merchant_x_var = tk.IntVar(value=config.get('MERCHANT_OCR_TEXT_REGION', [0, 0, 0
 merchant_y_var = tk.IntVar(value=config.get('MERCHANT_OCR_TEXT_REGION', [0, 0, 0, 0])[1])
 merchant_width_var = tk.IntVar(value=config.get('MERCHANT_OCR_TEXT_REGION', [0, 0, 0, 0])[2])
 merchant_height_var = tk.IntVar(value=config.get('MERCHANT_OCR_TEXT_REGION', [0, 0, 0, 0])[3])
-
 merchant_detection_method_var = tk.StringVar(value=config.get('merchant_detection_method', 'name'))
 
 # merchant detection method
@@ -150,6 +191,12 @@ mari_ping_var = tk.StringVar(value=config.get('mari_ping_userid', ''))
 jester_ping_var = tk.StringVar(value=config.get('jester_ping_userid', ''))
 merchant_server_link_var = tk.StringVar(value=config.get('merchant_private_server_link', ''))
 merchant_ps_enabled_var = tk.BooleanVar(value=config.get('merchant_ps_link_enabled', False))
+
+
+## MERCHANT OPEN BUTTON VARIABLE ##
+merchant_open_x_var = tk.IntVar(value=config.get('MERCHANT_OPEN_BUTTON_POSITION', [0, 0])[0])
+merchant_open_y_var = tk.IntVar(value=config.get('MERCHANT_OPEN_BUTTON_POSITION', [0, 0])[1])
+## MERCHANT OPEN BUTTON VARIABLE ##
 
 # Function to update the Discord UserID in the config
 def merchant_ping_userids():
@@ -255,6 +302,14 @@ def open_merchant_ocr_settings():
     ttk.Radiobutton(detection_method_frame, text="Name", variable=merchant_detection_method_var, value='name', command=update_merchant_detection_method).grid(row=0, column=0, sticky='w', pady=5)
     ttk.Radiobutton(detection_method_frame, text="Headshot", variable=merchant_detection_method_var, value='headshot', command=update_merchant_detection_method).grid(row=1, column=0, sticky='w', pady=5)
 
+    # Select merchant open button pos by assign button from mouse click
+    global instruction_label, assign_button
+    instruction_label = ttk.Label(scrollable_frame, text="Press the button to start assigning the merchant open button position.")
+    instruction_label.pack(anchor='w', pady=5, padx=10)
+
+    assign_button = ttk.Button(scrollable_frame, text="Assign Merchant Open Button Position", command=select_merchant_open_button_position)
+    assign_button.pack(anchor='w', pady=5, padx=10)
+    
     # Discord Webhook Management Section
     global webhook_link_var
     ttk.Label(scrollable_frame, text="Discord Webhook Management").pack(anchor='w', pady=10)

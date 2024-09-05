@@ -41,22 +41,6 @@ def load_config():
     with open(CONFIG_FILE_PATH, 'r') as f:
         config = json.load(f)
     
-    default_config = {
-        "enable_auto_merchant": False,
-        "merchant_detection_method": "headshot",
-        "MERCHANT_OCR_TEXT_REGION": [759, 386, 323, 29],
-        "webhook_links": [],
-        "mari_ping_userid": "",
-        "jester_ping_userid": "",
-        "merchant_ps_link_enabled": False,
-        "merchant_private_server_link": ""
-    }
-    
-    for key, value in default_config.items():
-        if key not in config:
-            config[key] = value
-    
-    save_config(config)
     return config
 
 def save_config(config):
@@ -597,17 +581,17 @@ async def Merchant_Item_Buy_Process(merchant_type):
 
     if not button_positions:
         print(f"Failed to detect general buttons for {merchant_type} after {max_attempts} attempts. Using pixel coord method...")
-        open_button_pos = convert_to_relative_coords(609, 875, Merchant_screen_width, Merchant_screen_height)
+        open_button_config = config.get("MERCHANT_OPEN_BUTTON_POSITION", [616, 883])
+        open_button_pos = convert_to_relative_coords(open_button_config[0], open_button_config[1], Merchant_screen_width, Merchant_screen_height)
     else:
         open_button_pos = next((x, y) for name, x, y in button_positions if "open_button" in name)
 
-    await asyncio.sleep(1.2)
+    await asyncio.sleep(0.7)
     autoit.send("{F2}")
     await asyncio.sleep(0.5)
     await activate_roblox_window()
     await asyncio.sleep(0.4)
-    
-    # Click on the open button
+
     autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
 
     # Step 1: Scroll down to the right side (where rare items should be)
@@ -638,6 +622,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
     await merchant_reset_macro_phase()
 
 async def merchant_reset_macro_phase():
+    await asyncio.sleep(0.2)
     autoit.send("{ESC}")
     autoit.send("r")
     await asyncio.sleep(0.4)
@@ -645,8 +630,9 @@ async def merchant_reset_macro_phase():
     await asyncio.sleep(1.3)
     autoit.mouse_wheel("up", 15)
     await asyncio.sleep(1.2)
-    autoit.mouse_wheel("down", 10)
+    autoit.mouse_wheel("down", 12)
     await asyncio.sleep(1.2)
+
     autoit.send("{F2}")
     
 async def send_webhook_notification(webhook_url, content, embed, merchant_face_image_binary=None, inventory_image_binary=None):
@@ -754,7 +740,6 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
     global merchant_detection_cooldown
 
     try:
-        # Cooldown
         if merchant_detection_cooldown > 0:
             merchant_detection_cooldown -= 2
             return
@@ -767,7 +752,7 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
         if not auto_merchant_detection:
             return
 
-        async with loop_lock:  # this loop not interfere with other one ig
+        async with loop_lock:
             merchants = {
                 'mari': False,
                 'jester': False
@@ -797,9 +782,12 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
                     print(f"An error occurred during merchant processing: {e}")
                 finally:
                     Merchant_ON_PROCESS_LOOP = False
-                    merchant_detection_cooldown = 240  # 4-minute cooldown to prevent mass pinging
 
-            # No merchants detected, wait a lil bit for next loop?
+                    # Set cooldown after successful purchase
+                    if any(merchants.values()):
+                        merchant_detection_cooldown = 240  # 4-minute cooldown to prevent mass pinging
+
+            # wait a little bit for the next loop
             if not any(merchants.values()):
                 await asyncio.sleep(0.5)
 
@@ -808,7 +796,7 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
     
     finally:
         await asyncio.sleep(0)
-
+        
 async def main():
     try:
         # Test calling the Merchant_Webhook_Sender
@@ -828,7 +816,7 @@ if __name__ == "__main__":
         print("Merchant feature is running in background...")
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Program interrupted by user.")
+        print("Merchant feature interrupted by user (Ctrl + C pressed)")
     except Exception as e:
         print(f"Fatal error: {e}")
     finally:
