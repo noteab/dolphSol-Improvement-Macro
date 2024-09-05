@@ -74,13 +74,13 @@
             "Item_To_Buy": "Random Potion Sack"
         }
     ],
-    "enable_auto_merchant": true,
+    "enable_auto_merchant": false,
     "merchant_detection_method": "name",
     "mari_slot_1": "None",
     "mari_slot_2": "None",
     "mari_slot_3": "None",
-    "jester_slot_1": "Oblivion Potion",
-    "jester_slot_2": "Merchant Tracker",
+    "jester_slot_1": "None",
+    "jester_slot_2": "None",
     "jester_slot_3": "None",
     "mari_amount_1": 1,
     "mari_amount_2": 1,
