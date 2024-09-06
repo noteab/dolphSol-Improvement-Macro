@@ -5,11 +5,10 @@ from discord import app_commands
 
 #Others Import
 import os
-from dotenv import load_dotenv
-load_dotenv()
 
 ## Necessary Import
 import autoit
+import subprocess
 import pygetwindow as gw
 import time
 import io
@@ -523,7 +522,7 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
         print(f"Detected {detected_item_name} at ({center_x}, {center_y}).")
 
         await asyncio.sleep(0.2)
-        autoit.mouse_click("left", center_x, center_y)
+        autoit.mouse_click(x=center_x, y=center_y)
         await asyncio.sleep(0.5)
 
         # Retry loop for double-checking the item shop name using OCR
@@ -550,12 +549,12 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
         purchase_button_pos = convert_to_relative_coords(702, 648, screen_width, screen_height)
 
         if purchase_amount_pos:
-            autoit.mouse_click("left", purchase_amount_pos[0], purchase_amount_pos[1])
+            autoit.mouse_click(x=purchase_amount_pos[0], y=purchase_amount_pos[1])
             autoit.send(str(amount))
             await asyncio.sleep(0.25)
 
         if purchase_button_pos:
-            autoit.mouse_click("left", purchase_button_pos[0], purchase_button_pos[1])
+            autoit.mouse_click(x=purchase_button_pos[0], y=purchase_button_pos[1])
             await asyncio.sleep(4)
 
         # Log the item as bought
@@ -563,44 +562,21 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
             
 async def Merchant_Item_Buy_Process(merchant_type):
     """Process to purchase items from the merchant, while checking if the merchant is still present."""
-    
     Merchant_screen_width, Merchant_screen_height = get_screen_resolution()
     config = load_config()
     merchant_item_slots = get_merchant_item_config_slots(config)
-
-    max_attempts = 6
-    attempts = 0
-    button_positions = None
     bought_items = set()
 
-    # Retry loop for Merchant_Button_SCANNING_Process
-    while attempts < max_attempts:
-        button_positions = await Merchant_Button_SCANNING_Process()
-        if button_positions:
-            print(f"Detected general buttons for {merchant_type}.")
-            break
-        else:
-            attempts += 1
-            await asyncio.sleep(0.2)
-
-    if not button_positions:
-        print(f"Failed to detect general buttons for {merchant_type} after {max_attempts} attempts. Using pixel coord method...")
-        open_button_config = config.get("MERCHANT_OPEN_BUTTON_POSITION", [616, 883])
-        open_button_pos = convert_to_relative_coords(open_button_config[0], open_button_config[1], Merchant_screen_width, Merchant_screen_height)
-    else:
-        open_button_pos = next((x, y) for name, x, y in button_positions if "open_button" in name)
-
-    await asyncio.sleep(1.2)
-    autoit.send("{F2}")
-    await asyncio.sleep(0.5)
-    await activate_roblox_window()
-    await asyncio.sleep(0.4)
-
+    open_button_config = config.get("MERCHANT_OPEN_BUTTON_POSITION", [616, 883])
+    open_button_pos = convert_to_relative_coords(open_button_config[0], open_button_config[1], Merchant_screen_width, Merchant_screen_height)
+    
+ 
     autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
-
+    
     # Step 1: Scroll down to the right side (where rare items should be)
     await asyncio.sleep(0.5)
     item_scroll_pos = convert_to_relative_coords(926, 720, Merchant_screen_width, Merchant_screen_height)
+    
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
     autoit.mouse_wheel("up", 8)
     await asyncio.sleep(0.5)
@@ -618,7 +594,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
     autoit.mouse_wheel("up", 8)
     await asyncio.sleep(0.4)
     autoit.mouse_move(item_scroll_pos[0] + 70, item_scroll_pos[1] + 70)
-    await asyncio.sleep(0.3)
+    await asyncio.sleep(0.5)
 
     # Send Merchant's Item Screenshot
     await purchase_items(merchant_type, merchant_item_slots[merchant_type], bought_items, "left", Merchant_screen_width, Merchant_screen_height)
@@ -630,9 +606,10 @@ async def merchant_reset_macro_phase():
     autoit.mouse_wheel("up", 15)
     await asyncio.sleep(1.2)
     autoit.mouse_wheel("down", 10)
-    await asyncio.sleep(0.5)
-    autoit.send("^{F2}")
-    
+    await asyncio.sleep(1.2)
+    autoit.send("{F8}")
+ 
+       
 async def send_webhook_notification(webhook_url, content, embed, merchant_face_image_binary=None, inventory_image_binary=None):
     form_data = aiohttp.FormData()
 
@@ -766,9 +743,16 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
                 positions = await Merchant_Headshot_Process(merchant)
                 if positions:
                     print(f"{merchant.capitalize()} detected!")
+                    
                     merchants[merchant] = True
                     Merchant_ON_PROCESS_LOOP = True
 
+                    await asyncio.sleep(0.85)
+                    autoit.send('{F2}')
+                    await asyncio.sleep(1.2)
+                    await activate_roblox_window()
+                    await asyncio.sleep(0.5)
+                    
                     # Create the tasks for webhook notification and item buying process
                     webhook_task = asyncio.create_task(Merchant_Webhook_Sender(merchant))
                     buy_process_task = asyncio.create_task(Merchant_Item_Buy_Process(merchant))
