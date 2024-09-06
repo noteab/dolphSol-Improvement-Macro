@@ -33,3 +33,4 @@ pywin32==306
 six==1.16.0
 yarl==1.9.4
 fuzzywuzzy==0.18.0
+pynput==1.7.7
