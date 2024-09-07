@@ -157,7 +157,7 @@ def prompt_for_update_action():
     """Prompt user to choose update action."""
     root = Tk()
     root.withdraw()  # Hide the main window
-    action = messagebox.askquestion("Update Options", "Do you want to:\n1. Download the changes into a desired output folder?\n2. Replace the changes normally?")
+    action = messagebox.askquestion("Update Options", "Do you want to:\n1.(Press YES FOR THIS) Download the changes into a desired output folder?\n2. (PRESS NO FOR THIS)Replace the changes normally?")
     return action
 
 def check_for_updates():
