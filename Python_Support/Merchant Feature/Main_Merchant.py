@@ -8,7 +8,6 @@ import os
 
 ## Necessary Import
 import autoit
-import subprocess
 import pygetwindow as gw
 import time
 import io
@@ -27,6 +26,7 @@ import math
 from fuzzywuzzy import fuzz
 from ctypes import windll
 import aiohttp
+import subprocess
 from icecream import ic
 
 ROBLOX_WINDOW_TITLE = "Roblox"
@@ -84,6 +84,30 @@ async def activate_roblox_window():
 
 ## Active roblox window ##
 
+def find_ahk_process():
+    for process in psutil.process_iter(['pid', 'name']):
+        if "AutoHotkey.exe" in process.info['name']:
+            return process.info['pid']
+    return None
+
+def suspend_process(pid):
+    """Suspend the process with the given PID using psutil."""
+    try:
+        p = psutil.Process(pid)
+        p.suspend()
+        print(f"Process {pid} suspended.")
+    except Exception as e:
+        print(f"Failed to suspend process {pid}: {e}")
+
+def resume_process(pid):
+    """Resume the process with the given PID using psutil."""
+    try:
+        p = psutil.Process(pid)
+        p.resume()
+        print(f"Process {pid} resumed.")
+    except Exception as e:
+        print(f"Failed to resume process {pid}: {e}")
+        
 ## Screenshot ##
 def take_screenshot():
     try:
@@ -492,7 +516,7 @@ async def MERCHANT_scroll_and_rescan(merchant_type, item_name):
     return item_positions
 
 
-async def purchase_items(merchant_type, item_slots, bought_items, side, screen_width, screen_height, max_retries=6):
+async def purchase_items(merchant_type, item_slots, bought_items, side, screen_width, screen_height, max_retries=4):
     """Helper function to handle item purchases with retry mechanism and dynamic ratio threshold."""
 
     for slot_name, (item_name, amount) in item_slots.items():
@@ -502,7 +526,7 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
         print(f"Attempting to purchase item {item_name} from the {side} side with amount {amount}.")
 
         item_positions = None
-        initial_ratio_threshold_ocr = 0.85
+        initial_ratio_threshold_ocr = 0.75
         
         for attempt in range(max_retries):
             current_ratio_threshold = initial_ratio_threshold_ocr - (0.05 * attempt)
@@ -512,7 +536,7 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
             if item_positions:
                 break
             else:
-                await asyncio.sleep(0.25)
+                await asyncio.sleep(0.15)
 
         if not item_positions:
             print(f"Failed to detect item {item_name} after {max_retries} attempts. Skipping item.")
@@ -538,7 +562,7 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
                 print(f"Double-check successful for {item_name} on attempt {attempt + 1} with OCR.")
                 break
             else:
-                await asyncio.sleep(0.25)
+                await asyncio.sleep(0.15)
 
         if not item_shop_name_positions:
             print(f"Failed to double-check item {item_name} after {max_retries} attempts. Skipping purchase.")
@@ -574,7 +598,7 @@ async def Merchant_Item_Buy_Process(merchant_type):
     autoit.mouse_click("left", open_button_pos[0], open_button_pos[1])
     
     # Step 1: Scroll down to the right side (where rare items should be)
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.7)
     item_scroll_pos = convert_to_relative_coords(926, 720, Merchant_screen_width, Merchant_screen_height)
     
     autoit.mouse_move(item_scroll_pos[0], item_scroll_pos[1])
@@ -607,7 +631,6 @@ async def merchant_reset_macro_phase():
     await asyncio.sleep(1.2)
     autoit.mouse_wheel("down", 10)
     await asyncio.sleep(1.2)
-    autoit.send("{F8}")
  
        
 async def send_webhook_notification(webhook_url, content, embed, merchant_face_image_binary=None, inventory_image_binary=None):
@@ -708,8 +731,6 @@ async def Merchant_Items_Webhook_Sender(Merchant_Name, extra_info):
         print("Roblox window not found!")
         
 
-
-
 @tasks.loop(seconds=2)
 async def AUTO_MERCHANT_DETECTION_LOOP():
     """Automatically detect merchants and handle the item buying process."""
@@ -729,6 +750,7 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
 
         auto_merchant_detection = config.get('enable_auto_merchant', False)
         if not auto_merchant_detection:
+            print("Auto merchant detection is disabled")
             return
 
         async with loop_lock:
@@ -747,11 +769,9 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
                     merchants[merchant] = True
                     Merchant_ON_PROCESS_LOOP = True
 
-                    await asyncio.sleep(0.85)
-                    autoit.send('{F2}')
-                    await asyncio.sleep(1.2)
+                    await asyncio.sleep(4.5)
                     await activate_roblox_window()
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(2.5)
                     
                     # Create the tasks for webhook notification and item buying process
                     webhook_task = asyncio.create_task(Merchant_Webhook_Sender(merchant))
@@ -770,23 +790,22 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
                     Merchant_ON_PROCESS_LOOP = False
 
                     if any(merchants.values()):
-                        merchant_cooldown_end_time = current_time + 240 
+                        merchant_cooldown_end_time = current_time + 240
 
             # wait a little bit for the next loop
             if not any(merchants.values()):
                 await asyncio.sleep(0.5)
 
     except Exception as e:
-        pass
-
-    finally:
-        await asyncio.sleep(0)
+        print(f"Error in auto merchant loop: {e}")
         
 async def main():
     try:
         # Test calling the Merchant_Webhook_Sender
-        #await Merchant_Webhook_Sender("mari")
-        #await Merchant_Items_Webhook_Sender("mari", "im a sigma :fish: on the wall 😳")
+        # await asyncio.sleep(2)
+        # await Merchant_Webhook_Sender("jester")
+        # await Merchant_Items_Webhook_Sender("jester", "omg jester with oblivion 😳 ??!")
+        
         AUTO_MERCHANT_DETECTION_LOOP.start()
         while True:
             await asyncio.sleep(1)
