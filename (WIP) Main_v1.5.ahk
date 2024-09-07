@@ -2126,10 +2126,34 @@ useItem(itemName, useAmount := 1) {
 
     ; Special case for "Merchant Teleport"
     if (itemName = "Merchant Teleport") {
-        logMessage("Pressing E for Merchant (if they spawned and wait for my python do the job)", 1)
-        Sleep, 250
+        logMessage("Pressing E for Merchant (if they spawned and wait for my python to do the job)", 1)
+        Sleep, 500
         Send, {E 3} ; Press E to interact with the NPC
-        Sleep, 19500
+        Sleep, 2500
+        
+        ; Check for merchant name
+        ; containsText(x,y,w,h "mari") and 4 value: x,y,w,h you have to get it yourself in order to work
+        ; waitTime - Please adjust it for mari (32500 is mari's 32s wait time before reset and realign your character, same for jester, 
+        ; -> if it reset too early, try to increase wait time for mari or jester :)
+        Loop, 5 {
+            if (containsText(755, 581, 210, 39, "mari") || containsText(755, 581, 210, 39, "jester")) {
+                merchantName := containsText(755, 581, 210, 39, "mari") ? "Mari" : "Jester"
+                logMessage("[Merchant]: " merchantName " name found!", 1)
+                updateStatus("Merchant found! Pausing the macro...")
+                
+                ; Calculate the wait time for Mari and Jester
+                waitTime := (merchantName = "Mari") ? 32500 : 56000
+                logMessage("[Merchant]: Merchant timer set, waiting for unpause", 1)
+
+                Sleep, waitTime
+                alignCamera()
+                Sleep, 2000
+                reset()
+                Sleep, 500
+                break
+            }
+            Sleep, 350
+        }
     }
 }
 

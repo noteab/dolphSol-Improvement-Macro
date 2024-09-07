@@ -32,7 +32,7 @@ CoordMode, Mouse, Screen
 
 global currentVersion := "v1.5.0"
 global currentPatch := "08/08"
-global version := "v1.4.0" . " (Improvement by Noteab 10/8) " ; fake v1.4.0 version so it wont popup the update anymore
+global version := "v1.4.0" . " (Python Experimental - Noteab 07/9) " ; fake v1.4.0 version so it wont popup the update anymore
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -2060,49 +2060,68 @@ useItem(itemName, useAmount := 1) {
     ClickMouse(itemTab[1], itemTab[2])
 
     ; Search for item
-    ;convertScreenCoordinates(850, 330, clickPosX, clickPosY)
     searchBar := getPositionFromAspectRatioUV(0.56, -0.39, storageAspectRatio)
     ClickMouse(searchBar[1], searchBar[2])
     Send, % itemName
     Sleep, 200
 
     ; Select item
-    ;convertScreenCoordinates(860, 400, clickPosX, clickPosY)
     selectItem := getPositionFromAspectRatioUV(-0.18, -0.25, storageAspectRatio)
     ClickMouse(selectItem[1], selectItem[2])
 
-    ; Update quantity - Must be done each time to reset amount from previous item
-    ;convertScreenCoordinates(590, 590, clickPosX, clickPosY)
-    updateQuantity:= getPositionFromAspectRatioUV(-0.70, 0.12, storageAspectRatio)
+    ; Update quantity
+    updateQuantity := getPositionFromAspectRatioUV(-0.70, 0.12, storageAspectRatio)
     ClickMouse(updateQuantity[1], updateQuantity[2])
     Send, % useAmount
     Sleep, 200
 
     ; Click Use
-    ;convertScreenCoordinates(700, 590, clickPosX, clickPosY)
-    clickUse:= getPositionFromAspectRatioUV(-0.46, 0.12, storageAspectRatio)
+    clickUse := getPositionFromAspectRatioUV(-0.46, 0.12, storageAspectRatio)
     ClickMouse(clickUse[1], clickUse[2])
 
     ; Clear search result
-    ;convertScreenCoordinates(850, 330, clickPosX, clickPosY)
     ClickMouse(searchBar[1], searchBar[2])
 
     ; Close inventory
     clickMenuButton(3)
     Sleep, 200
 
+    ; Special case for "Merchant Teleport"
     if (itemName = "Merchant Teleport") {
-        logMessage("Pressing E for Merchant (if they spawned and wait for my python do the job)", 1)
+        logMessage("Pressing E for Merchant (if they spawned and wait for my python to do the job)", 1)
         Sleep, 500
         Send, {E 3} ; Press E to interact with the NPC
-        Sleep, 19500
-    }
+        Sleep, 2500
+        
+        ; Check for merchant name
+        ; containsText(x,y,w,h "mari") and 4 value: x,y,w,h you have to get it yourself in order to work
+        ; waitTime - Please adjust it for mari (32500 is mari's 32s wait time before reset and realign your character, same for jester, 
+        ; -> if it reset too early, try to increase wait time for mari or jester :)
+        Loop, 5 {
+            if (containsText(755, 581, 210, 39, "mari") || containsText(755, 581, 210, 39, "jester")) {
+                merchantName := containsText(755, 581, 210, 39, "mari") ? "Mari" : "Jester"
+                logMessage("[Merchant]: " merchantName " name found!", 1)
+                updateStatus("Merchant found! Pausing the macro...")
+                
+                ; Calculate the wait time for Mari and Jester
+                waitTime := (merchantName = "Mari") ? 32500 : 56000
+                logMessage("[Merchant]: Merchant timer set, waiting for unpause", 1)
 
+                Sleep, waitTime
+                alignCamera()
+                Sleep, 2000
+                reset()
+                Sleep, 500
+                break
+            }
+            Sleep, 350
+        }
+    }
 }
 
 global deviceLastUsed := A_TickCount
 global currentBiome
-; 
+
 changeBiome() {
     deviceIntervalMS := 20 * 60 * 1000
     sinceLastUsed := A_TickCount - deviceLastUsed
@@ -4406,15 +4425,15 @@ return
         handlePause()
         return
 
-    F8::
-        Sleep, 500
-        alignCamera()
-        Sleep, 2000
-        reset()
-        Sleep, 500
-        handlePause()
-        return
-        
+    ; F8::
+    ;     Sleep, 500
+    ;     alignCamera()
+    ;     Sleep, 2000
+    ;     reset()
+    ;     Sleep, 500
+    ;     handlePause()
+    ;     return
+
     F3::
         stop()
         Reload
