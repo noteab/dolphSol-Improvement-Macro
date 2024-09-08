@@ -353,7 +353,7 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
                 return (item_name, center_x, center_y, ratio_threshold)
                 
     if not all_matches:
-        print(f"No match found for {item_name} using historic match. Using feature-based match matching...")
+        print(f"No match found for {item_name} using feature base, switching to historic")
         for item_image in item_images:
             if item_image is None:
                 continue
