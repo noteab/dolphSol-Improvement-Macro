@@ -4,6 +4,7 @@ import os
 import webbrowser
 import sys
 import json
+import shutil
 
 # List of required modules
 all_required_modules = [
@@ -15,6 +16,7 @@ all_required_modules = [
 # Path to detect if setup has already run
 setup_status_file = "setup_status.json"
 tesseract_setup_file = "tesseract-ocr-w64-setup-5.4.0.20240606.exe"
+directory_file = "directory_path.json"
 
 # Function to check if a module is installed
 def check_module_installed(module_name):
@@ -33,11 +35,17 @@ def uninstall_modules():
 
 # Function to check if Tesseract is installed
 def check_tesseract_installed():
+    # Check if 'tesseract' command is available
     try:
-        subprocess.run(["tesseract", "-v"], check=True)
+        subprocess.run(["tesseract", "-v"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
+        pass
+
+    # Check for Tesseract installation directory
+    tesseract_dir = "C:/Program Files/Tesseract-OCR"  # Adjust path if necessary
+    return os.path.isdir(tesseract_dir)
+
 
 # Function to run the Tesseract installer or prompt the user to manually run it
 def run_tesseract_installer():
@@ -117,10 +125,31 @@ def mark_setup_complete():
     with open(setup_status_file, 'w') as f:
         json.dump({"setup_complete": True}, f)
 
+# Function to save the folder path where the script is located
+def save_directory_path():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(directory_file, 'w') as f:
+        json.dump({"directory_path": script_dir}, f)
+
+# Function to delete the saved folder path
+def delete_saved_directory():
+    if os.path.exists(directory_file):
+        with open(directory_file, 'r') as f:
+            data = json.load(f)
+        folder_to_delete = data.get("directory_path")
+        if folder_to_delete and os.path.exists(folder_to_delete):
+            print(f"Deleting folder: {folder_to_delete}")
+            shutil.rmtree(folder_to_delete)
+        else:
+            print(f"Folder not found: {folder_to_delete}")
+
 # Main prompt
 def main():
+    if not os.path.exists(directory_file):
+        save_directory_path()
+    
     print("Welcome to the setup script!")
-    user_input = input("Would you like to perform a normal installation, express installation, customize installation or uninstall the program? (normal/express/uninstall): ").strip().lower()
+    user_input = input("Would you like to perform a normal installation, express installation, customize installation or uninstall the program? (normal/express/customize/uninstall): ").strip().lower()
     
     if user_input == 'customize':
         modules_to_install = input(f"Enter the modules to install from the following list (comma-separated): {', '.join(all_required_modules)}: ").strip().split(',')
@@ -147,7 +176,9 @@ def main():
 
     elif user_input == 'uninstall':
         uninstall_modules()
-        run_tesseract_installer()
+        if check_tesseract_installed():
+            run_tesseract_installer()  # Optionally, run uninstaller if provided
+        delete_saved_directory()
         print("Uninstall process is complete.")
         return
 
