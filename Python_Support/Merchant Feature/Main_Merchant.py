@@ -7,6 +7,8 @@ from discord import app_commands
 import os
 
 ## Necessary Import
+from ahk import AHK
+import pydirectinput
 import autoit
 import pygetwindow as gw
 import time
@@ -29,6 +31,7 @@ import aiohttp
 import subprocess
 from icecream import ic
 
+ahk = AHK()
 ROBLOX_WINDOW_TITLE = "Roblox"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE_PATH = os.path.join(BASE_DIR, 'merchant_config.json')
@@ -83,30 +86,6 @@ async def activate_roblox_window():
         return False
 
 ## Active roblox window ##
-
-def find_ahk_process():
-    for process in psutil.process_iter(['pid', 'name']):
-        if "AutoHotkey.exe" in process.info['name']:
-            return process.info['pid']
-    return None
-
-def suspend_process(pid):
-    """Suspend the process with the given PID using psutil."""
-    try:
-        p = psutil.Process(pid)
-        p.suspend()
-        print(f"Process {pid} suspended.")
-    except Exception as e:
-        print(f"Failed to suspend process {pid}: {e}")
-
-def resume_process(pid):
-    """Resume the process with the given PID using psutil."""
-    try:
-        p = psutil.Process(pid)
-        p.resume()
-        print(f"Process {pid} resumed.")
-    except Exception as e:
-        print(f"Failed to resume process {pid}: {e}")
         
 ## Screenshot ##
 def take_screenshot():
@@ -526,7 +505,7 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
         print(f"Attempting to purchase item {item_name} from the {side} side with amount {amount}.")
 
         item_positions = None
-        initial_ratio_threshold_ocr = 0.75
+        initial_ratio_threshold_ocr = 0.8
         
         for attempt in range(max_retries):
             current_ratio_threshold = initial_ratio_threshold_ocr - (0.05 * attempt)
@@ -631,6 +610,7 @@ async def merchant_reset_macro_phase():
     await asyncio.sleep(1.2)
     autoit.mouse_wheel("down", 10)
     await asyncio.sleep(1.2)
+    pydirectinput.press("F8")
  
        
 async def send_webhook_notification(webhook_url, content, embed, merchant_face_image_binary=None, inventory_image_binary=None):
@@ -768,8 +748,10 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
                     
                     merchants[merchant] = True
                     Merchant_ON_PROCESS_LOOP = True
-
+                    
                     await asyncio.sleep(4.5)
+                    pydirectinput.press("F2")
+                    await asyncio.sleep(0.5)
                     await activate_roblox_window()
                     await asyncio.sleep(2.5)
                     
@@ -797,7 +779,7 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
                 await asyncio.sleep(0.5)
 
     except Exception as e:
-        print(f"Error in auto merchant loop: {e}")
+        print(f"Error in main merchant loop: {e}")
         
 async def main():
     try:
@@ -805,7 +787,6 @@ async def main():
         # await asyncio.sleep(2)
         # await Merchant_Webhook_Sender("jester")
         # await Merchant_Items_Webhook_Sender("jester", "omg jester with oblivion 😳 ??!")
-        
         AUTO_MERCHANT_DETECTION_LOOP.start()
         while True:
             await asyncio.sleep(1)
