@@ -9,12 +9,12 @@ from tkinter import Tk, filedialog, messagebox
 
 # Define constants and file paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-GITHUB_VERSION_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/Python_Support/VERSION.txt"
+GITHUB_VERSION_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/Python_Features/settings/VERSION.txt"
 ZIP_DOWNLOAD_URL = "https://github.com/noteab/dolphSol-Improvement-Macro/archive/refs/heads/Noteab-Improvement.zip"
-LOCAL_VERSION_FILE = os.path.join(BASE_DIR, "VERSION.txt")
+LOCAL_VERSION_FILE = os.path.join(BASE_DIR, "settings/VERSION.txt")
 MAIN_AHK_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/Main.ahk"
-LOCAL_MAIN_AHK_PATH = os.path.join(BASE_DIR, "..", "Main.ahk")  # Path to Main.ahk outside Python_Support
-FILES_TO_KEEP = {".env", "config.json"}  # Set of filenames to preserve
+LOCAL_MAIN_AHK_PATH = os.path.join(BASE_DIR, "..", "Main.ahk")  # Path to Main.ahk outside Python_Features
+FILES_TO_KEEP = {"settings/.env", "settings/config.json"}  # Set of filenames to preserve
 CHANGELOG_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/CHANGELOG.md"
 CHANGES_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/CHANGES.md"
 
@@ -107,16 +107,16 @@ def download_update(output_folder=None):
                 zip_file.extractall(temp_dir)
                 
                 extracted_folder_name = zip_file.namelist()[0].split('/')[0]
-                extracted_python_support = os.path.join(temp_dir, extracted_folder_name, "Python_Support")
+                extracted_python_features = os.path.join(temp_dir, extracted_folder_name, "Python_Features")
                 
-                if not os.path.exists(extracted_python_support):
-                    print(f"Path {extracted_python_support} does not exist. Aborting update.")
+                if not os.path.exists(extracted_python_features):
+                    print(f"Path {extracted_python_features} does not exist. Aborting update.")
                     time.sleep(4)
                     return
                 
-                # Overwrite the current Python_Support directory files
-                for root, dirs, files in os.walk(extracted_python_support):
-                    relative_path = os.path.relpath(root, extracted_python_support)
+                # Overwrite the current Python_Features directory files
+                for root, dirs, files in os.walk(extracted_python_features):
+                    relative_path = os.path.relpath(root, extracted_python_features)
                     destination_dir = os.path.join(output_folder, relative_path)
 
                     if not os.path.exists(destination_dir):
@@ -157,7 +157,7 @@ def prompt_for_update_action():
     """Prompt user to choose update action."""
     root = Tk()
     root.withdraw()  # Hide the main window
-    action = messagebox.askquestion("Update Options", "Do you want to:\n1.(Press YES FOR THIS) Download the changes into a desired output folder?\n2. (PRESS NO FOR THIS)Replace the changes normally?")
+    action = messagebox.askquestion("Update Options", "Do you want to:\n1.(TYPE \"YES\" FOR THIS) Download the changes into a desired output folder?\n2. (TYPE \"NO\" FOR THIS) Replace the changes normally?")
     return action
 
 def check_for_updates():
@@ -169,7 +169,7 @@ def check_for_updates():
         if local_version != github_version:
             print(f"New version available: {github_version}. Preparing the update...")
             action = prompt_for_update_action()
-            if action == 'yes':  # Download changes into a desired output folder
+            if action == 'YES':  # Download changes into a desired output folder
                 output_folder = prompt_for_output_folder()
                 if output_folder:
                     download_update(output_folder)
@@ -207,3 +207,4 @@ def check_for_updates():
 
 # Run the update check
 check_for_updates()
+input()
