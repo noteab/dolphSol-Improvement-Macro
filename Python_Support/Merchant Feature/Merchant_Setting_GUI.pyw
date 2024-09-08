@@ -88,20 +88,31 @@ def select_merchant_open_button_position():
     dim_instruction_label.pack(pady=20)
 
     # Reset the global variable to store the merchant open button position
-    global merchant_open_button_position
+    global merchant_open_button_position, first_click
     merchant_open_button_position = None
+    first_click = None
 
     # Callback function triggered on mouse click
     def on_click(x, y, button, pressed):
+        global first_click, merchant_open_button_position
+
         if pressed:
-            global merchant_open_button_position
-            merchant_open_button_position = (x, y)
-            print(f"Selected merchant open button position: {merchant_open_button_position}")
-            config['MERCHANT_OPEN_BUTTON_POSITION'] = merchant_open_button_position
-            save_config()
-            listener.stop()  # Stop the mouse listener after click
-            instruction_label.config(text="Merchant open button position saved successfully!")
-            dim_window.destroy()  # Close the dim window after selection
+            if first_click is None:
+                first_click = (x, y)
+                instruction_label.config(text="Position selected. Click again for confirmation.")
+                print(f"First click: {first_click}")
+            else:
+                merchant_open_button_position = first_click
+                if (x, y) == first_click:
+                    config['MERCHANT_OPEN_BUTTON_POSITION'] = merchant_open_button_position
+                    save_config()
+                    instruction_label.config(text="Merchant open button position saved successfully!")
+                    print(f"Confirmed position: {merchant_open_button_position}")
+                    listener.stop()  # Stop the mouse listener after confirmation
+                    dim_window.destroy()  # Close the dim window after confirmation
+                else:
+                    first_click = None
+                    instruction_label.config(text="Positions do not match. Click again to select.")
 
     # Start a new thread for the mouse listener
     def start_mouse_listener():
