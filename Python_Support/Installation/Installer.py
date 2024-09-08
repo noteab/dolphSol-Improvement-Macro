@@ -9,7 +9,7 @@ import pkg_resources
 
 # List of required modules
 all_required_modules = [
-    'discord', 'python-dotenv', 'pyautoit', 'pygetwindow', 'Pillow', 'psutil',
+    'discord', 'python-dotenv', 'pyautoit', 'keyboard', 'pygetwindow', 'Pillow', 'psutil',
     'pywin32', 'pypiwin32', 'pytesseract', 'opencv-python', 'numpy', 
     'pyautogui', 'icecream', 'requests', 'pytest-shutil', 'pystray', 'fuzzywuzzy', 'pynput', 'pydirectinput'
 ]
