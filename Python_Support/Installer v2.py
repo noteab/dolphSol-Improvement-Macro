@@ -9,7 +9,7 @@ import json
 all_required_modules = [
     'discord', 'python-dotenv', 'pyautoit', 'pygetwindow', 'Pillow', 'psutil',
     'pywin32', 'pypiwin32', 'pytesseract', 'opencv-python', 'numpy', 
-    'pyautogui', 'icecream', 'requests', 'pytest-shutil', 'fuzzywuzzy', 'pynput'
+    'pyautogui', 'icecream', 'requests', 'pytest-shutil', 'fuzzywuzzy', 'pynput', 'pydirectinput'
 ]
 
 # Path to detect if setup has already run
