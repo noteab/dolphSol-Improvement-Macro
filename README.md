@@ -10,7 +10,7 @@
 ### TO ACCESS PYTHON FEATURES SUCH AS DISCORD BOT, AUTO MERCHANT AND MORE
 
 1. Download Python (latest version): https://www.python.org/downloads/ --> Also enable "add PATH to python" option
-2. RUN INSTALLER V2 IN PYTHON FEATURES FOLDER
+2. RUN INSTALLER.py  IN PYTHON FEATURES FOLDER
 3.  Download Tesseract (OCR used for biome detection, item check): (https://github.com/UB-Mannheim/tesseract/wiki)
 --> Just find the keyword: "The latest installers can be downloaded here: tesseract-ocr-w64-setup-5.4.0.20240606.exe (64 bit)", at the front page so it easy to see
 4. To use macro, run main.ahk, to use python features (such as merchant teleporter item crafter etc.) open Python_Settings_GUI.pyw
@@ -45,6 +45,6 @@ Discord Server (to official dolphSol server): https://discord.gg/DYUqwJchuV
 (?) Soon...
 
 ### Current Development Team
-CuriousPengu\
-noteab\
-Steve
+noteab
+steveonly1
+curiouspengu
