@@ -7,3 +7,8 @@
 * Merchant detection:
 - Added 2nd detect method and add more Jester's item to be detectable
 - Replace keybind to pydirectinput (It will send directly input to AHK to pause when merchant found) and make sure pydirectinput is installed!
+
+(08/9/2024)
+-Autorunner feature for merchant detection and discord bot!! done by steveonly1
+-works using hotkeys and customizable 
+-did some almost major changes to the installer 
