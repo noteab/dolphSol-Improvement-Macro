@@ -6,7 +6,7 @@ import sys
 import json
 
 # List of required modules
-required_modules = [
+all_required_modules = [
     'discord', 'python-dotenv', 'pyautoit', 'pygetwindow', 'Pillow', 'psutil',
     'pywin32', 'pypiwin32', 'pytesseract', 'opencv-python', 'numpy', 
     'pyautogui', 'icecream', 'requests', 'pytest-shutil', 'fuzzywuzzy', 'pynput'
@@ -27,7 +27,7 @@ def install_modules(missing_modules):
 
 # Function to uninstall modules
 def uninstall_modules():
-    for module in required_modules:
+    for module in all_required_modules:
         print(f"Uninstalling {module}...")
         subprocess.call([sys.executable, "-m", "pip", "uninstall", module, "-y"])
 
@@ -51,8 +51,11 @@ def run_tesseract_installer():
         input("After downloading the file, place it in the same directory as this program and press Enter to continue.")
 
 # Function to check modules and offer to install Tesseract if needed
-def check_modules_and_tesseract():
-    missing_modules = [module for module in required_modules if not check_module_installed(module)]
+def check_modules_and_tesseract(modules_to_install=None):
+    if modules_to_install is None:
+        modules_to_install = all_required_modules
+    
+    missing_modules = [module for module in modules_to_install if not check_module_installed(module)]
     
     if missing_modules:
         print(f"Missing modules: {', '.join(missing_modules)}")
@@ -99,21 +102,7 @@ def merchant_detection_setup():
         subprocess.call([sys.executable, "discord_cmd.py"])
 
         input("\nIs the setup complete? (y/n): ").strip().lower()
-        print("Setup is complete! Now opening the tutorial...")
-
-        tutorial()
-
-# Tutorial section
-def tutorial():
-    print("\n--- Merchant Detection Feature Setup ---")
-    print("To enable merchant detection, simply run `merchant_main` and leave it running in the background while macroing.")
-    
-    print("\nNext, please run `update_check.py` to ensure everything is up to date.")
-    
-    print("\nFor more customization, open `Merchant_Setting_GUI` and add the items you want to buy.")
-    print("Once you have completed these steps, you are good to go!")
-    
-    input("\nPress Enter to close the tutorial.")
+        print("Setup is complete!")
 
 # Function to check if setup was previously completed
 def check_previous_setup():
@@ -130,27 +119,51 @@ def mark_setup_complete():
 
 # Main prompt
 def main():
-    if check_previous_setup():
-        user_input = input("Would you like to install or uninstall the program? (install/uninstall): ").strip().lower()
-        if user_input == 'uninstall':
-            uninstall_modules()
-            run_tesseract_installer()
-            print("Uninstall process is complete.")
-            return
-        else:
-            print("Skipping uninstallation.")
-
-    print("Hi, first time using (Noteab) Python Dolph Sol Macro?")
-    user_input = input("Would you like to check if the required modules are installed? (y/n): ").strip().lower()
+    print("Welcome to the setup script!")
+    user_input = input("Would you like to perform a normal installation, express installation, customize installation or uninstall the program? (normal/express/uninstall): ").strip().lower()
     
-    if user_input == 'y':
+    if user_input == 'customize':
+        modules_to_install = input(f"Enter the modules to install from the following list (comma-separated): {', '.join(all_required_modules)}: ").strip().split(',')
+        modules_to_install = [module.strip() for module in modules_to_install]
+
+        print("Warning: This feature is for testing purposes. The program may not work properly without all necessary modules.")
+        user_input = input("Do you want to proceed with installing only the selected modules? (y/n): ").strip().lower()
+        
+        if user_input == 'y':
+            check_modules_and_tesseract(modules_to_install)
+        else:
+            print("Proceeding with full installation.")
+            check_modules_and_tesseract()
+
+    elif user_input == 'express':
+        print("Performing express installation...")
         check_modules_and_tesseract()
+        print("Skipping merchant setup.")
+        user_input = input("Do you want to run `discord_cmd.py` now? (y/n): ").strip().lower()
+        if user_input == 'y':
+            subprocess.call([sys.executable, "discord_cmd.py"])
+        print("Setup is complete.")
+        return
 
-    # Proceed with merchant detection setup
-    merchant_detection_setup()
+    elif user_input == 'uninstall':
+        uninstall_modules()
+        run_tesseract_installer()
+        print("Uninstall process is complete.")
+        return
 
-    # Mark setup as complete
-    mark_setup_complete()
+    elif user_input == 'normal':
+        print("Performing normal installation...")
+        check_modules_and_tesseract()
+        # Proceed with merchant detection setup
+        merchant_detection_setup()
+        # Mark setup as complete
+        mark_setup_complete()
+        return
+
+    else:
+        print("Invalid option selected. Exiting.")
+        return
+
 
 if __name__ == "__main__":
     main()
