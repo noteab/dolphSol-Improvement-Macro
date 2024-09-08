@@ -2154,7 +2154,7 @@ useItem(itemName, useAmount := 1) {
     ;         }
     ;         Sleep, 350
     ;     }
-    ; }
+    }
 }
 
 checkBottomLeft(){
