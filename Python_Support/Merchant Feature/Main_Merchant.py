@@ -179,7 +179,7 @@ def compare_histograms(img1, img2):
     hist_img2 = cv2.normalize(hist_img2, hist_img2)
 
     similarity = cv2.compareHist(hist_img1, hist_img2, cv2.HISTCMP_CORREL)
-    return similarity > 0.75
+    return similarity > 0.85
 
 async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.75, ocr_double_check=False):
     
@@ -339,31 +339,6 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
                 print(f"OCR Mismatch: Expected '{item_name}', but got '{extracted_text}' with match score {match_score}")
                 
         else:
-            scales = [1.0, 0.9, 0.8, 0.7, 1.1]
-            for scale in scales:
-                scaled_item_image = cv2.resize(item_image, (0, 0), fx=scale, fy=scale)
-                res = cv2.matchTemplate(screen_cv, scaled_item_image, cv2.TM_CCOEFF_NORMED)
-                loc = np.where(res >= threshold)
-
-                for pt in zip(*loc[::-1]):
-                    center_x = pt[0] + scaled_item_image.shape[1] // 2
-                    center_y = pt[1] + scaled_item_image.shape[0] // 2
-                    all_matches.append((item_name, center_x, center_y))
-
-            # Histogram compare for false detection check
-            for match in all_matches:
-                x, y = match[1], match[2]
-                detected_region = screen_cv[y:y + scaled_item_image.shape[0], x:x + scaled_item_image.shape[1]]
-                if compare_histograms(item_image, detected_region):
-                    return match[:3] # :3
-                
-    if not all_matches:
-        print(f"No match found for {item_name} using historic match. Using feature-based match matching...")
-        
-        for item_image in item_images:
-            if item_image is None:
-                continue
-            
             best_match, screen_with_match = feature_based_matching(screen_cv, scaled_item_image, ratio_threshold=ratio_threshold)
             if best_match:
                 x, y = best_match
@@ -376,6 +351,30 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
                 cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected_debug.png", screen_with_match)
                 
                 return (item_name, center_x, center_y, ratio_threshold)
+                
+    if not all_matches:
+        print(f"No match found for {item_name} using historic match. Using feature-based match matching...")
+        for item_image in item_images:
+            if item_image is None:
+                continue
+             
+        scales = [1.0, 0.9, 0.8, 0.7, 1.1]
+        for scale in scales:
+            scaled_item_image = cv2.resize(item_image, (0, 0), fx=scale, fy=scale)
+            res = cv2.matchTemplate(screen_cv, scaled_item_image, cv2.TM_CCOEFF_NORMED)
+            loc = np.where(res >= threshold)
+
+            for pt in zip(*loc[::-1]):
+                center_x = pt[0] + scaled_item_image.shape[1] // 2
+                center_y = pt[1] + scaled_item_image.shape[0] // 2
+                all_matches.append((item_name, center_x, center_y))
+
+        # Histogram compare for false detection check
+        for match in all_matches:
+            x, y = match[1], match[2]
+            detected_region = screen_cv[y:y + scaled_item_image.shape[0], x:x + scaled_item_image.shape[1]]
+            if compare_histograms(item_image, detected_region):
+                return match[:3] # :3
 
     if all_matches:
         best_match = all_matches[0]
