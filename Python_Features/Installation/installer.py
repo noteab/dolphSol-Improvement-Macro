@@ -20,7 +20,7 @@ load_dotenv()
 all_required_modules = [
     'discord', 'python-dotenv', 'pyautoit', 'keyboard', 'pygetwindow', 'Pillow', 'psutil',
     'pywin32', 'pypiwin32', 'pytesseract', 'opencv-python', 'numpy', 'pyautogui',
-    'icecream', 'requests', 'pytest-shutil', 'pystray', 'fuzzywuzzy', 'pynput', 'pydirectinput'
+    'icecream', 'requests', 'pytest-shutil', 'pystray', 'fuzzywuzzy', 'pynput', 'pydirectinput',
     'pywin32', 'pypiwin32', 'pytesseract', 'opencv-python', 'numpy', 'pyautogui',
     'icecream', 'requests', 'pytest-shutil', 'pystray', 'fuzzywuzzy', 'pynput', 'pydirectinput'
 ]
