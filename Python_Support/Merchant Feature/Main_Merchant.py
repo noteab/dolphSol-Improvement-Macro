@@ -7,7 +7,6 @@ from discord import app_commands
 import os
 
 ## Necessary Import
-import pydirectinput
 import autoit
 import pygetwindow as gw
 import time
@@ -27,13 +26,14 @@ import math
 from fuzzywuzzy import fuzz
 from ctypes import windll
 import aiohttp
-import subprocess
+import pydirectinput
 from icecream import ic
 
 ROBLOX_WINDOW_TITLE = "Roblox"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE_PATH = os.path.join(BASE_DIR, 'merchant_config.json')
 MAIN_IMAGES_PATH = os.path.join(BASE_DIR, 'Merchants_Image')
+
 loop_lock = asyncio.Lock()
 
 def load_config():
@@ -169,19 +169,8 @@ def feature_based_matching(screen_cv, template, ratio_threshold=0.60):
             
     return None, screen_cv
 
-def compare_histograms(img1, img2):
-    """Compare the color histograms of two images and return True if they are look similar"""
-    
-    hist_img1 = cv2.calcHist([img1], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
-    hist_img2 = cv2.calcHist([img2], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
-
-    hist_img1 = cv2.normalize(hist_img1, hist_img1)
-    hist_img2 = cv2.normalize(hist_img2, hist_img2)
-
-    similarity = cv2.compareHist(hist_img1, hist_img2, cv2.HISTCMP_CORREL)
-    return similarity > 0.85
-
 async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, threshold=0.75, ratio_threshold=0.75, ocr_double_check=False):
+    """Scan for a specific item in the merchant's inventory and return the position if found."""
     
     Merchant_Items_Image = {
         "mari": {
@@ -340,41 +329,18 @@ async def Merchant_Specific_Item_SCANNING_Process(merchant_type, item_name, thre
                 
         else:
             best_match, screen_with_match = feature_based_matching(screen_cv, scaled_item_image, ratio_threshold=ratio_threshold)
+
             if best_match:
                 x, y = best_match
                 detected_width, detected_height = scaled_item_image.shape[1], scaled_item_image.shape[0]
                 center_x = x + detected_width // 2
                 center_y = y + detected_height // 2
 
-                # debug
+                # Debug
                 cv2.circle(screen_with_match, (center_x, center_y), 10, (0, 255, 0), 3)
                 cv2.imwrite(f"{MAIN_IMAGES_PATH}/{item_name}_detected_debug.png", screen_with_match)
-                
-                return (item_name, center_x, center_y, ratio_threshold)
-                
-    if not all_matches:
-        print(f"No match found for {item_name} using feature base, switching to historic")
-        for item_image in item_images:
-            if item_image is None:
-                continue
-             
-        scales = [1.0, 0.9, 0.8, 0.7, 1.1]
-        for scale in scales:
-            scaled_item_image = cv2.resize(item_image, (0, 0), fx=scale, fy=scale)
-            res = cv2.matchTemplate(screen_cv, scaled_item_image, cv2.TM_CCOEFF_NORMED)
-            loc = np.where(res >= threshold)
 
-            for pt in zip(*loc[::-1]):
-                center_x = pt[0] + scaled_item_image.shape[1] // 2
-                center_y = pt[1] + scaled_item_image.shape[0] // 2
-                all_matches.append((item_name, center_x, center_y))
-
-        # Histogram compare for false detection check
-        for match in all_matches:
-            x, y = match[1], match[2]
-            detected_region = screen_cv[y:y + scaled_item_image.shape[0], x:x + scaled_item_image.shape[1]]
-            if compare_histograms(item_image, detected_region):
-                return match[:3] # :3
+                all_matches.append((item_name, center_x, center_y, ratio_threshold))
 
     if all_matches:
         best_match = all_matches[0]
@@ -555,7 +521,7 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
         print(f"Attempting to purchase item {item_name} from the {side} side with amount {amount}.")
 
         item_positions = None
-        initial_ratio_threshold_ocr = 0.8
+        initial_ratio_threshold_ocr = 0.75
         
         for attempt in range(max_retries):
             current_ratio_threshold = initial_ratio_threshold_ocr - (0.05 * attempt)
@@ -598,7 +564,7 @@ async def purchase_items(merchant_type, item_slots, bought_items, side, screen_w
             continue
 
         # Perform button scanning to find purchase-related buttons
-        purchase_amount_pos = convert_to_relative_coords(659, 603, screen_width, screen_height)
+        purchase_amount_pos = convert_to_relative_coords(659, 596, screen_width, screen_height)
         purchase_button_pos = convert_to_relative_coords(702, 648, screen_width, screen_height)
 
         if purchase_amount_pos:
@@ -837,6 +803,7 @@ async def main():
         # await asyncio.sleep(2)
         # await Merchant_Webhook_Sender("jester")
         # await Merchant_Items_Webhook_Sender("jester", "omg jester with oblivion 😳 ??!")
+        
         AUTO_MERCHANT_DETECTION_LOOP.start()
         while True:
             await asyncio.sleep(1)
