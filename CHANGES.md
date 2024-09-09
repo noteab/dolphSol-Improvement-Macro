@@ -13,8 +13,13 @@
 -works using hotkeys and customizable 
 -did some almost major changes to the installer 
 
-(9/9/20204)
+(9/9/2024)
 -MAJOR BUG FIXES 
 -added a py program in installation folder to run before running the installer
 -added a discord_cmd.py error fixer in python_support folder
 -updated installer
+
+(9/9/2024)
+
+1.3 STARTING REVAMP
+- a lot of additions has been done not gonna type all of them here 
