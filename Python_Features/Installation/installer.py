@@ -10,14 +10,21 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # List of required modules
 all_required_modules = [
     'discord', 'python-dotenv', 'pyautoit', 'keyboard', 'pygetwindow', 'Pillow', 'psutil',
     'pywin32', 'pypiwin32', 'pytesseract', 'opencv-python', 'numpy', 'pyautogui',
     'icecream', 'requests', 'pytest-shutil', 'pystray', 'fuzzywuzzy', 'pynput', 'pydirectinput'
+    'pywin32', 'pypiwin32', 'pytesseract', 'opencv-python', 'numpy', 'pyautogui',
+    'icecream', 'requests', 'pytest-shutil', 'pystray', 'fuzzywuzzy', 'pynput', 'pydirectinput'
 ]
 
+# Path and file definitions
 # Path and file definitions
 setup_status_file = "setup_status.json"
 tesseract_setup_file = "tesseract-ocr-w64-setup-5.4.0.20240606.exe"

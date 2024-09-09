@@ -19,7 +19,7 @@ def print_please_wait():
 print_please_wait()
 
 # Constants
-CONFIG_FILE = "../config.json"
+CONFIG_FILE = "config.json"
 
 # Default search paths for the scripts
 DEFAULT_MERCHANT_PATH = "dolphSol-Improvement-Macro-Noteab-Improvement/Python_Support/Merchant Feature/Main_Merchant.py"
