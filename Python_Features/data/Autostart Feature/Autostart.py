@@ -22,8 +22,8 @@ print_please_wait()
 CONFIG_FILE = "config.json"
 
 # Default search paths for the scripts
-DEFAULT_MERCHANT_PATH = "dolphSol-Improvement-Macro-Noteab-Improvement/Python_Support/Merchant Feature/Main_Merchant.py"
-DEFAULT_DISCORD_PATH = "dolphSol-Improvement-Macro-Noteab-Improvement/Python_Support/Installation/discord_cmd.py"
+DEFAULT_MERCHANT_PATH = "dolphSol-Improvement-Macro-Noteab-Improvement/Python_Features/data/Merchant Feature/Main_Merchant.py"
+DEFAULT_DISCORD_PATH = "dolphSol-Improvement-Macro-Noteab-Improvement/Python_Features/data/discord_cmd.py"
 
 # Load configuration from file
 def load_config():

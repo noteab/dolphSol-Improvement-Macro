@@ -43,7 +43,7 @@ def main():
     # Run Installer.py
     print("\nNow running Installer.py to finish the installation.")
     try:
-        subprocess.run([sys.executable, "Installer.py"], check=True)
+        subprocess.run([sys.executable, "installer.py"], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Failed to run Installer.py: {e}")
         sys.exit(1)
