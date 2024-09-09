@@ -114,7 +114,7 @@ def merchant_detection_setup():
         print("\nOpen `Python_Bot.py`, go to the bot section, and paste the required fields (bot token, user ID, channel ID).")
         input("After that, press 'Update Bot Info' in the script and press Enter when you are done with this step.")
         print("\nNow opening `discord_cmd.py` to complete the setup.")
-        subprocess.call([sys.executable, "../data/discord_cmd.py"])
+        subprocess.call([sys.executable, str(pathlib.Path(__file__).parent.parent.resolve()) + "/data/discord_cmd.py"])
 
         input("\nIs the setup complete? (y/n): ").strip().lower()
         print("Setup is complete!")
@@ -204,7 +204,7 @@ def main():
         print("Skipping merchant setup.")
         user_input = input("Run `discord_cmd.py` now? (y/n): ").strip().lower()
         if user_input == 'y':
-            subprocess.call([sys.executable, "Python_Features/data/discord_cmd.py"])
+            subprocess.call([sys.executable, str(pathlib.Path(__file__).parent.parent.resolve()) + "/data/discord_cmd.py"])
         print("Setup is complete.")
         return
 
