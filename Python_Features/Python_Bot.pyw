@@ -225,7 +225,7 @@ def start_merchant_autobuy():
     subprocess.call([sys.executable, "/data/Merchant Feature/Merchant_Setting_GUI.pyw"])
 
 def start_autostart():
-    subprocess.call([sys.executable, "/Autostart Feature/Autostart.py"])
+    subprocess.call([sys.executable, "/data/Autostart Feature/Autostart.py"])
 
 def run_merchant_autobuy():
     merchant_thread = threading.Thread(target=start_merchant_autobuy)
