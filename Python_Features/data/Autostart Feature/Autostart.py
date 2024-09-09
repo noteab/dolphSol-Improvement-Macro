@@ -11,7 +11,7 @@ import pystray
 from PIL import Image, ImageDraw
 
 # Constants
-CONFIG_FILE = "config.json"
+CONFIG_FILE = "../config.json"
 
 # Load configuration from file
 def load_config():
@@ -114,8 +114,12 @@ class App:
 
         # Set Path Tab
         self.set_path_tab = ttk.Frame(self.tab_control)
-        self.tab_control.add(self.set_path_tab, text="SET PATH")
-        self.setup_set_path_tab()
+        # self.tab_control.add(self.set_path_tab, text="SET PATH")
+        # self.setup_set_path_tab()
+        self.config["merchant_script_path"] = "../Merchant Feature/Merchant_Setting_GUI.pyw"
+        self.config["discord_cmd_path"] = "../discord_cmd.py"
+
+        save_config(self.config)
 
         self.tab_control.pack(expand=1, fill="both")
 
@@ -138,34 +142,34 @@ class App:
 
         tk.Button(self.settings_tab, text="Save Config", command=self.save_config).pack()
 
-    def setup_set_path_tab(self):
-        tk.Label(self.set_path_tab, text="Merchant Script Path:").pack()
-        self.merchant_path_entry = tk.Entry(self.set_path_tab)
-        self.merchant_path_entry.insert(0, self.config.get("merchant_script_path", ""))
-        self.merchant_path_entry.pack()
-        tk.Button(self.set_path_tab, text="Browse", command=self.set_merchant_path).pack()
+    # def setup_set_path_tab(self):
+    #     tk.Label(self.set_path_tab, text="Merchant Script Path:").pack()
+    #     self.merchant_path_entry = tk.Entry(self.set_path_tab)
+    #     self.merchant_path_entry.insert(0, self.config.get("merchant_script_path", ""))
+    #     self.merchant_path_entry.pack()
+    #     tk.Button(self.set_path_tab, text="Browse", command=self.set_merchant_path).pack()
 
-        tk.Label(self.set_path_tab, text="Discord Cmd Script Path:").pack()
-        self.discord_path_entry = tk.Entry(self.set_path_tab)
-        self.discord_path_entry.insert(0, self.config.get("discord_cmd_path", ""))
-        self.discord_path_entry.pack()
-        tk.Button(self.set_path_tab, text="Browse", command=self.set_discord_path).pack()
+    #     tk.Label(self.set_path_tab, text="Discord Cmd Script Path:").pack()
+    #     self.discord_path_entry = tk.Entry(self.set_path_tab)
+    #     self.discord_path_entry.insert(0, self.config.get("discord_cmd_path", ""))
+    #     self.discord_path_entry.pack()
+    #     tk.Button(self.set_path_tab, text="Browse", command=self.set_discord_path).pack()
 
-    def set_merchant_path(self):
-        path = filedialog.askopenfilename(title="Select Merchant Script", filetypes=[("Python Files", "*.py")])
-        if path:
-            self.merchant_path_entry.delete(0, tk.END)
-            self.merchant_path_entry.insert(0, path)
-            self.config["merchant_script_path"] = path
-            save_config(self.config)
+    # def set_merchant_path(self):
+    #     path = filedialog.askopenfilename(title="Select Merchant Script", filetypes=[("Python Files", "*.py")])
+    #     if path:
+    #         self.merchant_path_entry.delete(0, tk.END)
+    #         self.merchant_path_entry.insert(0, path)
+    #         self.config["merchant_script_path"] = path
+    #         save_config(self.config)
 
-    def set_discord_path(self):
-        path = filedialog.askopenfilename(title="Select Discord Cmd Script", filetypes=[("Python Files", "*.py")])
-        if path:
-            self.discord_path_entry.delete(0, tk.END)
-            self.discord_path_entry.insert(0, path)
-            self.config["discord_cmd_path"] = path
-            save_config(self.config)
+    # def set_discord_path(self):
+    #     path = filedialog.askopenfilename(title="Select Discord Cmd Script", filetypes=[("Python Files", "*.py")])
+    #     if path:
+    #         self.discord_path_entry.delete(0, tk.END)
+    #         self.discord_path_entry.insert(0, path)
+    #         self.config["discord_cmd_path"] = path
+    #         save_config(self.config)
 
     def save_config(self):
         self.config["auto_run_merchant"] = self.auto_run_merchant_var.get()

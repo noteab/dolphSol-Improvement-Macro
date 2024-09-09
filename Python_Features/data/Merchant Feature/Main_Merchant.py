@@ -800,7 +800,7 @@ async def AUTO_MERCHANT_DETECTION_LOOP():
                     Merchant_ON_PROCESS_LOOP = True
                     
                     await asyncio.sleep(4.5)
-                    pydirectinput.press("F2")
+                    pydirectinput.press('F2')
                     await asyncio.sleep(0.5)
                     await activate_roblox_window()
                     await asyncio.sleep(2.8)

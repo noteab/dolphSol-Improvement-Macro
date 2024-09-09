@@ -18,8 +18,8 @@ import sys
 
 # Set up the paths
 BASE_DIR = Path(__file__).resolve().parent
-CONFIG_FILE_PATH = BASE_DIR / 'settings/config.json'
-ENV_FILE_PATH = BASE_DIR / 'settings/.env'
+CONFIG_FILE_PATH = BASE_DIR / 'data/config.json'
+ENV_FILE_PATH = BASE_DIR / 'data/.env'
 
 # Load the .env file
 load_dotenv(dotenv_path=ENV_FILE_PATH)
@@ -105,18 +105,6 @@ def toggle_auto_biome():
     config['is_auto_biome'] = enable
     save_config()
 
-# Toggle Auto Start Discord
-def toggle_auto_start_discord():
-    enable = auto_start_discord_var.get()
-    config['auto_start_discord'] = enable
-    save_config()
-
-# Toggle Auto Start Merchant
-def toggle_auto_start_merchant():
-    enable = auto_start_merchant_var.get()
-    config['auto_start_merchant'] = enable
-    save_config()
-    
 # Update Biome Region
 def update_biome_region():
     x, y, w, h = biome_x_var.get(), biome_y_var.get(), biome_width_var.get(), biome_height_var.get()
@@ -158,14 +146,14 @@ def display_bounding_box(scaling_factor=0.85):
 
 # Autostarts
 def startDiscord():
-    subprocess.call([sys.executable, os.path.join(os.path.dirname(__file__),"settings/discord_cmd.py")])
+    subprocess.call([sys.executable, os.path.join(os.path.dirname(__file__),"data/discord_cmd.py")])
 
 def startMerchant():
     subprocess.call([sys.executable, os.path.join(os.path.dirname(__file__),"Merchant Feature/Merchant_Setting_GUI.pyw")])
 
 # Initialize main window
 root = tk.Tk()
-root.title("Python Bot Settings (Noteab) 05/9")
+root.title("Python Bot Settings v1.2")
 root.geometry("750x380")
 
 # Create notebook (tabs)
@@ -177,25 +165,30 @@ main_tab.pack_propagate(False)
 notebook.add(main_tab, text="< Main >")
 
 # Setting tab
-setting_tab = ttk.Frame(notebook, width=350, height=350)
+setting_tab = ttk.Frame(notebook, width=350, height=50)
 setting_tab.pack_propagate(False)
 notebook.add(setting_tab, text="< Settings >")
 
 
 # Biome setting tab
-biome_tab = ttk.Frame(notebook, width=350, height=350)
+biome_tab = ttk.Frame(notebook, width=350, height=50)
 biome_tab.pack_propagate(False)
 notebook.add(biome_tab, text="< Biomes >")
 
 # Reconnect Private Server tab
-reconnect_tab = ttk.Frame(notebook, width=350, height=350)
+reconnect_tab = ttk.Frame(notebook, width=350, height=50)
 reconnect_tab.pack_propagate(False)
 notebook.add(reconnect_tab, text="< Reconnect PS >")
 
 # Bot setting tab
-bot_tab = ttk.Frame(notebook, width=350, height=350)
+bot_tab = ttk.Frame(notebook, width=350, height=50)
 bot_tab.pack_propagate(False)
 notebook.add(bot_tab, text="< Bot >")
+
+# external app tab
+external_tab = ttk.Frame(notebook, width=350, height=50)
+external_tab.pack_propagate(False)
+notebook.add(external_tab, text="< External Apps >")
 
 
 # Auto Biome Section (Merged with Biome OCR Region)
@@ -227,6 +220,20 @@ def update_biome_width(val):
 def update_biome_height(val):
     biome_height_var.set(int(float(val)))  # Convert to float first, then to int
     update_biome_region()
+
+def start_merchant_autobuy():
+    subprocess.call([sys.executable, "Python_Features/data/Merchant Feature/Merchant_Setting_GUI.pyw"])
+
+def start_autostart():
+    subprocess.call([sys.executable, "Python_Features/data/Autostart Feature/Autostart.py"])
+
+def run_merchant_autobuy():
+    merchant_thread = threading.Thread(target=start_merchant_autobuy)
+    merchant_thread.start()
+
+def run_autostart():
+    autostart_thread = threading.Thread(target=start_autostart)
+    autostart_thread.start()
 
 # Biome X Region
 ttk.Label(auto_biome_frame, text="Biome X Region:").grid(row=1, column=0, sticky="w", padx=5, pady=2)
@@ -335,35 +342,18 @@ user_id_entry.grid(row=2, column=1, padx=5, pady=5)
 update_button = ttk.Button(bot_info_frame, text="Update Bot Info", command=update_bot_info)
 update_button.grid(row=3, column=0, columnspan=2, pady=10)
 
-# AutoStart Section
-auto_start_label = ttk.Label(setting_tab, text="Auto Start Options").pack(anchor="w",padx=20, pady=3)
-auto_start_discord_var = BooleanVar(value=config.get('auto_start_discord', True))
-auto_start_merchant_var = BooleanVar(value=config.get('auto_start_merchant', False))
-
-# auto_start_frame = ttk.Labelframe(setting_tab, text="Auto Start Options")
-
-auto_start_discord_check = ttk.Checkbutton(setting_tab, text="Auto Start Discord", variable=auto_start_discord_var, command=toggle_auto_start_discord).pack(padx=20, pady=5, anchor="w")
-# auto_start_discord_check.grid(row=0, column=0)
-auto_start_merchant_check = ttk.Checkbutton(setting_tab, text="Auto Start Merchant", variable=auto_start_merchant_var, command=toggle_auto_start_merchant).pack(padx=20, anchor="w")
-# auto_start_merchant_check.grid(row=1, column=0)
-
 # Import Config Button in Settings Tab
 import_config_button = ttk.Button(setting_tab, text="Import Config", command=import_config)
 import_config_button.pack(pady=20, ipady=10, ipadx=240)
+
+# Links to Stuff
+start_merchant_autobuy_button = ttk.Button(external_tab, text="Merchant Autobuy", command=run_merchant_autobuy).pack(pady=10, ipadx=20)
+start_autorun = ttk.Button(external_tab, text="Autostart + Hotkeys", command=run_autostart).pack(ipadx=20)
 
 
 # Pack notebook (tabs) to main window
 notebook.pack(expand=True, fill="both", padx=10, pady=10)
 
-
-discordAutoStart = threading.Thread(target=startDiscord)
-merchantAutoStart = threading.Thread(target=startMerchant)
-
-if config['auto_start_discord'] == True:
-    discordAutoStart.start()
-if config['auto_start_merchant'] == True:
-    merchantAutoStart.start()
-
 # AUTOUPDATOR IS BROKEN UNTIL YOU PUSH TO REPO
-# subprocess.call([sys.executable, os.path.join(os.path.dirname(__file__),"settings/discord_cmd.py")])
+# subprocess.call([sys.executable, os.path.join(os.path.dirname(__file__),"data/auto_updater.py")])
 root.mainloop()

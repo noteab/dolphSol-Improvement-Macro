@@ -99,11 +99,10 @@ def merchant_detection_setup():
         webbrowser.open("https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID")
         input("Press Enter once you have copied and saved your user and channel IDs.")
 
-        print("\nOpen `PYTHON_GUI_SETTING.py`, go to the bot section, and paste the required fields (bot token, user ID, channel ID).")
+        print("\nOpen `Python_Bot.py`, go to the bot section, and paste the required fields (bot token, user ID, channel ID).")
         input("After that, press 'Update Bot Info' in the script and press Enter when you are done with this step.")
-
         print("\nNow opening `discord_cmd.py` to complete the setup.")
-        subprocess.call([sys.executable, "discord_cmd.py"])
+        subprocess.call([sys.executable, "../data/discord_cmd.py"])
 
         input("\nIs the setup complete? (y/n): ").strip().lower()
         print("Setup is complete!")

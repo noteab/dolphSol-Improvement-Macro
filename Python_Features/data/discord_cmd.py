@@ -30,7 +30,7 @@ from ctypes import windll
 import aiohttp
 
 from icecream import ic
-import ctypes # Used for error window :)
+
 
 # Load configuration json! (So cool_)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -952,9 +952,6 @@ async def on_ready():
     Disconnect_Detection_LOOP.start()
     #await bot.tree.sync() # Uncomment it when you sync the bot for the first time like the tutorial video, after synced successfully, you can comment it or delete it to prevent bot ratelimit
 
-try:
-    bot.run(os.getenv('DISCORD_BOT_TOKEN'))
-except:
-    ctypes.windll.user32.MessageBoxW(0, "Discord TOKEN entered incorrectly! The Discord bot will not be active.", "Error", 0)
+bot.run(os.getenv('DISCORD_BOT_TOKEN')) 
 
 

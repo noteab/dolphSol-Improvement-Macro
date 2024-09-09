@@ -728,7 +728,7 @@ sendAuraToPython(auraRarity)
 {
     MsgBox, 4, , % "In function"
     Sleep, 3
-    Run, %A_WorkingDir%\../Python_Features/Aura Recording Feature/record_aura.py recordEnabled recordMinimum auraRarity
+    Run, %A_WorkingDir%\../Python_Features/data/Aura Recording Feature/record_aura.py recordEnabled recordMinimum auraRarity
     MsgBox, 4, , % recordEnabled recordMinimum auraRarity
     Sleep, 8
 }

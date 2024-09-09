@@ -9,12 +9,12 @@ from tkinter import Tk, filedialog, messagebox
 
 # Define constants and file paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-GITHUB_VERSION_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/Python_Features/settings/VERSION.txt"
+GITHUB_VERSION_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/Python_Features/data/VERSION.txt"
 ZIP_DOWNLOAD_URL = "https://github.com/noteab/dolphSol-Improvement-Macro/archive/refs/heads/Noteab-Improvement.zip"
-LOCAL_VERSION_FILE = os.path.join(BASE_DIR, "settings/VERSION.txt")
+LOCAL_VERSION_FILE = os.path.join(BASE_DIR, "data/VERSION.txt")
 MAIN_AHK_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/Main.ahk"
 LOCAL_MAIN_AHK_PATH = os.path.join(BASE_DIR, "..", "Main.ahk")  # Path to Main.ahk outside Python_Features
-FILES_TO_KEEP = {"settings/.env", "settings/config.json"}  # Set of filenames to preserve
+FILES_TO_KEEP = {"data/.env", "data/config.json"}  # Set of filenames to preserve
 CHANGELOG_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/CHANGELOG.md"
 CHANGES_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/CHANGES.md"
 
