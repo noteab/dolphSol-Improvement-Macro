@@ -6,15 +6,19 @@ import sys
 import json
 import shutil
 import pkg_resources
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # List of required modules
 all_required_modules = [
     'discord', 'python-dotenv', 'pyautoit', 'keyboard', 'pygetwindow', 'Pillow', 'psutil',
-    'pywin32', 'pypiwin32', 'pytesseract', 'opencv-python', 'numpy', 
-    'pyautogui', 'icecream', 'requests', 'pytest-shutil', 'pystray', 'fuzzywuzzy', 'pynput', 'pydirectinput'
+    'pywin32', 'pypiwin32', 'pytesseract', 'opencv-python', 'numpy', 'pyautogui',
+    'icecream', 'requests', 'pytest-shutil', 'pystray', 'fuzzywuzzy', 'pynput', 'pydirectinput'
 ]
 
-# Path to detect if setup has already run
+# Path and file definitions
 setup_status_file = "setup_status.json"
 tesseract_setup_file = "tesseract-ocr-w64-setup-5.4.0.20240606.exe"
 directory_file = "directory_path.json"
@@ -141,7 +145,6 @@ def delete_saved_directory():
 # Function to handle Tesseract uninstallation
 def uninstall_tesseract():
     if check_tesseract_installed():
-        # This part assumes there's an uninstaller available; modify if needed
         print("\nUninstalling Tesseract...")
         # Replace the following with the actual uninstall command if available
         # subprocess.call(["uninstall_tesseract_command"])
@@ -182,7 +185,7 @@ def main():
         user_input = input("Proceed with installing only the selected modules? (y/n): ").strip().lower()
         
         if user_input == 'y':
-            check_modules_and_tesseract()
+            install_modules(modules_to_install)
         else:
             print("Proceeding with full installation.")
             check_modules_and_tesseract()

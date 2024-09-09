@@ -10,8 +10,20 @@ import keyboard
 import pystray
 from PIL import Image, ImageDraw
 
+# Print "PLEASE WAIT..." immediately
+def print_please_wait():
+    print("PLEASE WAIT...")
+    sys.stdout.flush()
+
+# Call the function right at the start of the script
+print_please_wait()
+
 # Constants
 CONFIG_FILE = "../config.json"
+
+# Default search paths for the scripts
+DEFAULT_MERCHANT_PATH = "dolphSol-Improvement-Macro-Noteab-Improvement/Python_Support/Merchant Feature/Main_Merchant.py"
+DEFAULT_DISCORD_PATH = "dolphSol-Improvement-Macro-Noteab-Improvement/Python_Support/Installation/discord_cmd.py"
 
 # Load configuration from file
 def load_config():
@@ -31,6 +43,13 @@ def load_config():
 def save_config(config):
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f, indent=4)
+
+# Function to automatically search for the script paths
+def auto_find_script(script_name):
+    for root, dirs, files in os.walk(os.path.expanduser("~")):  # Search starting from the home directory
+        if script_name in files:
+            return os.path.join(root, script_name)
+    return None
 
 # Function to run Merchant Feature script
 def run_merchant():
@@ -181,11 +200,28 @@ class App:
         messagebox.showinfo("Info", "Configuration saved")
 
     def check_and_prompt_paths(self):
-        """Prompt user to set paths if they are not already set."""
+        """Check if paths are set, otherwise try to find them or prompt user."""
         config = load_config()
-        if not config.get("merchant_script_path") or not config.get("discord_cmd_path"):
-            messagebox.showinfo("Info", "Please set paths for Merchant and Discord scripts in the 'SET PATH' tab.")
-            self.tab_control.select(self.set_path_tab)  # Automatically open the 'SET PATH' tab
+
+        # Check and find the merchant script
+        if not config.get("merchant_script_path"):
+            found_merchant = auto_find_script("Main_Merchant.py")
+            if found_merchant:
+                config["merchant_script_path"] = found_merchant
+                save_config(config)
+            else:
+                messagebox.showinfo("Info", "Please set the path for the Merchant script in the 'SET PATH' tab.")
+                self.tab_control.select(self.set_path_tab)
+
+        # Check and find the discord_cmd script
+        if not config.get("discord_cmd_path"):
+            found_discord = auto_find_script("discord_cmd.py")
+            if found_discord:
+                config["discord_cmd_path"] = found_discord
+                save_config(config)
+            else:
+                messagebox.showinfo("Info", "Please set the path for the Discord script in the 'SET PATH' tab.")
+                self.tab_control.select(self.set_path_tab)
 
 # Add a function to show "DO NOT CLOSE THIS TERMINAL" message when minimized
 def minimize_to_tray():
