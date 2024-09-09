@@ -56,10 +56,16 @@
             "Item_To_Buy": "Oblivion Potion"
         },
         {
+            "Item_To_Buy": "Heavenly Potion 1"
+        },
+        {
             "Item_To_Buy": "Heavenly Potion 2"
         },
         {
             "Item_To_Buy": "Rune of Everthing"
+        },
+        {
+            "Item_To_Buy": "Strange Potion 1"
         },
         {
             "Item_To_Buy": "Strange Potion 2"
