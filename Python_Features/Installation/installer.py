@@ -6,6 +6,7 @@ import sys
 import json
 import shutil
 import pkg_resources
+import pathlib
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -203,7 +204,7 @@ def main():
         print("Skipping merchant setup.")
         user_input = input("Run `discord_cmd.py` now? (y/n): ").strip().lower()
         if user_input == 'y':
-            subprocess.call([sys.executable, "../data/discord_cmd.py"])
+            subprocess.call([sys.executable, "Python_Features/data/discord_cmd.py"])
         print("Setup is complete.")
         return
 

@@ -15,6 +15,7 @@ from PIL import ImageGrab
 import subprocess # AUTOSTART DISCORD CMD / MERCHANT CMD
 import threading
 import sys
+import pathlib
 
 # Set up the paths
 BASE_DIR = Path(__file__).resolve().parent
@@ -222,10 +223,10 @@ def update_biome_height(val):
     update_biome_region()
 
 def start_merchant_autobuy():
-    subprocess.call([sys.executable, "/data/Merchant Feature/Merchant_Setting_GUI.pyw"])
+    subprocess.call([sys.executable, str(pathlib.Path(__file__).parent.resolve()) + "/data/Merchant Feature/Merchant_Setting_GUI.pyw"])
 
 def start_autostart():
-    subprocess.call([sys.executable, "/data/Autostart Feature/Autostart.py"])
+    subprocess.call([sys.executable, str(pathlib.Path(__file__).parent.resolve()) + "/data/Autostart Feature/Autostart.py"])
 
 def run_merchant_autobuy():
     merchant_thread = threading.Thread(target=start_merchant_autobuy)
