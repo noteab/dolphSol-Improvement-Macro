@@ -5,7 +5,7 @@ from io import BytesIO
 import shutil
 import tempfile
 import time
-from tkinter import Tk, filedialog, messagebox
+from tkinter import Tk, Button, filedialog, messagebox
 
 # Define constants and file paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -93,6 +93,7 @@ def download_changes():
 
 def download_update(output_folder=None):
     """Download and apply the update to a specified folder."""
+    updated_files = []
     try:
         response = requests.get(ZIP_DOWNLOAD_URL)
         if response.status_code == 200:
@@ -112,7 +113,7 @@ def download_update(output_folder=None):
                 if not os.path.exists(extracted_python_features):
                     print(f"Path {extracted_python_features} does not exist. Aborting update.")
                     time.sleep(4)
-                    return
+                    return updated_files
                 
                 # Overwrite the current Python_Features directory files
                 for root, dirs, files in os.walk(extracted_python_features):
@@ -128,6 +129,7 @@ def download_update(output_folder=None):
                         if os.path.basename(file) in FILES_TO_KEEP and os.path.exists(dest_file):
                             continue
                         shutil.copy2(src_file, dest_file)
+                        updated_files.append(dest_file)
                 
                 print("Update applied directly to the specified folder.")
                 time.sleep(4)
@@ -143,22 +145,47 @@ def download_update(output_folder=None):
         import traceback
         traceback.print_exc()
         time.sleep(10)
+    
+    return updated_files
 
 def prompt_for_output_folder():
     """Prompt user to select an output folder."""
     root = Tk()
     root.withdraw()  # Hide the main window
     output_folder = filedialog.askdirectory(title="Select Output Folder")
-    if not output_folder:
-        messagebox.showwarning("Warning", "No folder selected. Update will not proceed.")
     return output_folder
 
-def prompt_for_update_action():
-    """Prompt user to choose update action."""
+def handle_desired_output_folder(root):
+    """Handle the 'Desired Output Folder' button action."""
+    output_folder = prompt_for_output_folder()
+    if output_folder:
+        updated_files = download_update(output_folder)
+        download_changes()
+        print("\nUpdated files:")
+        for file in updated_files:
+            print(file)
+    else:
+        print("Reinstallation canceled.")
+    root.destroy()
+
+def handle_automatic_update(root):
+    """Handle the 'Automatic Update' button action."""
+    updated_files = download_update()
+    download_changes()
+    print("\nUpdated files:")
+    for file in updated_files:
+        print(file)
+    root.destroy()
+
+def create_update_gui():
+    """Create the GUI for update options."""
     root = Tk()
-    root.withdraw()  # Hide the main window
-    action = messagebox.askquestion("Update Options", "Do you want to:\n1.(TYPE \"YES\" FOR THIS) Download the changes into a desired output folder?\n2. (TYPE \"NO\" FOR THIS) Replace the changes normally?")
-    return action
+    root.title("Update Options")
+
+    Button(root, text="Desired Output Folder", command=lambda: handle_desired_output_folder(root)).pack(pady=10)
+    Button(root, text="Automatic Update", command=lambda: handle_automatic_update(root)).pack(pady=10)
+
+    root.mainloop()
 
 def check_for_updates():
     """Check for updates and handle reinstallation prompt."""
@@ -168,17 +195,7 @@ def check_for_updates():
 
         if local_version != github_version:
             print(f"New version available: {github_version}. Preparing the update...")
-            action = prompt_for_update_action()
-            if action == 'YES':  # Download changes into a desired output folder
-                output_folder = prompt_for_output_folder()
-                if output_folder:
-                    download_update(output_folder)
-                    download_changes()
-                else:
-                    print("Reinstallation canceled.")
-            else:  # Replace changes normally
-                download_update()
-                download_changes()
+            create_update_gui()
         else:
             print("Already up-to-date.")
             time.sleep(4)
@@ -188,17 +205,7 @@ def check_for_updates():
             root = Tk()
             root.withdraw()  # Hide the main window
             if messagebox.askyesno("Reinstall", "Do you want to reinstall the latest version of the program?"):
-                action = prompt_for_update_action()
-                if action == 'yes':  # Download changes into a desired output folder
-                    output_folder = prompt_for_output_folder()
-                    if output_folder:
-                        download_update(output_folder)
-                        download_changes()
-                    else:
-                        print("Reinstallation canceled.")
-                else:  # Replace changes normally
-                    download_update()
-                    download_changes()
+                create_update_gui()
     
     except Exception as e:
         print(f"An error occurred: {e}")
