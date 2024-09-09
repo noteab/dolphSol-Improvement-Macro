@@ -222,10 +222,10 @@ def update_biome_height(val):
     update_biome_region()
 
 def start_merchant_autobuy():
-    subprocess.call([sys.executable, "Python_Features/data/Merchant Feature/Merchant_Setting_GUI.pyw"])
+    subprocess.call([sys.executable, "/data/Merchant Feature/Merchant_Setting_GUI.pyw"])
 
 def start_autostart():
-    subprocess.call([sys.executable, "Python_Features/data/Autostart Feature/Autostart.py"])
+    subprocess.call([sys.executable, "/Autostart Feature/Autostart.py"])
 
 def run_merchant_autobuy():
     merchant_thread = threading.Thread(target=start_merchant_autobuy)
