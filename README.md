@@ -10,7 +10,7 @@
   - You can now run dolphSol through the Main.ahk file in the folder
 ### TO ACCESS PYTHON FEATURES SUCH AS DISCORD BOT, AUTO MERCHANT AND MORE
 
-1. Download Python (latest version): https://www.python.org/downloads/ --> Also enable "add PATH to python" option
+1. Download Python (latest version) (If you don't have it installed): https://www.python.org/downloads/ --> Also enable "add PATH to python" option
 2. RUN Installer_v2.py  IN INSTALLATION FOLDER IN THE PYTHON SUPPORT FOLDER
 3.  Download Tesseract (OCR used for biome detection, item check): (https://github.com/UB-Mannheim/tesseract/wiki)
 --> Just find the keyword: "The latest installers can be downloaded here: tesseract-ocr-w64-setup-5.4.0.20240606.exe (64 bit)", at the front page so it easy to see
