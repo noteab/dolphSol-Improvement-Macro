@@ -4,7 +4,7 @@ import sys
 # List of required packages
 required_packages = [
     "setuptools", "subprocess", "importlib", "os", "webbrowser", 
-    "json", "shutil", "pkg_resources"
+    "json", "shutil", "pkg_resources", "dotenv"
 ]
 
 def install(package):
