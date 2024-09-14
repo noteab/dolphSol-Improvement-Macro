@@ -16,12 +16,8 @@
 #Persistent
 SetBatchLines, -1
 
-
-global loggingEnabled := 1 ; Debug logging to file, disabled for public to prevent storage overload, change to 1 to enable
-
-
 OnError("LogError")
-OnMessage(0x4a, "ReceiveFromStatus")
+; OnMessage(0x500, "ReceiveData")
 
 SetWorkingDir, % A_ScriptDir "\lib"
 CoordMode, Pixel, Screen
@@ -32,15 +28,17 @@ CoordMode, Mouse, Screen
 #Include *i Gdip_All.ahk
 #Include *i Gdip_ImageSearch.ahk
 #Include *i jxon.ahk
-#Include *i ItemScheduler.ahk
 
-global version := "v1.5.0"
+
 global currentVersion := "v1.5.0"
+global currentPatch := "08/08"
+global version := "v1.4.0" . " (Merchant Experimental - Noteab 14/9) " ; fake v1.4.0 version so it wont popup the update anymore
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
     MsgBox, 16, % "dolphSol Macro " version, % "Unable to access all necessary files to run correctly.`n"
-            . "Please make sure the macro folder is extracted by right clicking the downloaded file and choosing 'Extract All'."
+            . "Please make sure the macro folder is extracted by right clicking the downloaded file and choosing 'Extract All'.`n`n"
+            . "Note that Amraki's Patch only contains modified files. They will need to be copied into the official macro folder."
     ExitApp
 }
 
@@ -55,17 +53,17 @@ if not (A_IsAdmin or RegExMatch(full_command_line, " /restart(?!\S)")) {
 }
 
 ; TODO: change some of these to static variables
+global loggingEnabled := true ; Debug logging to file
 global disableAlignment := false ; Toggle with F5
 global lastLoggedMessage := ""
 global delayMultiplier := 3 ; Delay multiplier for slower computers - Mainly for camera mode changes
 global auraNames := [] ; List of aura names for webhook pings
-global biomes := []
-global lastMerchantTime := {}
+global biomes := ["Windy", "Rainy", "Snowy", "Hell", "Starfall", "Corruption", "Null", "Glitched"]
 global ItemSchedulerEntries := []  ; Initialize the array for item usage entries
 global MerchantEntries := [] ; Merchant Item Holder
 global Merchant_Webhooks := []
+global lastMerchantTime := {}
 global StellaPortalDelay := 0 ; Extra wait time (ms) after entering portal before moving to cauldron - 1000ms = 1s
-global currentBiome := ""
 
 global robloxId := 0
 
@@ -121,6 +119,21 @@ global potionIndex := {0:"None"
     ,7:"Heavenly Potion I"
     ,8:"Heavenly Potion II"}
 
+global Mari_ItemIndex := {0:"None"
+    ,1:"Void Coin"
+    ,2:"Lucky Penny"
+    ,3:"Fortune Spoid 1"
+    ,4:"Fortune Spoid 2"
+    ,5:"Fortune Spoid 3"
+    ,6:"Lucky Potion"
+    ,7:"Lucky Potion XL"
+    ,8:"Speed Potion"
+    ,9:"Speed Potion XL"
+    ,10:"Mixed Potion"
+    ,11:"Gear A"
+    ,12:"Gear B"}
+
+
 global craftingInfo := {"Fortune Potion I":{slot:1,subSlot:1,addSlots:4,maxes:[5,1,5,1],attempts:2}
     ,"Fortune Potion II":{slot:1,subSlot:2,addSlots:5,maxes:[1,10,5,10,2],attempts:2}
     ,"Fortune Potion III":{slot:1,subSlot:3,addSlots:5,maxes:[1,15,10,15,5],attempts:2}
@@ -143,15 +156,15 @@ reverseIndices(t){
     return newT
 }
 
+global reverse_Mari_Index := reverseIndices(Mari_ItemIndex)
 global reversePotionIndex := reverseIndices(potionIndex)
 global reverseRarityIndex := reverseIndices(rarityIndex)
-
-; defaults
+; defaults   
 global sData := {}
 global options := {"DoingObby":1
     ,"AzertyLayout":0
     ,"ArcanePath":0
-    ,"CheckObbyBuff":0
+    ,"CheckObbyBuff":1
     ,"CollectItems":1
     ,"ItemSpot1":1
     ,"ItemSpot2":1
@@ -167,45 +180,20 @@ global options := {"DoingObby":1
     ,"BackOffset":0
     ,"ReconnectEnabled":1
     ,"AutoEquipEnabled":0
-    ,"AutoEquipAura":""
     ,"AutoEquipX":-0.415
     ,"AutoEquipY":-0.438
     ,"PrivateServerId":""
     ,"InOwnPrivateServer":1 ; Determines side button positions
+
+
     ,"ScanLoopInterval":1 ; How many attempts/tries to scan and count left side buttons (If 7 buttons then you're on friend/public server, 8 is you are on your PS instead) - Noteab
     ,"StorageButtonYPosScanVALUE":318 ; Storage Y Pos value in main option - Noteab
     ,"StorageYOffsetIntervalVALUE":70 ; Storage Y Pos highlight box for easier look while adjusting - Noteab
-    ,"WebhookEnabled":0
-    ,"WebhookLink":""
-    ,"WebhookImportantOnly":0
-    ,"DiscordUserID":""
-    ,"DiscordGlitchID":"" ; Used in status.ahk for biome ping in Discord - Defaults to DiscordUserID if not set
-    ,"WebhookRollSendMinimum":10000
-    ,"WebhookRollPingMinimum":100000
-    ,"WebhookAuraRollImages":0
-    ,"StatusBarEnabled":0
-    ,"WasRunning":0
-    ,"FirstTime":0
-    ,"InvScreenshotsEnabled":1
-    ,"LastInvScreenshot":0
-    ,"OCREnabled":0
-    ,"RestartRobloxEnabled":0
-    ,"RestartRobloxInterval":1
-    ,"LastRobloxRestart":0
-    ,"LastAnnouncement":0
-    ,"RobloxUpdatedUI":2 ; Default to "New"
-    ,"ClaimDailyQuests":0       ; Stewart
-    ,"SearchSpecialAuras":0     ; Stewart
-    ,"Shifter":0
-
+    ,"AutoClaimQuestEnabled":0 ; Toggle for Auto Claim Quest from Amraki (why he doesnt add this, what a silly guy :at:)
 
     ; Merchant config options (Noteab)
     ,"AutoMerchantEnabled":0
-    ,"MerchantWebhookAlias":""
-    ,"MerchantWebhookLink":""
-    ,"MerchantWebhook_Mari_UserID":""
-    ,"MerchantWebhook_Jester_UserID":""
-    ,"MerchantWebhook_PS_Link":""
+
     ,"Merchant_slider_X":711
     ,"Merchant_slider_Y":734
 
@@ -234,7 +222,27 @@ global options := {"DoingObby":1
     ,"Jester_ItemSlot2":0
     ,"Jester_ItemSlot3":0
     ; Merchant config options
-    
+
+    ,"LastAnnouncement":0
+    ,"WebhookEnabled":0
+    ,"WebhookLink":""
+    ,"WebhookImportantOnly":0
+    ,"DiscordUserID":""
+    ,"DiscordGlitchID":""       ; Amraki ; Used in status.ahk for biome ping in Discord - Defaults to DiscordUserID if not set
+    ,"WebhookRollSendMinimum":10000
+    ,"WebhookRollPingMinimum":100000
+    ,"WebhookAuraRollImages":0
+    ,"StatusBarEnabled":0
+    ,"WasRunning":0
+    ,"FirstTime":0
+    ,"InvScreenshotsEnabled":1
+    ,"LastInvScreenshot":0
+    ,"OCREnabled":0             ; Amraki
+    ,"RestartRobloxEnabled":0   ; Amraki
+    ,"RestartRobloxInterval":1  ; Amraki
+    ,"LastRobloxRestart":0      ; Amraki
+    ,"RobloxUpdatedUI":2 ; Default to "New"
+
     ; Crafting
     ,"ItemCraftingEnabled":0
     ,"CraftingInterval":10
@@ -243,9 +251,9 @@ global options := {"DoingObby":1
     ,"PotionCraftingSlot1":0
     ,"PotionCraftingSlot2":0
     ,"PotionCraftingSlot3":0
-    ,"PotionAutoAddEnabled":0
-    ,"PotionAutoAddInterval":10
-    ,"LastPotionAutoAdd":0
+    ,"PotionAutoAddEnabled":0   ; Amraki
+    ,"PotionAutoAddInterval":10 ; Amraki
+    ,"LastPotionAutoAdd":0      ; Amraki
 
     ,"ExtraRoblox":0 ; mainly for me (builderdolphin) to run my 3rd acc on 2nd monitor, not used for anything else, not intended for public use unless yk what you're doing i guess
 
@@ -259,8 +267,8 @@ global options := {"DoingObby":1
 global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode="
 
 ; Must be called in correct order
+updateStaticData() ; Get latest data for update check, aura names, etc.
 loadData() ; Load config data
-;updateStaticData() ; Get latest data for update check, aura names, etc.
 
 ; Disable OCR mode if resolution isn't supported
 ; Now enabling the mode will notify of requirements
@@ -372,10 +380,10 @@ GetInputLangName(langId) {
 
 getINIData(path){
     FileRead, retrieved, %path%
-
+    
     if (!retrieved){
         logMessage("[getINIData] No data found in " path)
-        ; MsgBox, An error occurred while reading %path% data, please review the file.
+        MsgBox, An error occurred while reading %path% data, please review the file.
         return
     }
 
@@ -387,25 +395,25 @@ getINIData(path){
         ; Remove any carriage return characters
         v := Trim(v, "`r")
 
-            isHeader := RegExMatch(v,"\[(.*)]")
-            if (v && readingPoint && !isHeader){
-                RegExMatch(v,"(.*)(?==)",index)
-                RegExMatch(v,"(?<==)(.*)",value)
-                if (index){
-                    retrievedData[index] := value
-                }
-            } else if (isHeader){
-                readingPoint := 1
+        isHeader := RegExMatch(v,"\[(.*)]")
+        if (v && readingPoint && !isHeader){
+            RegExMatch(v,"(.*)(?==)",index)
+            RegExMatch(v,"(?<==)(.*)",value)
+            if (index){
+                retrievedData[index] := value
             }
+        } else if (isHeader){
+            readingPoint := 1
         }
+    }
     return retrievedData
 }
 
 writeToINI(path,object,header){
-    ; if (!FileExist(path)){
-    ;     MsgBox, You are missing the file: %path%, please ensure that it is in the correct location.
-    ;     return
-    ; }
+    if (!FileExist(path)){
+        MsgBox, You are missing the file: %path%, please ensure that it is in the correct location.
+        return
+    }
 
     formatted := header
 
@@ -413,9 +421,7 @@ writeToINI(path,object,header){
         formatted .= i . "=" . v . "`r`n"
     }
 
-    if (FileExist(path)) {
-        FileDelete, %path%
-    }
+    FileDelete, %path%
     FileAppend, %formatted%, %path%
 }
 
@@ -437,38 +443,53 @@ getURLContent(url) {
     }
 }
 
+
 updateStaticData() {
     updateURL := "https://raw.githubusercontent.com/BuilderDolphin/dolphSol-Macro/main/lib/staticData.json"
+    patchURL := "https://raw.githubusercontent.com/Amraki/dolphSol-Macro/Amraki-Patch/lib/staticData.json"
+
+    patchContent := getURLContent(patchURL)
+    if (patchContent != "") {
+        FileDelete, staticData.json
+        FileAppend, %patchContent%, staticData.json
+
+        patchData := Jxon_Load(patchContent)[1]
+        patchVersion := patchData.updateInfo.latestVersion
+        OutputDebug, % "patchVersion: " patchVersion
+    }
 
     content := getURLContent(updateURL)
     if (content != "") {
-        FileDelete, staticData.json
-        FileAppend, %content%, staticData.json
-
         officialData := Jxon_Load(content)[1]
         officialVersion := officialData.updateInfo.latestVersion
+        OutputDebug, % "officialVersion: " officialVersion
     }
 
-    if (content == "") {
+    if (patchContent == "" && content == "") {
         MsgBox, 16, Update Check, % "Unable to check for update. Error: " . e.Message . "`nContinuing with current StaticData.json data.`nCheck your network connection and restart to try again."
         return
     }
 
     ; Show Announcement once daily at most
-    sData := officialData
+    sData := patchData
     if (sData.announcement != "" && (getUnixTime() - options.LastAnnouncement >= 24*60*60*1000)) { ; 24hrs
         MsgBox, 0, Macro Announcement, % sData.announcement
         options.LastAnnouncement := getUnixTime()
     }
-    
-    if (officialVersion && officialVersion != currentVersion) {
-        updateMessage := officialData.updateInfo.updateNotes
+
+    if (patchVersion && patchVersion != currentPatch) {
+        ; Patch update available
+        updateMessage := "A new patch version is available!"
+    } else if (officialVersion && officialVersion != currentVersion) {
+        ; Official update available
+        sData := officialData
+        updateMessage := "An official update is available! Please note some features from the patch may be missing or modified so adjust accordingly."
     } else {
         return
     }
 
     uNotes := sData.updateInfo.updateNotes
-    MsgBox, 36, New Update Available, % "`nWould you like to head to the GitHub page to update your macro?" . (uNotes ? ("`n`nUpdate Notes:`n" . uNotes) : "")
+    MsgBox, 36, New Update Available, % updateMessage . "`nWould you like to head to the GitHub page to update your macro?" . (uNotes ? ("`n`nUpdate Notes:`n" . uNotes) : "")
     IfMsgBox No
         return
 
@@ -526,19 +547,6 @@ loadData(){
     }
     options := newOptions
 
-    ; Load aura names from JSON
-    FileRead, staticDataContent, % "staticData.json"
-    sData := Jxon_Load(staticDataContent)[1]
-    auraNames := []
-    for key, value in sData.stars {
-        auraNames.push(value.name)
-        if (value.mutations) {
-            for index, mutation in value.mutations {
-                auraNames.push(mutation.name)
-            }
-        }
-    }
-
     ; Load aura settings with prefix
     for index, auraName in auraNames {
         sAuraName := RegExReplace(auraName, "[^a-zA-Z0-9]+", "_") ; Replace all non-alphanumeric characters with underscore
@@ -553,7 +561,6 @@ loadData(){
     }
 
     ; Load biome settings
-    biomes := sData.biomes
     for i, biome in biomes {
         key := "Biome" . biome
         if (savedRetrieve.HasKey(key)) {
@@ -608,8 +615,8 @@ Class CreateFormData {
                 For i, FileName in v
                 {
                     str := BoundaryLine . CRLF
-                    . "Content-Disposition: form-data; name=""" . k . """; filename=""" . FileName . """" . CRLF
-                    . "Content-Type: " . this.MimeType(FileName) . CRLF . CRLF
+                        . "Content-Disposition: form-data; name=""" . k . """; filename=""" . FileName . """" . CRLF
+                        . "Content-Type: " . this.MimeType(FileName) . CRLF . CRLF
 
                     this.StrPutUTF8( str )
                     this.LoadFromFile( Filename )
@@ -618,8 +625,8 @@ Class CreateFormData {
                 }
             } Else {
                 str := BoundaryLine . CRLF
-                . "Content-Disposition: form-data; name=""" . k """" . CRLF . CRLF
-                . v . CRLF
+                    . "Content-Disposition: form-data; name=""" . k """" . CRLF . CRLF
+                    . v . CRLF
                 this.StrPutUTF8( str )
             }
         }
@@ -681,44 +688,44 @@ Class CreateFormData {
     }
 }
 
-webhookPost(data := 0){
+
+webhookPost(data := 0) {
     data := data ? data : {}
-
+    
     url := options.webhookLink
-
-    if (data.pings){
+    
+    if (data.pings) {
         data.content := data.content ? data.content " <@" options.DiscordUserID ">" : "<@" options.DiscordUserID ">"
     }
-
+    
     payload_json := "
-		(LTrim Join
-		{
-			""content"": """ data.content """,
-			""embeds"": [{
+        (LTrim Join
+        {
+            ""content"": """ data.content """,
+            ""embeds"": [{
                 " (data.embedAuthor ? """author"": {""name"": """ data.embedAuthor """" (data.embedAuthorImage ? ",""icon_url"": """ data.embedAuthorImage """" : "") "}," : "") "
                 " (data.embedTitle ? """title"": """ data.embedTitle """," : "") "
-				""description"": """ data.embedContent """,
+                ""description"": """ data.embedContent """,
                 " (data.embedThumbnail ? """thumbnail"": {""url"": """ data.embedThumbnail """}," : "") "
                 " (data.embedImage ? """image"": {""url"": """ data.embedImage """}," : "") "
                 " (data.embedFooter ? """footer"": {""text"": """ data.embedFooter """}," : "") "
-				""color"": """ (data.embedColor ? data.embedColor : 0) """
-			}]
-		}
-		)"
-
+                ""color"": """ (data.embedColor ? data.embedColor : 0) """
+            }]
+        }
+        )"
+    
     if ((!data.embedContent && !data.embedTitle) || data.noEmbed)
         payload_json := RegExReplace(payload_json, ",.*""embeds.*}]", "")
     
-
     objParam := {payload_json: payload_json}
-
+    
     for i,v in (data.files ? data.files : []) {
         objParam["file" i] := [v]
     }
-
+    
     try {
         CreateFormData(postdata, hdr_ContentType, objParam)
-
+        
         WebRequest := ComObjCreate("WinHttp.WinHttpRequest.5.1")
         WebRequest.Open("POST", url, true)
         WebRequest.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko")
@@ -728,10 +735,13 @@ webhookPost(data := 0){
         WebRequest.SetRequestHeader("If-Modified-Since", "Sat, 1 Jan 2000 00:00:00 GMT")
         WebRequest.Send(postdata)
         WebRequest.WaitForResponse()
+
+        ; Capture the response
+        response := WebRequest.ResponseText
+        logMessage("Webhook Response: " response, 1) ; Log the response
     } catch e {
         logMessage("[webhookPost] Error creating webhook data:")
         logMessage(e, 1)
-        ; MsgBox, 0, Webhook Error, % "An error occurred while creating the webhook data: " e
         return
     }
 }
@@ -863,14 +873,14 @@ PausePaths() {
         logMessage("Paused: " JEE_AhkWinIsPaused(hWnd), 2)
     }
 
-        pauseDowns := []
-        for i,v in possibleDowns {
-            state := GetKeyState(v)
-            if (state){
-                pauseDowns.Push(v)
-                Send {%v% Up}
-            }
+    pauseDowns := []
+    for i,v in possibleDowns {
+        state := GetKeyState(v)
+        if (state){
+            pauseDowns.Push(v)
+            Send {%v% Up}
         }
+    }
 }
 
 ResumePaths() {
@@ -916,13 +926,7 @@ JEE_AhkWinIsPaused(hWnd) {
 global regWalkFactor := 1.25 ; since i made the paths all with vip, normalize
 
 getWalkTime(d){
-    baseTime := d * (1 + (regWalkFactor - 1) * (1 - options.VIP))
-    
-    if (options.Shifter) {
-        baseTime := baseTime / 1.50
-    }
-    
-    return baseTime
+    return d*(1 + (regWalkFactor-1)*(1-options.VIP))
 }
 
 walkSleep(d){
@@ -943,7 +947,6 @@ press(k, duration := 50) {
     walkSleep(duration)
     walkSend(k,"Up")
 }
-
 press2(k, k2, duration := 50) {
     walkSend(k,"Down")
     walkSend(k2,"Down")
@@ -968,7 +971,6 @@ reset() {
 
     atSpawn := 1
 }
-
 jump() {
     press("Space")
 }
@@ -985,15 +987,18 @@ global isFirstScan := 0
 global Storage_YPos_Scan := 0
 global Storage_YOffset_Scan := 0
 
+; temporary era 9 camera alignment fix!
+
 initialize() {
     initialized := 1
-
+    resetZoom()
+    
     if (disableAlignment) {
-        ; Re-enable for reconnects
         disableAlignment := false
     } else {
-        alignCamera()
+        reset()
     }
+
 }
 
 resetZoom(){
@@ -1017,11 +1022,6 @@ resetZoom(){
         Click, WheelUp
         Sleep, 50
     }
-
-    Click, Right Down
-    MouseMove, A_ScreenWidth // 2, A_ScreenHeight
-    Click, Right Up
-
     Loop 10 {
         Click, WheelDown
         Sleep, 50
@@ -1029,7 +1029,7 @@ resetZoom(){
 }
 
 resetCameraAngle(){
-    ;resetZoom()
+    resetZoom()
 
     ; Get window position and size
     getRobloxPos(pX,pY,width,height)
@@ -1037,7 +1037,7 @@ resetCameraAngle(){
     ; Pan camera
     centerX := Floor(pX + width/2)
     centerY := Floor(pY + height/2)
-    MouseClickDrag(centerX, centerY, centerX, centerY + 200)
+    MouseClickDrag(centerX, centerY, centerX, centerY + 50)
 }
 
 MouseClickDrag(x1, y1, x2, y2) {
@@ -1161,7 +1161,7 @@ alignCamera(){
     Sleep, 200
 
     rotateCameraMode() ; Default(Classic)
-    ; resetCameraAngle() ; Fix angle before aligning direction
+    ;resetCameraAngle() ; Fix angle before aligning direction
     Sleep, 100
 
     walkSend("d","Down")
@@ -1178,11 +1178,10 @@ alignCamera(){
     rotateCameraMode() ; Follow
     Sleep, 1500
     rotateCameraMode() ; Default(Classic)
-    ; resetCameraAngle()
+    ;resetCameraAngle()
 
     ; reset() ; Redundant, handleCrafting() will use align() if needed
     removeDim()
-    reset()
     Sleep, 2000
 }
 
@@ -1315,7 +1314,7 @@ runPath(pathName,voidPoints,noCenter = 0){
 }
 
 searchForItems(){
-    updateStatus("Searching for Items")
+    updateStatus("Searching for Items")    
     atSpawn := 0
 
     runPath("searchForItems",[8250,18000],1)
@@ -1395,6 +1394,7 @@ walkToPotionCrafting(){
 
 ; End of paths
 
+
 closeChat(){
     offsetX := 75
     offsetY := 25 ; Changed from 12
@@ -1411,6 +1411,8 @@ closeChat(){
         ClickMouse(pX + offsetX, pY + offsetY)
     }
 }
+*/
+
 
 checkInvOpen(){
     checkPos := getPositionFromAspectRatioUV(0.861357, 0.494592,storageAspectRatio)
@@ -1426,6 +1428,30 @@ mouseActions(){
     openP := getPositionFromAspectRatioUV(0.718,0.689,599/1015)
     openP2 := getPositionFromAspectRatioUV(0.718,0.689,1135/1015)
     ClickMouse(openP[1], openP2[2])
+
+    ; re equip
+    if (options.AutoEquipEnabled){
+        logMessage("Re-equipping user selected aura")
+        closeChat()
+        alreadyOpen := checkInvOpen()
+
+        if (!alreadyOpen){
+            clickMenuButton(1)
+        }
+        Sleep, 100
+        sPos := getPositionFromAspectRatioUV(options.AutoEquipX,options.AutoEquipY,storageAspectRatio)
+        MouseMove, % sPos[1], % sPos[2]
+        Sleep, 300
+        MouseClick
+        Sleep, 100
+        ePos := getPositionFromAspectRatioUV(storageEquipUV[1],storageEquipUV[2],storageAspectRatio)
+        MouseMove, % ePos[1], % ePos[2]
+        Sleep, 300
+        MouseClick
+        Sleep, 100
+        clickMenuButton(1)
+        Sleep, 250
+    }
 
     if (options.ExtraRoblox){ ; for afking my 3rd alt lol
         MouseMove, 2150, 700
@@ -1446,7 +1472,7 @@ mouseActions(){
 }
 
 isFullscreen() {
-	WinGetPos,,, w, h, % "ahk_id " . GetRobloxHWND()
+	WinGetPos,,, w, h, Roblox
 	return (w = A_ScreenWidth && h = A_ScreenHeight)
 }
 
@@ -1490,7 +1516,7 @@ checkHasObbyBuff(BRCornerX, BRCornerY, statusEffectHeight){
         return 1
     }
     global obbyStatusEffectColor,obbyStatusEffectColor2,hasObbyBuff,statusEffectSpace
-    Loop, 10
+    Loop, 5
     {
         targetX := BRCornerX - (statusEffectHeight/2) - (statusEffectHeight + statusEffectSpace)*(A_Index-1)
         targetY := BRCornerY - (statusEffectHeight/2)
@@ -1596,10 +1622,6 @@ clickMenuButton(num){
 ; storage ratio: w1649 : h952
 global storageAspectRatio := 952/1649
 global storageEquipUV := [-0.625,0.0423] ; equip button
-global storageSearchUV := [-0.2833,-0.4074]
-global storageSearchResultUV := [-0.3, -0.32]
-global specialStorageSearchUV := [-0.2833,0.105]
-global specialStorageSearchResultUV := [-0.3, 0.2]
 
 getUV(x,y,oX,oY,width,height){
     return [((x-oX)*2 - width)/height,((y-oY)*2 - height)/height]
@@ -1677,26 +1699,24 @@ ShowMousePos() {
     MouseGetPos, mx,my
     p := getAspectRatioUVFromPosition(mx,my,storageAspectRatio)
     c := convertScreenCoordinates(mx,my)
-    Tooltip, % "Current: " mx ", " my "`n"
+    Tooltip, % "Current x,y pos: " mx ", " my "`n"
             . "UV Ratio: " p[1] ", " p[2] "`n"
             . "1920x1080: " c[1] ", " c[2]
-    Sleep, 5200
+    Sleep, 5000
     Tooltip
 }
 
 isCraftingMenuOpen() {
-    getRobloxPos(rX,rY,width,height)
-    centerPos := [width*0.182, height*0.06]
-    areaDims := [125, 50]
-    closeX := rX + centerPos[1] - (areaDims[1]/2)
-    closeY := rY + centerPos[2] - (areaDims[2]/2)
-
-    if (containsText(closeX, closeY, areaDims[1], areaDims[2], "Close")) {
+    ; if (options.OCREnabled) {
+    if (containsText(250, 30, 200, 75, "Close")) {
         return 1
     }
+        ; Don't return 0 so it uses backup non-ocr check
+    ; }
 
-    PixelSearch, blackX, blackY, closeX, closeY, closeX+areaDims[1], closeY+areaDims[2], 0x060A09, 16, Fast RGB
-    PixelSearch, whiteX, whiteY, closeX, closeY, closeX+areaDims[1], closeY+areaDims[2], 0xFFFFFF, 16, Fast RGB
+    convertScreenCoordinates(290, 40, closeX, closeY)
+    PixelSearch, blackX, blackY, closeX, closeY, closeX+100, closeY+40, 0x060A09, 16, Fast RGB
+    PixelSearch, whiteX, whiteY, closeX, closeY, closeX+100, closeY+40, 0xFFFFFF, 16, Fast RGB
     if (blackX && whiteX) {
         logMessage("Close button found")
         return 1
@@ -1781,6 +1801,13 @@ craftingClickAdd(totalSlots, maxes := 0, isGear := 0) {
     Loop %totalSlots% {
         ; Skip crafting slot if already complete
         slotPosY := startY + slotSize*(A_Index-1)
+        ; PixelSearch, pX, pY, startX-5, slotPosY-5, startX+5, slotPosY+5, 0x158210, 8, Fast RGB
+        ; if (pX && pY) {
+        ; }
+
+        ; 6/23 - Incorrectly detecting gilded coin slot as completed
+        ; 0x178111 seems to work better. More testing needed to determine if stella and jake completed are different
+        ; Bypassing for now
         PixelGetColor, checkC, startX, slotPosY, RGB
         ; logMessage("Slot " slotI " Color: " checkC, 1)
         if (!isGear && compareColors(checkC, 0x178111) < 6) {
@@ -1794,11 +1821,13 @@ craftingClickAdd(totalSlots, maxes := 0, isGear := 0) {
             inputQty := Max(1, Floor(maxes[slotI] * fraction))
             ; logMessage("Crafting Slot " slotI " - Input Quantity: " inputQty " - Fraction: " fraction, 1)
 
-            MouseMove, % startXAmt, % slotPosY
+            MouseMove, % (slotI == 1) ? startX : startXAmt, % slotPosY
             Sleep, 200
+            ; MouseClick, WheelUp ; Test if this is still needed
+            ; Sleep, 200
             MouseClick
             Sleep, 200
-            SendInput, % inputQty
+            Send % inputQty
             Sleep, 200
 
             ; Click the "Add" button
@@ -1811,7 +1840,7 @@ craftingClickAdd(totalSlots, maxes := 0, isGear := 0) {
 
             ; Check if the crafting slot is complete
             PixelGetColor, checkC, startX, slotPosY, RGB
-            if (compareColors(checkC, 0x178111) < 20) {
+            if (compareColors(checkC, craftingCompleteColor) < 20) {
                 break
             }
 
@@ -1847,7 +1876,6 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         updateStatus("Crafting Failed. Fixing Camera...")
         Sleep, 2000
         alignCamera()
-        reset()
         Sleep, 500
         handleCrafting(0,retryCount+1)
         return
@@ -1858,8 +1886,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
     }
 
     if (options.PotionCraftingEnabled && craftLocation != 2){
-        ; align() is this even needed?
-        reset()
+        align()
         updateStatus("Walking to Stella's Cave (Crafting)")
         walkToPotionCrafting()
         Sleep, % (StellaPortalDelay && StellaPortalDelay > 0) ? StellaPortalDelay : 0
@@ -1870,7 +1897,13 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         walkSend("a","Up")
         walkSleep(500)
         press("f")
+        walkSleep(500)
+
+        ; Continue moving away from cauldron to avoid exiting menu early
+        walkSend("a","Down")
         walkSleep(1000)
+        walkSend("a","Up")
+        walkSleep(500)
 
         ; OCR - Check for "Close" button
         if (!isCraftingMenuOpen()) {
@@ -1927,10 +1960,10 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         Sleep, 200
         MouseClick
 
-        ; alignCamera()
+        alignCamera()
     }
     if (options.ItemCraftingEnabled && craftLocation != 1){
-        ; align()
+        align()
         updateStatus("Walking to Jake's Shop (Crafting)")
         walkToJakesShop()
         Sleep, 100
@@ -1956,24 +1989,22 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         Sleep, 200
         MouseClick
 
-        ; alignCamera()
+        alignCamera()
     }
 
-    ; reset()
+    reset()
 }
 
 ; Click Auto Add if not enabled
-enableAutoAdd() {
-    getRobloxPos(rX,rY,width,height)
-    centerPos := [width*0.599, height*0.629]
-    areaDims := [100, 50]
-    autoX := rX + centerPos[1] - (areaDims[1]/2)
-    autoY := rY + centerPos[2] - (areaDims[2]/2)
+enableAutoAdd(){
+    btnW := 60
+    btnH := 25
+    convertScreenCoordinates(1080, 670, autoX, autoY)
+    PixelSearch,,, autoX, autoY, autoX+btnW, autoY+btnH, 0x30FF20, 20, Fast RGB
 
-    PixelSearch,,, autoX, autoY, autoX+areaDims[1], autoY+areaDims[2], 0x30FF20, 16, Fast RGB
     if (ErrorLevel) {
-        ClickMouse(rX + centerPos[1], rY + centerPos[2])
-        logMessage("Auto Add clicked", 1)
+        ClickMouse(autoX+btnW/2, autoY+btnH/2)
+        logMessage("Enabled Auto Add", 1)
     } else { ; Skip if Auto Add is already enabled
         logMessage("Auto Add already enabled", 1)
     }
@@ -2076,57 +2107,8 @@ ClickMouse(posX, posY) {
     ; Highlight(posX-5, posY-5, 10, 10, 5000) ; Highlight for 5 seconds
 }
 
-EquipAura(auraName := "") {
-    if (auraName = "") {
-        return
-    }
-
-    closeChat()
-    alreadyOpen := checkInvOpen()
-    if (!alreadyOpen){
-        clickMenuButton(1)
-        Sleep, 100
-    }
-
-    ; Search
-    if (options.SearchSpecialAuras) {
-        ; Click on the search input for special storage
-        posBtn := getPositionFromAspectRatioUV(specialStorageSearchUV[1], specialStorageSearchUV[2], storageAspectRatio)
-    } else {
-        ; Click on the search input for normal storage
-        posBtn := getPositionFromAspectRatioUV(StorageSearchUV[1], StorageSearchUV[2], storageAspectRatio)
-    }
-    ClickMouse(posBtn[1], posBtn[2])
-    SendInput, % auraName
-    Sleep, 500
-
-    ; Search Result
-    if (options.SearchSpecialAuras) {
-        posBtn := getPositionFromAspectRatioUV(specialStorageSearchResultUV[1], specialStorageSearchResultUV[2], storageAspectRatio)
-    } else {
-        posBtn := getPositionFromAspectRatioUV(StorageSearchResultUV[1], StorageSearchResultUV[2], storageAspectRatio)
-    }
-    ClickMouse(posBtn[1], posBtn[2])
-    Sleep, 500
-
-    ; Equip
-    posBtn := getPositionFromAspectRatioUV(StorageEquipUV[1], storageEquipUV[2], storageAspectRatio)
-    ClickMouse(posBtn[1], posBtn[2])
-    Sleep, 100
-
-    ; Clear Search - Necessary for screenshot
-    if (options.SearchSpecialAuras) {
-        posBtn := getPositionFromAspectRatioUV(specialStorageSearchUV[1], specialStorageSearchUV[2], storageAspectRatio)
-    } else {
-        posBtn := getPositionFromAspectRatioUV(StorageSearchUV[1], StorageSearchUV[2], storageAspectRatio)
-    }
-    ClickMouse(posBtn[1], posBtn[2])
-
-    Sleep, 100
-    clickMenuButton(1)
-}
-
 useItem(itemName, useAmount := 1) {
+    getRobloxPos(pX, pY, width, height)
     updateStatus("Using items")
     logMessage("Using item: " itemName, 1)
 
@@ -2141,21 +2123,21 @@ useItem(itemName, useAmount := 1) {
     ; Search for item
     searchBar := getPositionFromAspectRatioUV(0.56, -0.39, storageAspectRatio)
     ClickMouse(searchBar[1], searchBar[2])
-    SendInput, % itemName
+    Send, % itemName
     Sleep, 200
 
     ; Select item
     selectItem := getPositionFromAspectRatioUV(-0.18, -0.25, storageAspectRatio)
     ClickMouse(selectItem[1], selectItem[2])
 
-    ; Update quantity - Must be done each time to reset amount from previous item
-    updateQuantity:= getPositionFromAspectRatioUV(-0.70, 0.12, storageAspectRatio)
+    ; Update quantity
+    updateQuantity := getPositionFromAspectRatioUV(-0.70, 0.12, storageAspectRatio)
     ClickMouse(updateQuantity[1], updateQuantity[2])
     Send, % useAmount
     Sleep, 200
 
     ; Click Use
-    clickUse:= getPositionFromAspectRatioUV(-0.46, 0.12, storageAspectRatio)
+    clickUse := getPositionFromAspectRatioUV(-0.46, 0.12, storageAspectRatio)
     ClickMouse(clickUse[1], clickUse[2])
 
     ; Clear search result
@@ -2204,7 +2186,6 @@ useItem(itemName, useAmount := 1) {
             logMessage("Auto merchant disabled", 1)
         }
     }
-    
 }
 
 ; check if the merchant is still on cooldown
@@ -2377,7 +2358,7 @@ Merchant_Handler(merchantName) {
         totalItemsToPurchase := merchantItemNames.MaxIndex()  ; Get total number of items to purchase
         itemsPurchased := 0  ; Count successfully purchased items
 
-        Loop, 25 {
+        Loop, 50 {
             if (itemsPurchased >= totalItemsToPurchase) {
                 logMessage("All items have been successfully purchased. Exiting loop.", 1)
                 break
@@ -2448,6 +2429,39 @@ Merchant_Handler(merchantName) {
     }
 }
 
+
+global deviceLastUsed := A_TickCount
+global currentBiome
+
+changeBiome() {
+    deviceIntervalMS := 20 * 60 * 1000
+    sinceLastUsed := A_TickCount - deviceLastUsed
+    
+    cooldownRemainingSec := Floor(((deviceIntervalMS - sinceLastUsed) / 1000))
+    logMessage("Device Cooldown: " cooldownRemainingSec " seconds", 1)
+
+    ; Cooldown check
+    if (sinceLastUsed < deviceIntervalMS) {
+        return
+    }
+
+    ; Change biome
+    logMessage("Current Biome: '" currentBiome "'")
+    if !(currentBiome in ["Glitched", "Hell", "Null", "Starfall"]) {
+        ;"Strange Controller" or "Biome Randomizer"
+        logMessage("Changing biome using 'Strange Controller'", 1)
+
+        PausePaths()
+        useItem("Strange Controller")
+        deviceLastUsed := A_TickCount
+        ResumePaths()
+
+        ; Update biome check schedule
+        SetTimer, biomeLoop, Off
+        biomeLoop()
+    }
+}
+
 checkBottomLeft(){
     getRobloxPos(rX,rY,width,height)
 
@@ -2473,7 +2487,7 @@ getUnixTime() {
 }
 
 closeRoblox(){
-    WinClose, % "ahk_id " . GetRobloxHWND()
+    WinClose, Roblox
     WinClose, % "Roblox Crash"
 }
 
@@ -2512,7 +2526,7 @@ isGameNameVisible() {
 
 getPlayButtonColorRatio() {
     getRobloxPos(pX,pY,width,height)
-    
+
     ; Play Button Text
     targetW := height * 0.15
     startX := width * 0.5 - targetW * 0.55
@@ -2619,11 +2633,6 @@ ClickPlay() {
     
     ; Enable Auto Roll - Completely removed from Initialize() to avoid toggling when macro is restarted, but game is not
     ClickMouse(pX + (width*0.35), pY + (height*0.95))
-
-    ; Enable Merchant Tracker - Introduced Era 8.5 Update
-    ; No harm if user doesn't own
-    Sleep, 2000
-    useItem("Merchant Tracker")
 }
 
 ; Clear RAM by restarting Roblox
@@ -2656,19 +2665,20 @@ enableAutoRoll() {
     }
 }
 
-ReceiveFromStatus(wParam, lParam) {
-    StringAddress := NumGet(lParam + 2*A_PtrSize)
-    CopyDataSize := NumGet(lParam + A_PtrSize)
-
-    VarSetCapacity(ReceivedData, CopyDataSize)
-    DllCall("RtlMoveMemory", "Ptr", &ReceivedData, "Ptr", StringAddress, "Ptr", CopyDataSize)
-    
-    ; Ensure null termination for the string
-    ReceivedData := StrGet(&ReceivedData, CopyDataSize/2)
-
-    currentBiome := ReceivedData
-    logMessage("New Biome: " currentBiome)
+/* WIP - Do not use
+ReceiveData(wParam, lParam) {
+    ; Lock the memory and get the string
+    StringAddress := DllCall("GlobalLock", "Ptr", lParam, "Ptr")
+    if (StringAddress) {
+        currentBiome := StrGet(StringAddress, "UTF-8")  ; Ensure the correct encoding
+        DllCall("GlobalUnlock", "Ptr", lParam)
+        logMessage("[ReceiveData] Current Biome: " currentBiome)
+        ToolTip, % "Current Biome: " currentBiome
+        Sleep, 5000
+        ToolTip
+    }
 }
+*/
 
 LogError(exc) {
     logMessage("[LogError] Error on line " exc.Line ": " exc.Message)
@@ -2692,7 +2702,7 @@ logMessage(message, indent := 0) {
         return
     }
     
-    logFile := mainDir . "\lib\macro_log.txt"
+    logFile := mainDir . "\macro_log.txt"
     try {
         ; Check the log file size and truncate if necessary
         if (FileExist(logFile) && FileGetSize(logFile) > maxLogSize) {
@@ -2723,6 +2733,7 @@ FileGetSize(filePath) {
 ; Check if area contains the specified text
 containsText(x, y, width, height, text) {
     ; Potential improvement by ignoring non-alphanumeric characters
+
     ; Highlight(x-10, y-10, width+20, height+20, 2000)
     
     try {
@@ -2738,8 +2749,8 @@ containsText(x, y, width, height, text) {
         StringLower, ocrText, ocrText
         StringLower, text, text
         textFound := InStr(ocrText, text)
-        if (textFound > 0) { ; Reduce logging by only saving when found
-            logMessage("[containsText] Searching: " text "  |  Found: '" ocrText "'", 1)
+        if (!textFound) { ; Reduce logging by only saving when not found
+            logMessage("[containsText] Searching: " text "  |  Found: " ocrText, 1)
         }
 
         return textFound > 0
@@ -2749,6 +2760,174 @@ containsText(x, y, width, height, text) {
     }
 }
 
+global biomeData := {"Normal":{duration: 0}
+                    ,"Windy":{duration: 120}
+                    ,"Rainy":{duration: 120}
+                    ,"Snowy":{duration: 120}
+                    ,"Hell":{duration: 660}
+                    ,"Starfall":{duration: 600}
+                    ,"Corruption":{duration: 660}
+                    ,"Null":{duration: 90}
+                    ,"Glitched":{duration: 164}}
+
+global similarCharacters := {"1":"l"
+    ,"n":"m"
+    ,"m":"n"
+    ,"t":"f"
+    ,"f":"t"
+    ,"s":"S"
+    ,"S":"s"
+    ,"w":"W"
+    ,"W":"w"}
+
+identifyBiome(inputStr){
+    if (!inputStr)
+        return 0
+    
+    internalStr := RegExReplace(inputStr,"\s")
+    internalStr := RegExReplace(internalStr,"^([\[\(\{\|IJ]+)")
+    internalStr := RegExReplace(internalStr,"([\]\)\}\|IJ]+)$")
+
+    highestRatio := 0
+    matchingBiome := ""
+
+    for v,_ in biomeData {
+        if (v = "Glitched"){
+            continue
+        }
+        scanIndex := 1
+        accuracy := 0
+        Loop % StrLen(v) {
+            checkingChar := SubStr(v,A_Index,1)
+            Loop % StrLen(internalStr) - scanIndex + 1 {
+                index := scanIndex + A_Index - 1
+                targetChar := SubStr(internalStr, index, 1)
+                if (targetChar = checkingChar){
+                    accuracy += 3 - A_Index
+                    scanIndex := index+1
+                    break
+                } else if (similarCharacters[targetChar] = checkingChar){
+                    accuracy += 2.5 - A_Index
+                    scanIndex := index+1
+                    break
+                }
+            }
+        }
+        ratio := accuracy/(StrLen(v)*2)
+        if (ratio > highestRatio){
+            matchingBiome := v
+            highestRatio := ratio
+        }
+    }
+
+    if (highestRatio < 0.70){
+        matchingBiome := 0
+        glitchedCheck := StrLen(internalStr)-StrLen(RegExReplace(internalStr,"\d")) + (RegExMatch(internalStr,"\.") ? 4 : 0)
+        if (glitchedCheck >= 20){
+            OutputDebug, % "glitched biome pro!"
+            matchingBiome := "Glitched"
+        }
+    }
+
+    return matchingBiome
+}
+
+determineBiome(){
+    ; logMessage("[determineBiome] Determining biome...")
+    if (!WinActive("ahk_id " GetRobloxHWND()) && !WinActive("Roblox")){
+        logMessage("[determineBiome] Roblox window not active.")
+        return
+    }
+    getRobloxPos(rX,rY,width,height)
+
+    ; Capture screen area
+    pBM := Gdip_BitmapFromScreen(rX "|" rY + height - height*0.102 + ((height/600) - 1)*10 "|" width*0.15 "|" height*0.03)
+
+    effect := Gdip_CreateEffect(3,"2|0|0|0|0" . "|" . "0|1.5|0|0|0" . "|" . "0|0|1|0|0" . "|" . "0|0|0|1|0" . "|" . "0|0|0.2|0|1",0)
+    effect2 := Gdip_CreateEffect(5,-100,250)
+    effect3 := Gdip_CreateEffect(2,10,50)
+    Gdip_BitmapApplyEffect(pBM,effect)
+    Gdip_BitmapApplyEffect(pBM,effect2)
+    Gdip_BitmapApplyEffect(pBM,effect3)
+
+    identifiedBiome := 0
+    resizeCounter := 0
+    Loop 10 {
+        newSizedPBM := Gdip_ResizeBitmap(pBM,300+(A_Index*38),70+(A_Index*7.5),1,2)
+        ocrResult := ocrFromBitmap(newSizedPBM)
+        identifiedBiome := identifyBiome(ocrResult)
+
+        Gdip_DisposeBitmap(newSizedPBM)
+
+        if (identifiedBiome){
+            resizeCounter := A_Index ; Attempt to determine the optimal resize multiplier
+            break
+        }
+    }
+    
+    ; Log only if identified
+    if (identifiedBiome && identifiedBiome != "Normal") {
+        logMessage("[determineBiome] OCR result: " RegExReplace(ocrResult,"(\n|\r)+",""))
+        logMessage("[determineBiome] Identified biome: " identifiedBiome " (" resizeCounter " resizes)")
+        ToolTip, % "Identified biome: " identifiedBiome " (" resizeCounter " resizes )"
+        RemoveTooltip(5)
+    }
+
+    Gdip_DisposeEffect(effect)
+    Gdip_DisposeEffect(effect2)
+    Gdip_DisposeEffect(effect3)
+    Gdip_DisposeBitmap(retrievedMap)
+    Gdip_DisposeBitmap(pBM)
+
+    DllCall("psapi.dll\EmptyWorkingSet", "ptr", -1)
+
+    return identifiedBiome
+}
+
+; Noteab (Windy) Progress
+YesConfirmBloxStrap() {
+    Sleep, 6500
+
+    WinGet, bloxstrapIDs, List, ahk_exe Bloxstrap.exe
+
+    Loop, %bloxstrapIDs% {
+        this_id := bloxstrapIDs%A_Index%
+        WinActivate, ahk_id %this_id%
+        WinWaitActive, ahk_id %this_id%
+
+        ; Loop for a maximum of 5 seconds (5000 milliseconds) with 500ms intervals
+        Loop, 5 { 
+            WinGetPos, WinX, WinY, WinWidth, WinHeight, ahk_id %this_id%
+
+            ; Check if dimensions match the warning popup (480x173)
+            if (WinWidth = 480 && WinHeight = 173) {
+                logMessage("[Bloxstrap] Warning popup found. Attempting to click Yes.")
+                closeRoblox()
+
+                yesButtonX := WinX + 300
+                yesButtonY := WinY + 140
+
+                MouseMove, %yesButtonX%, %yesButtonY%, 3
+                Click
+
+                logMessage("[Bloxstrap] Yes button clicked successfully.")
+                Sleep, 4000
+                bloxstrapFound := true
+                break 2 ; Exit both loops if the button is clicked
+            }
+
+            Sleep, 500 ; Wait for 500ms before checking again
+        }
+
+        ; If the loop completes without finding the popup, log a message
+        if (!bloxstrapFound) {
+            logMessage("[Bloxstrap] Window found, but warning popup not detected within the timeout.")
+        }
+    }
+}
+
+
+; Noteab (Windy) Progress
 FindSolsRNGButtons() {
     try {
         Gui, Default
@@ -2821,7 +3000,7 @@ FindSolsRNGButtons() {
             centerX := x + w / 2
             centerY := y + yOffset + h / 2
             MouseMove, %centerX%, %centerY%
-            Sleep, 30  ; Delay before getting the pixel color
+            Sleep, 75  ; Delay before getting the pixel color
 
             ; Scan within the button area for the white pixel color
             ScanArea := { "left": x, "top": y + yOffset, "right": x + w - 1, "bottom": y + yOffset + h - 1 }
@@ -2907,7 +3086,7 @@ attemptReconnect(failed := 0){
     ; Set default y position and offset of storage instead since guicontrolget dumped error when reconnecting, gg my macro :broken_heart:
     Storage_YPos_Scan := 318
     Storage_YOffset_Scan := 70 
-    
+
     logMessage("[attemptReconnect] Reconnect check - Fail count: " failed)
     initialized := 0
     if (reconnecting && !failed){
@@ -2921,7 +3100,7 @@ attemptReconnect(failed := 0){
     reconnecting := 1
     macroStarted := 0
     success := 0
-    
+
     ; stop(0, 1)
     StopPaths()
     closeRoblox()
@@ -2931,11 +3110,10 @@ attemptReconnect(failed := 0){
     Loop 5 {
         Sleep, % (A_Index-1)*10000
         try {
-            if (options.PrivateServerId && A_Index < 4){
-                Run % """roblox://placeID=15532962292&linkCode=" options.PrivateServerId """"
-            } ;else {
-                ; Run % """roblox://placeID=15532962292""" ; Public lobby bad!
-            ; }
+           if (options.PrivateServerId && A_Index < 4){
+                privateServerURL := "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode=" options.PrivateServerId 
+                Run, %ComSpec% /c start "" %privateServerURL%
+            } 
         } catch e {
             logMessage("[attemptReconnect] Unable to open Private Server. Error: " e.message)
             continue
@@ -2998,6 +3176,8 @@ attemptReconnect(failed := 0){
     }
 }
 
+
+
 checkDisconnect(wasChecked := 0){
     logMessage("[checkDisconnect] Checking for disconnect")
     getRobloxPos(windowX, windowY, windowWidth, windowHeight)
@@ -3012,7 +3192,7 @@ checkDisconnect(wasChecked := 0){
         ; return 0 ; Commented out to allow secondary check below
     ; }
 
-	if ((windowWidth > 0) && !WinExist("Roblox Crash")) {
+    if ((windowWidth > 0) && !WinExist("Roblox Crash")) {
 		pBMScreen := Gdip_BitmapFromScreen(windowX+(windowWidth/4) "|" windowY+(windowHeight/2) "|" windowWidth/2 "|1")
         matches := 0
         hW := windowWidth/2
@@ -3114,40 +3294,37 @@ mainLoop(){
     WinActivate, ahk_id %robloxId%
 
     ; Checks to avoid idling
-    CloseBSAlerts() ; Prevent infinite Bloxstrap error popups
-    
+    ;CloseBSAlerts() ; Prevent infinite Bloxstrap error popups
+
     if (isPlayButtonVisible()) {
         ClickPlay()
     }
-	
+
     enableAutoRoll() ; Check after ClickPlay to make sure not left off due to lag, etc
 
     if (!isFirstScan){
         FindSolsRNGButtons()
     }
-    ; Equip preferred aura
-    if (options.AutoEquipEnabled) {
-        EquipAura(options.AutoEquipAura)
-    }
-    
+
     if (!initialized){
         updateStatus("Initializing")
         initialize()
     }
 
     mouseActions()
-    
+
     Sleep, 250
 
     ; Reset to spawn before taking screenshots or using items
     ; reset()
     
     ; Attempt to claim quests every 30 minutes
-    if (options.ClaimDailyQuests && !lastClaim || A_TickCount - lastClaim > 1800000) {
+
+    if (options.AutoClaimQuestEnabled && !lastClaim || A_TickCount - lastClaim > 1800000) {
         ClaimQuests()
         lastClaim := A_TickCount
     }
-
+   
     ; Take Screenshots - Aura Storage, Item Inventory, Quests
     if (options.InvScreenshotsEnabled && getUnixTime()-options.LastInvScreenshot >= (options.ScreenshotInterval*60)) {
         options.LastInvScreenshot := getUnixTime()
@@ -3160,16 +3337,16 @@ mainLoop(){
     currentUnixTime := getUnixTime()
     for each, entry in ItemSchedulerEntries {
         if (entry.Enabled && currentUnixTime >= entry.NextRunTime) {
-            ; Account for biome
-            if (!entry.Biome || entry.Biome == "Any" || entry.Biome == currentBiome) { ; !entry.Biome check needed for pre-Biome legacy entries
-                ; Use specified number of item
-                UseItem(entry.ItemName, entry.Quantity)
+            ; Use specified number of item
+            UseItem(entry.ItemName, entry.Quantity)
 
-                ; Update the NextRunTime for the next scheduled run
-                frequencyInSeconds := entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600)
-                nextRunTime := currentUnixTime + frequencyInSeconds
-                entry.NextRunTime := nextRunTime
-            }
+            ; Update the NextRunTime for the next scheduled run
+            frequencyInSeconds := entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600)
+            nextRunTime := currentUnixTime + frequencyInSeconds
+            ; FormatTime, t, nextRunTime, "hh:mm:ss tt"
+            ; logMessage("[Scheduler] " entry.ItemName " next run: " t " (" frequencyInSeconds " seconds)", 1)
+
+            entry.NextRunTime := nextRunTime
         }
     }
 
@@ -3183,8 +3360,7 @@ mainLoop(){
     }
     
     if (options.DoingObby && (A_TickCount - lastObby) >= (obbyCooldown*1000)){
-        ; align()
-        reset()
+        align()
         obbyRun()
 
         ; MouseGetPos, mouseX, mouseY
@@ -3203,7 +3379,7 @@ mainLoop(){
         }
         if (!hasBuff)
         {
-            ; align()
+            align()
             updateStatus("Obby Failed, Retrying")
             lastObby := A_TickCount - obbyCooldown*1000
             obbyRun()
@@ -3233,6 +3409,33 @@ mainLoop(){
     */
 }
 
+; Used to detect current biome - Copied from status.ahk 
+biomeLoop(){ ; originally secondTick() - renamed due to conflict with existing function
+    if (!options.OCREnabled) {
+        return
+    }
+
+    detectedBiome := determineBiome()
+
+    if (detectedBiome && biomeData[detectedBiome] && detectedBiome != "Normal"){
+        ; If it's the same, we may be checking a little too early so don't wait the full duration again
+        if (detectedBiome = currentBiome) {
+            SetTimer, biomeLoop, -2000
+            return
+        }
+
+        currentBiome := detectedBiome
+
+        changeBiome()
+
+        targetData := biomeData[currentBiome]
+        SetTimer, biomeLoop, % -(targetData.duration+5) * 1000
+    } else {
+        SetTimer, biomeLoop, -2000
+    }
+}
+; biomeLoop()
+
 CreateMainUI() {
     global
 
@@ -3245,15 +3448,15 @@ CreateMainUI() {
 
     Gui mainUI: New, +hWndhGui
     Gui Color, 0xDADADA
-    Gui Add, Button, gStartClick vStartButton x8 y254 w80 h23 -Tabstop, F1 - Start
-    Gui Add, Button, gPauseClick vPauseButton x96 y254 w80 h23 -Tabstop, F2 - Pause
-    Gui Add, Button, gStopClick vStopButton x184 y254 w80 h23 -Tabstop, F3 - Stop
+    Gui Add, Button, gStartClick vStartButton x8 y224 w80 h23 -Tabstop, F1 - Start
+    Gui Add, Button, gPauseClick vPauseButton x96 y224 w80 h23 -Tabstop, F2 - Pause
+    Gui Add, Button, gStopClick vStopButton x184 y224 w80 h23 -Tabstop, F3 - Stop
     Gui Font, s11 Norm, Segoe UI
-    Gui Add, Picture, gDiscordServerClick w26 h20 x462 y254, % mainDir "images\discordIcon.png"
+    Gui Add, Picture, gDiscordServerClick w26 h20 x462 y226, % mainDir "images\discordIcon.png"
 
-    Gui Add, Tab3, vMainTabs x8 y8 w484 h240 +0x800000, Main|Crafting|Status|Settings|Credits|Extras|Merchants
+    Gui Add, Tab3, vMainTabs x8 y8 w484 h210 +0x800000, Main|Crafting|Status|Settings|Credits|Extras|Merchants
 
-    ; main tab
+; main tab
     Gui Tab, 1
 
     Gui Font, s10 w600
@@ -3267,7 +3470,7 @@ CreateMainUI() {
     Gui Add, GroupBox, x252 y40 w231 h70 vAutoEquipGroup -Theme +0x50000007, Auto Equip
     Gui Font, s9 norm
     Gui Add, CheckBox, vAutoEquipCheckBox x268 y61 w190 h22 +0x2, % " Enable Auto Equip"
-    Gui Add, Button, +gShowAuraEquipSearch x268 y83 w115 h22, Configure Search
+    Gui Add, Button, gAutoEquipSlotSelectClick vAutoEquipSlotSelectButton x268 y83 w115 h22, Select Storage Slot
     Gui Add, Button, gAutoEquipHelpClick vAutoEquipHelpButton x457 y50 w23 h23, ?
 
     Gui Font, s10 w600
@@ -3285,7 +3488,7 @@ CreateMainUI() {
     Gui Add, CheckBox, vCollectSpot6CheckBox x242 y174 w30 h26 +0x2 -Tabstop, % " 6"
     Gui Add, CheckBox, vCollectSpot7CheckBox x282 y174 w30 h26 +0x2 -Tabstop, % " 7"
 
-    ; crafting tab
+; crafting tab
     Gui Tab, 2
     Gui Font, s10 w600
     Gui Add, GroupBox, x16 y40 w231 h110 vItemCraftingGroup -Theme +0x50000007, Item Crafting
@@ -3328,7 +3531,7 @@ CreateMainUI() {
     Gui Add, UpDown, vPotionAutoAddIntervalUpDown Range1-300, 10
     Gui Add, Text, ys wp w60 h35 BackgroundTrans, minutes
 
-    ; status tab
+; status tab
     Gui Tab, 3
     Gui Font, s10 w600
     Gui Add, GroupBox, x16 y40 w130 h170 vStatsGroup -Theme +0x50000007, Stats
@@ -3369,28 +3572,26 @@ CreateMainUI() {
     ; Assign the g-label to the icon/button to show the Aura settings popup
     GuiControl, +gShowAuraSettings, vShowAuraSettingsIcon
 
-    ; settings tab
+; settings tab
     Gui Tab, 4
     Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y40 w259 h190 vGeneralSettingsGroup -Theme +0x50000007, General
+    Gui Add, GroupBox, x16 y40 w258 h170 vGeneralSettingsGroup -Theme +0x50000007, General
     Gui Font, s9 norm
     Gui Add, CheckBox, vVIPCheckBox x32 y58 w150 h22 +0x2, % " VIP Gamepass Owned"
     Gui Add, CheckBox, vAzertyCheckBox x32 y78 w200 h22 +0x2, % " AZERTY Keyboard Layout"
-    Gui Add, CheckBox, vClaimDailyQuestsCheckBox x32 y98 w200 h22 +0x2, % " Auto Claim Daily Quests (30 min)"
-    Gui Add, CheckBox, gShifterCheckBoxClick vShifterCheckBox x32 y118 w200 h22 +0x2, % " Abyssal Hunter Shifter Mode"
-    Gui Add, Text, x32 y141 w200 h22, % "Collection Back Button Y Offset:" ; increase by 30 to move down
-    Gui Add, Edit, x206 y140 w50 h18
+    Gui Add, Text, x32 y101 w200 h22, % "Collection Back Button Y Offset:"
+    Gui Add, Edit, x206 y100 w50 h18
     Gui Add, UpDown, vBackOffsetUpDown Range-500-500, 0
 
     Gui Font, s10 w600
     Gui Add, GroupBox, x280 y40 w203 h138 vReconnectSettingsGroup -Theme +0x50000007, Reconnect
     Gui Font, s9 norm
 
-    ; Reconnect Options
-    Gui Add, CheckBox, x296 y61 w150 h16 +0x2 vReconnectCheckBox Section, % " Enable Reconnect"
+    ; Enable Reconnect
+    Gui Add, CheckBox, x296 y61 w150 h16 +0x2 vReconnectCheckBox Section, % "Enable Reconnect"
 
     ; Restart Roblox
-    Gui Add, CheckBox, x296 y81 h16 +0x2 vRestartRobloxCheckBox Section, % " Restart Roblox every"
+    Gui Add, CheckBox, x296 y81 h16 +0x2 vRestartRobloxCheckBox Section, Restart Roblox every
     Gui Add, Edit, x296 y101 w45 h18 vRestartRobloxIntervalInput Number, 1
     Gui Add, UpDown, vRestartRobloxIntervalUpDown Range1-24, 1
     Gui Add, Text, x350 y102 w130 h16 BackgroundTrans, % "hour(s) (Clears RAM)"
@@ -3401,26 +3602,30 @@ CreateMainUI() {
 
     ; Import 
     Gui Add, Button, vImportSettingsButton gImportSettingsClick x317 y186 w130 h20, Import Settings
+
     ; Migrate from my last improvement macro UI section:
     ; Scan Button Loop
 
     ; Scan Loop Interval Input and Storage Y Pos Setting:
-    Gui Add, Text, x32 y162 w120 h15, Scan Loops attempts:
-    Gui Add, Edit, vScanLoopAttempts x150 y162 w45 h18 Number, 1 ; Default to 1 attempt
+    Gui Add, Text, x32 y122 w120 h15, Scan Loops attempts:
+    Gui Add, Edit, vScanLoopAttempts x150 y122 w45 h18 Number, 1 ; Default to 1 attempt
     Gui Add, UpDown, Range1-10 vScanLoopAttemptsUpDownInterval, 1  ; Allow 1 to 10 attempts
 
-    Gui Add, Text, x32 y182 w120 h15, Storage Y Position:
-    Gui Add, Edit, vStorageYPosScan x150 y182 w45 h18 Number, 1
+    Gui Add, Text, x32 y143 w120 h15, Storage Y Position:
+    Gui Add, Edit, vStorageYPosScan x150 y143 w45 h18 Number, 1
     Gui Add, UpDown, Range100-1000 vStorageYPosScanInterval, 1 ; Storage Y Position number input
 
     ; Storage Y Offset UI
-    Gui Add, Text, x32 y204 w120 h15, Storage Y Offset:
-    Gui Add, Edit, vStorageYOffset x150 y204 w45 h18 Number, 1
+    Gui Add, Text, x32 y164 w120 h15, Storage Y Offset:
+    Gui Add, Edit, vStorageYOffset x150 y164 w45 h18 Number, 1
     Gui Add, UpDown, Range1-400 vStorageYOffsetInterval, 1 ; Storage Y Offset number input
 
     ; Show Storage Aligning Pos and Offset:
-    Gui Add, Button, gToggleStorageYPOS_Highlight vStorageYPosHighlightButton x200 y168 w65 h45 +0x2, Highlight
-    
+    Gui Add, Button, gToggleStorageYPOS_Highlight vStorageYPosHighlightButton x197 y131 w65 h45 +0x2, Highlight
+
+    ; ClaimQuest() toggle checkbox: - Noteab
+    Gui Add, CheckBox, vAutoClaimQuestCheckBox x32 y183 w200 h22 +0x2, % " Auto Claim Daily Quest?"
+
     ; credits tab
     Gui Tab, 5
     Gui Font, s10 w600
@@ -3459,9 +3664,7 @@ CreateMainUI() {
 
     Gui Add, Button, gShowBiomeSettings vBiomeButton x16 y100 w128, Configure Biomes
     Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x16 y+5 w128, Item Scheduler
-
-    Gui Add, Button, gUIHelpClick vUIHelpButton x380 y190 w100 h23, How can I tell?
-
+    
     ; Roblox UI style to determine Chat button position
     Gui Font, s10 w600
     Gui Add, Text, x400 y130, Roblox UI
@@ -3472,9 +3675,9 @@ CreateMainUI() {
     Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio2, New
     GuiControl,, RobloxUpdatedUIRadio1, % (options["RobloxUpdatedUI"] = 1) ? 1 : 0
     GuiControl,, RobloxUpdatedUIRadio2, % (options["RobloxUpdatedUI"] = 2) ? 1 : 0
-
-    Gui Show, % "w500 h284 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Macro " "v1.5.0 (Merchant Experimental v1.3 - Noteab)"
     
+    Gui Show, % "w500 h254 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Macro " version
+
     ; Merchant tab (Mari and Jester!!)
     Gui, Tab, 7
     Gui Font, s9 norm
@@ -3518,7 +3721,6 @@ CreateMainUI() {
     Gui mainUI:Default
 }
 CreateMainUI()
-
 
 MerchantSettings() {
     global
@@ -3663,93 +3865,102 @@ Merchant_ItemHighlight() {
 
 
 Merchant_WebhooksGui() {
-    global options, NewWebhookAlias, NewWebhookURL, NewPingUserID, NewMerchantPrivateServerLink, WebhookList, NewJesterPingUserID
+    global NewWebhookAlias, NewWebhookURL, NewPingUserID, NewMerchantPrivateServerLink, WebhookList
     
     Gui, MerchantWebhooksSettings:New, +AlwaysOnTop +LabelWebhooksGui
     Gui Color, 0xDADADA
     Gui Font, s9 norm
 
     ; Title
-    Gui, Add, Text, x16 y10 w300 h30, Discord Webhook Management (only 1 webhook supported, more webhook ping will be avail soon)
+    Gui, Add, Text, x16 y10 w300 h30, Discord Webhook Management
     
     ; New Webhook Section
-    Gui, Add, Text, x16 y40 w250, New Webhook Alias (e.g., Mari or Jester omg real??! or any silly name you want):
-    Gui, Add, Edit, x16 y70 w250 vNewWebhookAlias, % options.MerchantWebhookAlias
+    Gui, Add, Text, x16 y50 w250, New Webhook Alias:
+    Gui, Add, Edit, x16 y70 w250 vNewWebhookAlias
 
-    Gui, Add, Text, x16 y100 w250, Webhook URL:
-    Gui, Add, Edit, x16 y120 w250 vNewWebhookURL, % options.MerchantWebhookLink
+    Gui, Add, Text, x16 y100 w250, New Webhook URL:
+    Gui, Add, Edit, x16 y120 w250 vNewWebhookURL
 
-    Gui, Add, Text, x16 y150 w250, Ping Mari User ID (Optional):
-    Gui, Add, Edit, x16 y170 w250 vNewPingUserID, % options.MerchantWebhook_Mari_UserID
+    Gui, Add, Text, x16 y150 w250, Ping User ID (Optional):
+    Gui, Add, Edit, x16 y170 w250 vNewPingUserID
 
-    Gui, Add, Text, x16 y200 w250, Ping Jester User ID (Optional):
-    Gui, Add, Edit, x16 y220 w250 vNewJesterPingUserID, % options.MerchantWebhook_Jester_UserID
+    Gui, Add, Text, x16 y200 w250, Merchant Private Server Link (Optional):
+    Gui, Add, Edit, x16 y220 w250 vNewMerchantPrivateServerLink
 
-    Gui, Add, Text, x16 y250 w250, Merchant Private Server Link (Optional):
-    Gui, Add, Edit, x16 y270 w250 vNewMerchantPrivateServerLink, % options.MerchantWebhook_PS_Link
-
-    Gui, Add, Button, x16 y320 w120 h30 gMerchant_AddWebhook, Add Webhook
+    Gui, Add, Button, x16 y260 w120 h30 gMerchant_AddWebhook, Add Webhook
 
     ; Existing Webhooks Section
-    Gui, Add, ListBox, x16 y350 w300 h150 vWebhookList, % Merchant_ListWebhooks()
+    Gui, Add, ListBox, x16 y300 w300 h200 vWebhookList, % Merchant_ListWebhooks()
 
-    ; Add Delete Webhook Button
-    Gui, Add, Button, x16 y520 w120 h30 gMerchant_DeleteWebhook, Delete Webhook
+    Gui, Add, Button, x16 y520 w120 h30 gMerchant_DeleteWebhook, Delete Selected Webhook
 
     Gui, Show, , Discord Webhooks
 }
 
 Merchant_AddWebhook() {
-    global options, NewWebhookAlias, NewWebhookURL, NewPingUserID, NewMerchantPrivateServerLink, NewJesterPingUserID
+    global NewWebhookAlias, NewWebhookURL, NewPingUserID, Merchant_Webhooks
+    Gui, Submit, NoHide  ; This submits the form's content to the associated variables
     
-    Gui, Submit, NoHide
-
-    ; Validate the webhook URL
-    if (!validateWebhookLink(NewWebhookURL)) {
-        MsgBox, Invalid webhook URL! Please input a valid Discord webhook URL.
+    ; Check if both the alias and URL are provided
+    if (NewWebhookAlias = "" || NewWebhookURL = "") {
+        MsgBox, Please provide both a webhook alias and URL.
         return
     }
 
-    ; Update the options with new values
-    options.MerchantWebhookAlias := NewWebhookAlias
-    options.MerchantWebhookLink := NewWebhookURL
-    options.MerchantWebhook_Mari_UserID := NewPingUserID
-    options.MerchantWebhook_Jester_UserID := NewJesterPingUserID
-    options.MerchantWebhook_PS_Link := NewMerchantPrivateServerLink
+    ; Add the new webhook to the array
+    webhook := {"alias": NewWebhookAlias, "url": NewWebhookURL, "pingUserID": NewPingUserID}
+    Merchant_Webhooks.Push(webhook)
 
-    ; Update ListBox with the new webhook (limit to one webhook)
-    GuiControl,, WebhookList, % NewWebhookAlias " | " NewWebhookURL
-    
-    ; Clear the input fields after submission
-    GuiControl,, NewWebhookAlias
-    GuiControl,, NewWebhookURL
-    GuiControl,, NewPingUserID
-    GuiControl,, NewJesterPingUserID
-    GuiControl,, NewMerchantPrivateServerLink
+    ; Update ListBox
+    GuiControl,, WebhookList, % Merchant_ListWebhooks()
 }
 
 Merchant_DeleteWebhook() {
-    global options
+    global Merchant_Webhooks
+    Gui, Submit, NoHide
 
-    ; Clear the stored webhook info
-    options.MerchantWebhookAlias := ""
-    options.MerchantWebhookLink := ""
-    options.MerchantWebhook_Mari_UserID := ""
-    options.MerchantWebhook_Jester_UserID := ""
-    options.MerchantWebhook_PS_Link := ""
+    ; Get the selected index in the ListBox
+    GuiControlGet, selectedIndex, , WebhookList
 
-    ; Clear the ListBox
-    GuiControl,, WebhookList, ""
+    ; Ensure a valid selection is made
+    if (selectedIndex > 0) {
+        selectedItem := Merchant_ListWebhooks().Split("`n")[selectedIndex]
+        alias := StrSplit(selectedItem, " | ")[1]
+
+        ; Find and remove the corresponding webhook based on the alias
+        for index, webhook in Merchant_Webhooks {
+            if (webhook.alias = alias) {
+                Merchant_Webhooks.RemoveAt(index)
+                break
+            }
+        }
+
+        ; Update ListBox
+        GuiControl,, WebhookList, % Merchant_ListWebhooks()
+    } else {
+        MsgBox, Please select a webhook to delete.
+    }
 }
 
 Merchant_ListWebhooks() {
-    global options
+    global Merchant_Webhooks
     output := ""
-    if (options.MerchantWebhookAlias != "") {
-        output := options.MerchantWebhookAlias " | " options.MerchantWebhookLink
+    for index, webhook in Merchant_Webhooks {
+        output .= webhook.alias " | " webhook.url "`n"
     }
     return output
 }
+; ; update merchant OCR region
+; UpdateMerchantRegion() {
+;     global MerchantOcrX, MerchantOcrY, MerchantOcrWidth, MerchantOcrHeight
+;     MsgBox, % "OCR Region Updated to X: " MerchantOcrX " Y: " MerchantOcrY " Width: " MerchantOcrWidth " Height: " MerchantOcrHeight
+; }
+
+
+; DisplayMerchantBoundingBox() {
+;     global MerchantOcrX, MerchantOcrY, MerchantOcrWidth, MerchantOcrHeight
+;     Highlight(MerchantOcrX, MerchantOcrY, MerchantOcrWidth, MerchantOcrHeight, 3000)
+; }
 
 ; Create the Aura settings popup
 ShowAuraSettings() {
@@ -3771,14 +3982,8 @@ ShowAuraSettings() {
     local columnCounter := 0
     local columnWidth := 240
 
-    ; Sort names
-    sortedNames := {}
-    for k, v in auraNames
-        sortedNames[v] := v
-    auraNames := sortedNames
-
     ; Create checkboxes for each aura
-    for _, auraName in auraNames {
+    for index, auraName in auraNames {
         ; Convert the aura name to a valid variable name
         sAuraName := RegExReplace(auraName, "[^a-zA-Z0-9]+", "_") ; Replace with underscore
         sAuraName := RegExReplace(sAuraName, "\_$", "") ; Remove any trailing underscore
@@ -3802,31 +4007,13 @@ ShowAuraSettings() {
     Gui Show, % "w500", Aura Settings
 }
 
-ShowAuraEquipSearch() {
-    global
-    Gui, AuraSearch:New, +AlwaysOnTop +LabelAuraSearchGui
-    Gui Font, s11 w300
-    Gui Add, Text, x16 y10 w300 h50, % "Enter aura name to be used for search.`nThe first result will be equipped so be specific."
-
-    ; No functionality yet
-    searchSpecialAurasState := options.SearchSpecialAuras ? "Checked" : ""
-    Gui Add, CheckBox, vSearchSpecialAurasCheckBox x200 y148 w300 h22 %searchSpecialAurasState% +Disabled, % "Search in Special Auras"
-
-    defaultAura := options.AutoEquipAura ? options.AutoEquipAura : "Quartz"
-    Gui Add, Edit, vAuraNameInput x8 y110 w382 h22, % defaultAura
-
-    Gui Add, Button, gSubmitAuraName x32 y144 w100 h30, Submit
-
-    Gui Show, % "w400 h190 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "Auto Equip Aura"
-}
-
 applyAuraSettings() {
     global auraNames, options
 
     Gui AuraSettings:Default  ; Ensure we are in the context of AuraSettings GUI
 
     ; Save aura settings with prefix
-    for _, auraName in auraNames {
+    for index, auraName in auraNames {
         sAuraName := RegExReplace(auraName, "[^a-zA-Z0-9]+", "_") ; Replace all non-alphanumeric characters with underscore
         sAuraName := RegExReplace(sAuraName, "\_$", "") ; Remove any trailing underscore
         
@@ -3883,6 +4070,249 @@ applyBiomeSettings() {
     }
 }
 
+/*
+    Start Item Scheduler Section
+*/
+; Create the Item Scheduler settings popup
+ShowItemSchedulerSettings() {
+    global
+
+    Gui ItemSchedulerSettings:New, +AlwaysOnTop +LabelItemSchedulerGui
+    ; Gui Font, s10 w600
+    ; Gui Add, Text, x16 y10 w300 h30, Auto Item Scheduler
+    Gui Font, s9 norm
+
+    ; Initialize position variables
+    startXPos := 16
+    startYPos := 10
+    xPos := startXPos
+    yPos := startYPos
+
+    ; Add button to add new entry and Highlight Coordinates
+    Gui Add, Button, x%xPos% y%yPos% w100 h25 gAddNewItemEntry vAddNewItemEntryButton, New Entry
+    Gui Add, Button, x+50 wp w150 h25 gHighlightItemCoordinates vHighlightItemCoordinatesButton, Show Inventory Clicks
+    yPos += 30
+
+    ; Create headers
+    Gui Add, Text, x%xPos% y%yPos% Section w50 h20, Enable
+    Gui Add, Text, x+30 yp w100 h20, Item
+    Gui Add, Text, x+-25 yp w50 h20, Quantity
+    Gui Add, Text, x+20 yp w50 h20, Frequency
+    yPos += 20
+
+    ; Create entries for each item usage configuration
+    xPos := 20
+    for index, entry in ItemSchedulerEntries {
+        ; OutputDebug, % "# Entries: " ItemSchedulerEntries.Length()
+        if (!entry) {
+            ; OutputDebug, % "*Item " index ": " entry.ItemName
+            break
+        }
+        ; OutputDebug, % "Item " index ": " entry.ItemName
+        AddItemEntry(index, entry, xPos, yPos)
+        yPos += 30
+    }
+
+    Gui Show, % "w430 h400", Auto Item Scheduler
+}
+
+; Function to add item entry to GUI
+AddItemEntry(idx, entry, xPos, yPos) {
+    global
+
+    OutputDebug, % "Adding entry " idx " at yPos " yPos
+
+    ; Concatenate item names for the dropdown list
+    UsableItems := ["Merchant Teleport", "Strange Controller", "Biome Randomizer", "Lucky", "Speed", "Fortune Potion I", "Fortune Potion II", "Fortune Potion III", "Haste Potion I", "Haste Potion II", "Haste Potion III", "Heavenly Potion I", "Heavenly Potion II"]
+    itemList := "|"
+    for each, item in UsableItems {
+        itemList .= item "|"
+    }
+
+    ; Add controls for the entry
+    Gui Add, CheckBox, % "vEnable" idx "CheckBox Section x" xPos " y" yPos " w30 h20 Checked" entry.Enabled, % idx
+    Gui Add, DropDownList, vItem%idx%DropDown x+ yp w115 h20 R10, % itemList
+    GuiControl, ChooseString, Item%idx%DropDown, % entry.ItemName
+    Gui Add, Edit, vQuantity%idx%Edit x+5 yp wp+10 w40 h20 Number, % entry.Quantity
+    Gui Add, Edit, vFrequency%idx%Edit x+5 yp w30 h20 Number, % entry.Frequency
+    Gui Add, DropDownList, vTimeUnit%idx%DropDown x+ yp w80 h20 R2, Minutes||Hours
+    Gui Add, Button, gDeleteItemEntry vDelete%idx% x+m yp w80 h20, Delete
+}
+
+; Function to add a new empty item entry
+AddNewItemEntry() {
+    ; Calculate yPos based on non-deleted entries
+    yPos := 60
+    for each, entry in ItemSchedulerEntries {
+        if (!entry.Deleted) {
+            yPos += 30
+        }
+    }
+
+    entry := {Enabled: 1
+        , ItemName: ""
+        , Quantity: 1
+        , Frequency: 1
+        , TimeUnit: "Minutes"}
+    
+    idx := ItemSchedulerEntries.Length() + 1
+    AddItemEntry(idx, entry, 20, yPos)
+    ItemSchedulerEntries.Push(entry)
+}
+
+; Function to save item settings
+SaveItemSchedulerSettings() {
+    global configPath, options, ItemSchedulerEntries
+
+    ; Clear current entries
+    ItemSchedulerEntries := []
+
+    ; Flush entries from options to avoid leaving deleted entries
+    for i, v in options {
+        if (InStr(i, "ISEntry", 1) = 1) {
+            options.Delete(i)
+        }
+    }
+
+    ; Save each entry's settings
+    Gui, ItemSchedulerSettings:Default
+    idx := 1
+    Loop {
+        ; OutputDebug, % "Saving index " idx
+
+        GuiControlGet, visible, Visible, Enable%idx%CheckBox
+        if (ErrorLevel) {
+            break
+        }
+
+        if (!visible) { ; Skip "deleted" entries - AHK v1 has no way to delete controls so they are hidden instead
+            idx++
+            continue
+        }
+
+        ; Retrieve values from the controls
+        GuiControlGet, enabled,, Enable%idx%CheckBox
+        GuiControlGet, itemName,, Item%idx%DropDown
+        GuiControlGet, quantity,, Quantity%idx%Edit
+        GuiControlGet, frequency,, Frequency%idx%Edit
+        GuiControlGet, timeUnit,, TimeUnit%idx%DropDown
+
+        ; OutputDebug, % "  Item: " itemName
+        ; OutputDebug, % "  Enabled: " enabled
+        ; OutputDebug, % "  Quantity: " quantity
+        ; OutputDebug, % "  Frequency: " frequency
+        ; OutputDebug, % "  Min/Hr: " timeUnit
+
+        entry := {Enabled: enabled
+            , ItemName: itemName
+            , Quantity: quantity
+            , Frequency: frequency
+            , TimeUnit: timeUnit}
+
+        ; Add the entry to the ItemSchedulerEntries array
+        ItemSchedulerEntries.Push(entry)
+
+        idx++
+    }
+
+    ; Save settings to global options
+    for i, entry in ItemSchedulerEntries {
+        options["ISEntry" i] := entry.Enabled "," entry.ItemName "," entry.Quantity "," entry.Frequency "," entry.TimeUnit
+    }
+}
+
+; Function to delete an item entry
+DeleteItemEntry() {
+    Gui, ItemSchedulerSettings:Default
+
+    ; Extract the index from the control's variable name
+    RegExMatch(A_GuiControl, "\d+", idx)
+
+    ; Mark the entry as deleted (keeps the array length consistent)
+    ItemSchedulerEntries[idx].Deleted := true
+
+    ; Hide the controls associated with the entry
+    GuiControl, Hide, Enable%idx%CheckBox
+    GuiControl, Hide, Item%idx%DropDown
+    GuiControl, Hide, Quantity%idx%Edit
+    GuiControl, Hide, Frequency%idx%Edit
+    GuiControl, Hide, TimeUnit%idx%DropDown
+    GuiControl, Hide, Delete%idx%
+
+    ; Reposition remaining controls
+    yPos := 60
+    for i, entry in ItemSchedulerEntries {
+        if (!entry.Deleted) {
+            ; Update the position of visible controls
+            GuiControl, Move, Enable%i%CheckBox, y%yPos%
+            GuiControl, Move, Item%i%DropDown, y%yPos%
+            GuiControl, Move, Quantity%i%Edit, y%yPos%
+            GuiControl, Move, Frequency%i%Edit, y%yPos%
+            GuiControl, Move, TimeUnit%i%DropDown, y%yPos%
+            GuiControl, Move, Delete%i%, y%yPos%
+
+            ; Force redraw to ensure no blurriness or overlap
+            GuiControl, MoveDraw, Enable%i%CheckBox
+            GuiControl, MoveDraw, Item%i%DropDown
+            GuiControl, MoveDraw, Quantity%i%Edit
+            GuiControl, MoveDraw, Frequency%i%Edit
+            GuiControl, MoveDraw, TimeUnit%i%DropDown
+            GuiControl, MoveDraw, Delete%i%
+            yPos += 30
+        }
+    }
+}
+
+LoadItemSchedulerOptions() {
+    global configPath, ItemSchedulerEntries
+
+    savedRetrieve := getINIData(configPath)
+    if (!savedRetrieve) {
+        logMessage("[LoadItemSchedulerOptions] Unable to read config.ini")
+        return
+    }
+
+    ItemSchedulerEntries := []
+    for i, v in savedRetrieve {
+        if (InStr(i, "ISEntry", 1) = 1) {
+            parts := StrSplit(v, ",")
+            entry := {Enabled: parts[1], ItemName: parts[2], Quantity: parts[3], Frequency: parts[4], TimeUnit: parts[5]}
+            entry.NextRunTime := getUnixTime() ; Run once on load. TODO: Add option to menu entries
+
+            if (entry.ItemName = "") {
+                continue
+            }
+            ItemSchedulerEntries.Push(entry)
+        }
+    }
+
+    ; Add entries to options - Handled in Save function which is only called when Scheduler is closed
+    for i, entry in ItemSchedulerEntries {
+        options["ISEntry" i] := entry.Enabled "," entry.ItemName "," entry.Quantity "," entry.Frequency "," entry.TimeUnit
+    }
+}
+
+; Function to highlight coordinates
+HighlightItemCoordinates() {
+    ; Highlight where mouse will click to automatically use items
+    ; For user to test accuracy
+
+    ; 850, 330 Search box
+    Highlight(850-5, 330-5, 10, 10, 5000)
+
+    ; 860, 400 1st search result
+    Highlight(860-5, 400-5, 10, 10, 5000)
+
+    ; 590, 600 Quantity box
+    Highlight(590-5, 600-5, 10, 10, 5000)
+
+    ; 700, 600 Use button
+    Highlight(700-5, 600-5, 10, 10, 5000)
+}
+/*
+    End Item Scheduler Section
+*/
+
 global directValues := {"ObbyCheckBox":"DoingObby"
     ,"AzertyCheckBox":"AzertyLayout"
     ,"ObbyBuffCheckBox":"CheckObbyBuff"
@@ -3894,11 +4324,11 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"ItemCraftingCheckBox":"ItemCraftingEnabled"
     ,"InvScreenshotinterval":"ScreenshotInterval"
     ,"PotionCraftingCheckBox":"PotionCraftingEnabled"
-    ,"PotionAutoAddCheckBox":"PotionAutoAddEnabled"
-    ,"PotionAutoAddIntervalUpDown":"PotionAutoAddInterval"
+    ,"PotionAutoAddCheckBox":"PotionAutoAddEnabled"          ; Amraki
+    ,"PotionAutoAddIntervalUpDown":"PotionAutoAddInterval"   ; Amraki
     ,"ReconnectCheckBox":"ReconnectEnabled"
-    ,"RestartRobloxCheckBox":"RestartRobloxEnabled"
-    ,"RestartRobloxIntervalUpDown":"RestartRobloxInterval"
+    ,"RestartRobloxCheckBox":"RestartRobloxEnabled"          ; Amraki
+    ,"RestartRobloxIntervalUpDown":"RestartRobloxInterval"   ; Amraki
     ,"WebhookCheckBox":"WebhookEnabled"
     ,"WebhookInput":"WebhookLink"
     ,"WebhookImportantOnlyCheckBox":"WebhookImportantOnly"
@@ -3906,14 +4336,29 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"WebhookUserIDInput":"DiscordUserID"
     ,"WebhookInventoryScreenshots":"InvScreenshotsEnabled"
     ,"StatusBarCheckBox":"StatusBarEnabled"
-    ,"SearchSpecialAurasCheckBox":"SearchSpecialAuras"
-    ,"ClaimDailyQuestsCheckBox":"ClaimDailyQuests"
-    ,"OCREnabledCheckBox":"OCREnabled"
-    ,"ShifterCheckBox":"Shifter"
+    ,"OCREnabledCheckBox":"OCREnabled" ; Amraki
     ,"ScanLoopAttemptsUpDownInterval": "ScanLoopInterval" ; Noteab
     ,"StorageYPosScanInterval":"StorageButtonYPosScanVALUE" ; Noteab
     ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE"
-    ,"AutoMerchantBooleanBox": "AutoMerchantEnabled"} ; Noteab
+    ,"AutoClaimQuestCheckBox":"AutoClaimQuestEnabled"
+    ,"AutoMerchantBooleanBox": "AutoMerchantEnabled"}
+    ; ,"SliderX_UpDown": "Merchant_slider_X"
+    ; ,"SliderY_UpDown": "Merchant_slider_Y"
+    ; ,"PurchaseAmountX_UpDown": "Merchant_Purchase_Amount_X"
+    ; ,"PurchaseAmountY_UpDown": "Merchant_Purchase_Amount_Y"
+    ; ,"PurchaseButtonX_UpDown": "Merchant_Purchase_Button_X"
+    ; ,"PurchaseButtonY_UpDown": "Merchant_Purchase_Button_Y"
+    ; ,"OpenButtonX_UpDown": "Merchant_Open_Button_X"
+    ; ,"OpenButtonY_UpDown": "Merchant_Open_Button_Y"
+    ; ,"UsernameOCRX_UpDown": "Merchant_Username_OCR_X"
+    ; ,"UsernameOCRY_UpDown": "Merchant_Username_OCR_Y"
+    ; ,"ItemNameOCRX_UpDown": "Merchant_ItemName_OCR_X"
+    ; ,"ItemNameOCRY_UpDown": "Merchant_ItemName_OCR_Y"
+    ; ,"FirstItemPosX_UpDown": "Merchant_FirstItem_Pos_X"
+    ; ,"FirstItemPosY_UpDown": "Merchant_FirstItem_Pos_Y"} ; Noteab  
+    ; ,"JesterItemSlot1": "JesterSlot1" ; Noteab 
+    ;,"JesterItemSlot2": "JesterSlot2" ; Noteab 
+    ;,"JesterItemSlot3": "JesterSlot3" ; Noteab         
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
     ,"WebhookRollPingInput":"WebhookRollPingMinimum"}
@@ -3938,21 +4383,22 @@ updateUIOptions(){
     }
 
     Loop 3 {
-        v := options["PotionCraftingSlot" . A_Index]
-        GuiControl,ChooseString,PotionCraftingSlot%A_Index%DropDown,% potionIndex[v]
-    }
-
-    Loop 3 {
         v := options["Mari_ItemSlot" . A_Index]
-        GuiControl, Choose, MariSlot%A_Index%DropDown, %v%
+        GuiControl, Choose, MariSlot%A_Index%DropDown, %v% ; Choose by index directly
     }
 
     Loop 3 {
         v := options["Jester_ItemSlot" . A_Index]
-        GuiControl, Choose, JesterSlot%A_Index%DropDown, %v%
+        GuiControl, Choose, JesterSlot%A_Index%DropDown, %v% ; Choose by index directly
+    }
+
+    Loop 3 {
+        v := options["PotionCraftingSlot" . A_Index]
+        GuiControl,ChooseString,PotionCraftingSlot%A_Index%DropDown,% potionIndex[v]
     }
 }
 updateUIOptions()
+
 
 validateWebhookLink(link){
     return RegexMatch(link, "i)https:\/\/(canary\.|ptb\.)?(discord|discordapp)\.com\/api\/webhooks\/([\d]+)\/([a-z0-9_-]+)") ; filter by natro
@@ -3961,7 +4407,7 @@ validateWebhookLink(link){
 applyNewUIOptions(){
     global hGui
     Gui mainUI:Default
-
+    
     VarSetCapacity(wp, 44), NumPut(44, wp)
     DllCall("GetWindowPlacement", "uint", hGUI, "uint", &wp)
 	x := NumGet(wp, 28, "int"), y := NumGet(wp, 32, "int")
@@ -4384,7 +4830,7 @@ startMacro(){
 if (!options.FirstTime){
     options.FirstTime := 1
     saveOptions()
-    MsgBox, 0,dolphSol Macro - Welcome, % "Welcome to dolphSol macro!`n`nIf this is your first time here, go through all of the tabs to make sure your settings are right.`n`nIf you are here from an update, remember that you can import all of your previous settings in the Settings menu.`n`nJoin the Discord server and check the GitHub page for the community and future updates, which can both be found in the Credits page."
+    MsgBox, 0,dolphSol Macro - Welcome, % "Welcome to dolphSol macro!`n`nIf this is your first time here, make sure to go through all of the tabs to make sure your settings are right.`n`nIf you are here from an update, remember that you can import all of your previous settings in the Settings menu.`n`nMake sure join the Discord server and check the GitHub page for the community and future updates, which can both be found in the Credits page. (Discord link is also in the bottom right corner)"
 }
 
 if (!options.WasRunning){
@@ -4421,14 +4867,8 @@ StopClick:
     Reload
     return
 
-SubmitAuraName:
-    Gui, AuraSearch:Submit, NoHide
-    if (!ErrorLevel && auraName != "") {
-        options.AutoEquipAura := AuraNameInput
-        options.SearchSpecialAuras := SearchSpecialAurasCheckBox
-        saveOptions()
-        Gui, AuraSearch:Destroy
-    }
+AutoEquipSlotSelectClick:
+    startAutoEquipSelection()
     return
 
 DiscordServerClick:
@@ -4454,14 +4894,6 @@ WebhookRollImageCheckBoxClick:
 GetRobloxVersion:
     Gui, Submit, NoHide
     options["RobloxUpdatedUI"] := (RobloxUpdatedUIRadio1 = 1) ? 1 : 2
-    return
-
-ShifterCheckBoxClick:
-    Gui mainUI:Default
-    GuiControlGet, v,, ShifterCheckBox
-    if (v){
-    MsgBox, 0, Important, % "Shifter mode has not been tested with a non vip account and does not currently have Obby capabilites."
-    }
     return
 
 OCREnabledCheckBoxClick:
@@ -4501,27 +4933,33 @@ OCREnabledCheckBoxClick:
 
 MoreCreditsClick:
     creditText =
-(
-Development
+    (
+    Development
 
- v1.5.0+ Contributors
-  - Amraki (amraki)
-  - Stewart (unoriginalstew)
-  - Big thank you to these people, as well as everyone else who helped work on this version over the few months of my inactivity!
+    - Assistant Developer - Stanley (stanleyrekt)
+    - Path Contribution - sanji (sir.moxxi), Flash (drflash55)
+    - Path Inspiration - Aod_Shanaenae
 
-- Assistant Developer - Stanley (stanleyrekt)
-- Path Contribution - sanji (sir.moxxi), Flash (drflash55)
-- Path Inspiration - Aod_Shanaenae
+    Supporters (Donations)
 
-Supporters (Donations)
+    - @Bigman
+    - @sir.moxxi (sanji)
+    - @zrx
+    - @dj_frost
+    - @FlamePrince101 - Member
+    - @jw
+    - @Maz - Member
+    - @dead_is4
+    - @CorruptExpy_II
+    - @Ami.n
+    - @s.a.t.s
+    - @UnamedWasp - Member
+    - @JujuFRFX
+    - @Xon67
+    - @NightLT98 - Member
 
-- Bigman, sir.moxxi (sanji), @zrx, @dj_frost, @jw, dead_is4, CorruptExpy_II, Ami.n, JujuFRFX, Xon67, @nottheofficialblx, v2isballin, Luke_, a11xn, @ashkarti, da.cheese, Xander, Aki, .heavenlyy, 1vqs, xpersonie, @ItsLinkCraft, @l3m0n_0, churchuk, cookie
-
- Members
-  - FlamePrince101, Maz, @s.a.t.s, UnamedWasp, NightLT98, DeclanPickle, Fantesium, Jirach1, notkenno
-
-Thank you to everyone who currently supports and uses the macro! You guys are amazing!
-)
+    Thank you to everyone who currently supports and uses the macro! You guys are amazing!
+    )
     MsgBox, 0, More Credits, % creditText
     return
 
@@ -4531,7 +4969,7 @@ ObbyHelpClick:
     return
 
 AutoEquipHelpClick:
-    MsgBox, 0, Auto Equip, % "Section for automatically equipping a specified aura every macro round. This is important for equipping auras without walk animations, which may interfere with the macro.`n`nThis feature is HIGHLY RECOMMENDED to be used on a non-animation aura for best optimization."
+    MsgBox, 0, Auto Equip, % "Section for automatically equipping a specified aura every macro round. This is important for equipping auras without walk animations, which may interfere with the macro. This defaults to your first storage slot if not selected. Enabling this will close your chat window due to it possibly getting in the way of the storage button.`n`nUse the Select Storage Slot button to select a slot in your Aura Storage to automatically equip. Right click when selecting to cancel.`n`nThis feature is HIGHLY RECOMMENDED to be used on a non-animation aura for best optimization."
     return
 
 CollectHelpClick:
@@ -4567,11 +5005,6 @@ AuraGuiClose:
     Gui, AuraSettings:Destroy
 return
 
-AuraSearchGuiClose:
-    saveOptions()
-    Gui, AuraSearch:Destroy
-return
-
 BiomeGuiClose:
     applyBiomeSettings() ; Update options
     saveOptions()  ; Save the options
@@ -4592,14 +5025,29 @@ return
 #If !running
     F1::startMacro()
 
+    ^F1::
+        closeRoblox()
+        Sleep, 1500
+        startMacro()
+        return
+
     ^F2::
         alignCamera()
-        Sleep, 500
+        Sleep, 2000
         reset()
         return
 
+    F8::
+        Sleep, 500
+        alignCamera()
+        Sleep, 2000
+        reset()
+        Sleep, 500
+        handlePause()
+        return
+
     F9:: ShowMousePos()
-    F11:: Merchant_Webhook_Main("Mari", [""], "", "", "Merchant Face Screenshot")
+    F11:: Merchant_Webhook_Main("jester", [""], "", "", "Merchant Face Screenshot")
 #If
 
 #If running || reconnecting
@@ -4614,16 +5062,33 @@ return
         Sleep, 1500
         handlePause()
         return
-        
+
+    F8::
+        Sleep, 500
+        alignCamera()
+        Sleep, 2000
+        reset()
+        Sleep, 500
+        handlePause()
+        return
+
     F3::
         stop()
         Reload
         return
+
+    ^F1::
+        closeRoblox()
+        stop()
+        Reload
+        Sleep, 3500
+        startMacro()
+        return
 #If
 
 #If selectingAutoEquip
-~LButton::handleLClick()
-~RButton::handleRClick()
+    ~LButton::handleLClick()
+    ~RButton::handleRClick()
 #If
 
 ; Disable keyboard control of macro GUI to avoid accidental changes
