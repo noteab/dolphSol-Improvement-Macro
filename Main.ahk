@@ -962,35 +962,7 @@ reset() {
     press("Enter",150)
     Sleep, 50 * delayMultiplier
 
-    MouseMove, % A_ScreenWidth, % A_ScreenHeight/2
-
-    Sleep, 1000 ; tysm @unconstitutional
-    
-    clickMenuButton(2)
-
-    Sleep, 200
-
-    getRobloxPos(rX,rY,rW,rH)
-    MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
-    Sleep, 200
-    MouseClick
-    Sleep, 200
-
-    Sleep, 500
-
-    ; Get window position and size
-    getRobloxPos(pX,pY,width,height)
-
-    ; Pan camera
-    centerX := Floor(pX + width/2)
-    centerY := Floor(pY + height/2)
-    MouseClickDrag(centerX, centerY, centerX, centerY + 200)
-
     atSpawn := 1
-
-    Send, {Left down}
-    Sleep, 1500
-    Send, {Left up}
 }
 
 jump() {
@@ -1050,7 +1022,6 @@ resetZoom(){
         Click, WheelDown
         Sleep, 50
     }
-
 }
 
 resetCameraAngle(){
@@ -1174,8 +1145,40 @@ alignCamera(){
     reset()
     Sleep, 100
 
+    rotateCameraMode() ; Follow
+
+    clickMenuButton(2)
+    Sleep, 500
+    
+    getRobloxPos(rX,rY,rW,rH)
+    MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
+    Sleep, 200
+    MouseClick
+    Sleep, 200
+
+    rotateCameraMode() ; Default(Classic)
+    resetCameraAngle() ; Fix angle before aligning direction
+    Sleep, 100
+
+    walkSend("d","Down")
+    walkSleep(200)
+    jump()
+    walkSleep(400)
+    walkSend("d","Up")
+    walkSend("w","Down")
+    walkSleep(500)
+    jump()
+    walkSleep(900)
+    walkSend("w","Up")
+
+    rotateCameraMode() ; Follow
+    Sleep, 1500
+    rotateCameraMode() ; Default(Classic)
+    ; resetCameraAngle()
+
     ; reset() ; Redundant, handleCrafting() will use align() if needed
     removeDim()
+    reset()
     Sleep, 2000
 }
 
@@ -2187,7 +2190,6 @@ useItem(itemName, useAmount := 1) {
         } else {
             logMessage("auto merchant disabled", 1)
         }
-
     }
     
 }
@@ -3131,10 +3133,12 @@ mainLoop(){
             handleCrafting()
         }
     }
-    
+
+    useItem("Merchant Teleport")
+
     if (options.DoingObby && (A_TickCount - lastObby) >= (obbyCooldown*1000)){
         ; align()
-        ; reset()
+        reset()
         obbyRun()
 
         ; MouseGetPos, mouseX, mouseY
@@ -3868,6 +3872,7 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"OCREnabledCheckBox":"OCREnabled"
     ,"ShifterCheckBox":"Shifter"
     ,"RecordAuraCheckBox":"RecordAura" ; Curious Pengu
+    ,"AutoMerchantBooleanBox": "AutoMerchantEnabled"
     ,"ScanLoopAttemptsUpDownInterval": "ScanLoopInterval" ; Noteab
     ,"StorageYPosScanInterval":"StorageButtonYPosScanVALUE" ; Noteab
     ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE"} ; Noteab
