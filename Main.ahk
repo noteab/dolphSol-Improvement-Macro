@@ -34,8 +34,8 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 #Include *i ItemScheduler.ahk
 
-global version := "v1.5.0"
-global currentVersion := "v1.5.0"
+global version := "v1.3"
+global currentVersion := "v1.3"
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -246,7 +246,11 @@ global options := {"DoingObby":1
     ,"Disconnects":0
     ,"ObbyCompletes":0
     ,"ObbyAttempts":0
-    ,"CollectionLoops":0}
+    ,"CollectionLoops":0
+
+    ; plus options
+    ,"RecordAura":0
+    ,"RecordAuraMinimum":100000}
 
 global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode="
 
@@ -430,7 +434,7 @@ getURLContent(url) {
 }
 
 updateStaticData() {
-    updateURL := "https://raw.githubusercontent.com/BuilderDolphin/dolphSol-Macro/main/lib/staticData.json"
+    updateURL := "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/lib/staticData.json"
 
     content := getURLContent(updateURL)
     if (content != "") {
@@ -466,7 +470,7 @@ updateStaticData() {
 
     options.FirstTime := 0
     vLink := sData.updateInfo.versionLink
-    Run % (vLink ? vLink : "https://github.com/BuilderDolphin/dolphSol-Macro/releases/latest")
+    Run % (vLink ? vLink : "https://github.com/noteab/dolphSol-Improvement-Macro/releases/latest")
     ExitApp
 }
 
@@ -567,7 +571,7 @@ saveOptions()
 
 updateYesClicked(){
     vLink := sData.updateInfo.versionLink
-    Run % (vLink ? vLink : "https://github.com/BuilderDolphin/dolphSol-Macro/releases/latest")
+    Run % (vLink ? vLink : "https://github.com/noteab/dolphSol-Improvement-Macro/releases/latest")
     ExitApp
 }
 
@@ -1153,7 +1157,7 @@ alignCamera(){
     Sleep, 200
 
     rotateCameraMode() ; Default(Classic)
-    ; resetCameraAngle() ; Fix angle before aligning direction
+    resetCameraAngle() ; Fix angle before aligning direction
     Sleep, 100
 
     walkSend("d","Down")
@@ -3193,14 +3197,14 @@ CreateMainUI() {
     }
 
     Gui mainUI: New, +hWndhGui
-    Gui Color, 0xDADADA
+    ; Gui Color, 0xDADADA
     Gui Add, Button, gStartClick vStartButton x8 y254 w80 h23 -Tabstop, F1 - Start
     Gui Add, Button, gPauseClick vPauseButton x96 y254 w80 h23 -Tabstop, F2 - Pause
     Gui Add, Button, gStopClick vStopButton x184 y254 w80 h23 -Tabstop, F3 - Stop
     Gui Font, s11 Norm, Segoe UI
     Gui Add, Picture, gDiscordServerClick w26 h20 x462 y254, % mainDir "images\discordIcon.png"
 
-    Gui Add, Tab3, vMainTabs x8 y8 w484 h240 +0x800000, Main|Crafting|Status|Settings|Credits|Extras|Merchants
+    Gui Add, Tab3, vMainTabs x8 y8 w484 h240, Main|Crafting|Webhook|Settings|Credits|Extras|Merchant
 
     ; main tab
     Gui Tab, 1
@@ -3277,7 +3281,7 @@ CreateMainUI() {
     Gui Add, UpDown, vPotionAutoAddIntervalUpDown Range1-300, 10
     Gui Add, Text, ys wp w60 h35 BackgroundTrans, minutes
 
-    ; status tab
+    ; webhook tab
     Gui Tab, 3
     Gui Font, s10 w600
     Gui Add, GroupBox, x16 y40 w130 h170 vStatsGroup -Theme +0x50000007, Stats
@@ -3386,43 +3390,53 @@ CreateMainUI() {
     Gui Add, Button, x28 y177 w206 h32 gMoreCreditsClick,% "More Credits"
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x252 y40 w231 h90 vCreditsGroup2 -Theme +0x50000007, The Inspiration
-    Gui Add, Picture, w60 h60 x259 y62, % mainDir "images\auryn.ico"
+    Gui Add, GroupBox, x252 y40 w231 h90 vCreditsGroup2 -Theme +0x50000007, dSIM Credits
+    Gui Add, Picture, w60 h60 x259 y62, % mainDir "images\noteab.ico" ; noteab insert your pfp
     Gui Font, s8 norm
-    Gui Add, Text, x326 y59 w150 h68,% "Natro Macro, a macro for Bee Swarm Simulator has greatly inspired this project and has helped me create this project overall."
+    Gui Add, Text, x326 y59 w150 h68,% "Noteab and Steve are the main contributors.`nCurious Pengu just does stuff" ; change this all you like
 
     Gui Font, s10 w600
     Gui Add, GroupBox, x252 y130 w231 h80 vCreditsGroup3 -Theme +0x50000007, Other
     Gui Font, s9 norm
-    Gui Add, Link, x268 y150 w200 h55, Join the <a href="https://discord.gg/DYUqwJchuV">Discord Server</a>! (Community)`n`nVisit the <a href="https://github.com/BuilderDolphin/dolphSol-Macro">GitHub</a>! (Updates + Versions)
+    Gui Add, Link, x268 y150 w200 h55, Join the <a href="https://discord.gg/DYUqwJchuV">Discord Server</a>! (Community)`n`nVisit the <a href="https://github.com/noteab/dolphSol-Improvement-Macro">GitHub</a>! (Updates + Versions)
 
     ; extras tab
     Gui Tab, 6
     Gui Font, s10 w600
 
     ; General
-    Gui Add, GroupBox, x16 y40 w467 h50 vGeneralEnhancementsGroup -Theme +0x50000007, General
+    Gui Add, GroupBox, x16 y40 w467 h43 vGeneralEnhancementsGroup -Theme +0x50000007, General
     Gui Font, s9 norm
-    Gui Add, CheckBox, gOCREnabledCheckBoxClick vOCREnabledCheckBox x32 y60 w400 h22 +0x2 Section, % " Enable OCR for Self-Correction (Requires English-US PC Language)"
+    Gui Add, CheckBox, gOCREnabledCheckBoxClick vOCREnabledCheckBox x32 y57 w400 h22 +0x2 Section, % " Enable OCR for Self-Correction (Requires English-US PC Language)"
     Gui Add, Button, gOCRHelpClick vOCRHelpButton x457 y50 w23 h23, ?
 
-    Gui Add, Button, gShowBiomeSettings vBiomeButton x16 y100 w128, Configure Biomes
-    Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x16 y+5 w128, Item Scheduler
+    Gui Add, Button, gShowBiomeSettings vBiomeButton x350 y100 w128, Configure Biomes
+    Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x350 y+5 w128, Item Scheduler
 
-    Gui Add, Button, gUIHelpClick vUIHelpButton x380 y190 w100 h23, How can I tell?
+    Gui Add, Button, gUIHelpClick vUIHelpButton x380 y220 w100 h23, How can I tell?
 
     ; Roblox UI style to determine Chat button position
     Gui Font, s10 w600
-    Gui Add, Text, x400 y130, Roblox UI
+    Gui Add, Text, x400 y160, Roblox UI
     Gui Font, s9 norm
-    
+
     ; options["RobloxUpdatedUI"]
-    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y150, Old
+    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y180, Old
     Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio2, New
     GuiControl,, RobloxUpdatedUIRadio1, % (options["RobloxUpdatedUI"] = 1) ? 1 : 0
     GuiControl,, RobloxUpdatedUIRadio2, % (options["RobloxUpdatedUI"] = 2) ? 1 : 0
 
-    Gui Show, % "w500 h284 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Macro " "v1.5.0 (Merchant Experimental v1.3 - Noteab)"
+    ; Record Aura
+    Gui Font, s10 w600
+    Gui Add, GroupBox, x16 y83 w328 h67 vRecordAuraGroup -Theme +0x50000007, Record Aura
+    Gui Font, s9 norm
+    Gui Add, CheckBox, vRecordAuraCheckBox x32 y100 w260 h22 +0x2 Section, % " Record Aura Rolls using Xbox Game Bar"
+    Gui Add, Button, gRecordAuraHelp vRecordAuraHelpButton x318 y92 w23 h23, ?
+    Gui Add, Text, vRecordAuraMinimumHeader x25 y123 w110 h16 BackgroundTrans, % "Record Minimum:"
+    Gui Add, Edit, vRecordAuraMinimumInput x135 y123 w200 h18, 100000
+
+    ; Window Title
+    Gui Show, % "w500 h284 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Improvement Macro " version
     
     ; Merchant tab (Mari and Jester!!)
     Gui, Tab, 7
@@ -3856,12 +3870,13 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"ClaimDailyQuestsCheckBox":"ClaimDailyQuests"
     ,"OCREnabledCheckBox":"OCREnabled"
     ,"ShifterCheckBox":"Shifter"
+    ,"RecordAuraCheckBox":"RecordAura" ; Curious Pengu
     ,"ScanLoopAttemptsUpDownInterval": "ScanLoopInterval" ; Noteab
     ,"StorageYPosScanInterval":"StorageButtonYPosScanVALUE" ; Noteab
     ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE"} ; Noteab
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
-    ,"WebhookRollPingInput":"WebhookRollPingMinimum"}
+    ,"WebhookRollPingInput":"WebhookRollPingMinimum", "RecordAuraMinimumInput":"RecordAuraMinimum"}
 updateUIOptions(){
     for i,v in directValues {
         GuiControl,,%i%,% options[v]
@@ -4485,6 +4500,31 @@ CollectHelpClick:
 
 WebhookHelpClick:
     MsgBox, 0, Discord Webhook, % "Section for connecting a Discord Webhook to have status messages displayed in a target Discord Channel. Enable this option by entering a valid Discord Webhook link.`n`nTo create a webhook, you must have Administrator permissions in a server (preferably your own, separate server). Go to your target channel, then configure it. Go to Integrations, and create a Webhook in the Webhooks Section. After naming it whatever you like, copy the Webhook URL, then paste it into the macro. Now you can enable the Discord Webhook option!`n`nRequires a valid Webhook URL to enable.`n`nImportant events only - The webhook will only send important events such as disconnects, rolls, and initialization, instead of all of the obby/collecting/crafting ones.`n`nYou can provide your Discord ID here as well to be pinged for rolling a rarity group or higher when detected by the system. You can select the minimum notification/send rarity in the Roll Detection system.`n`nHourly Inventory Screenshots - Screenshots of both your Aura Storage and Item Inventory are sent to your webhook."
+    return
+
+    RecordAuraHelp:
+    Gui mainUI:Default
+    helpText = 
+(
+Recording Auras uses Xbox Game Bar's record last 30 Seconds feature to record you rolling your auras.
+To enable this:
+1. Open Roblox
+2. Press Win+G
+3. Enable Record Last 30 Seconds Option
+    - If there is any problem with xbox game bar reinstall it
+        - Search up eleven forums reinstall game bar
+    - If xbox bar greyed out
+        - Search up ARG99 Xbox game bar greyed out on YOUTUBE
+4. Open Main.ahk
+5. Enable Record Last 30 Seconds Option
+6. Check the Checbock: Enable Gaming features for this app to record gameplay
+
+
+Record Minimum:
+You can specify the minimum rarity of rolls to record. 
+Default = 100000
+)
+    MsgBox, 0, Recording Auras, % helpText
     return
 
 RollDetectionHelpClick:

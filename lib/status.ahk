@@ -36,6 +36,8 @@ global discordID := ""
 global discordGlitchID := "" ; can be a role or a user. role is prefixed with "&"
 global sendMinimum := 10000
 global pingMinimum := 100000
+global recordEnabled := 0
+global recordMinimum := 100000
 global auraImages := 0
 
 global rareDisplaying := 0
@@ -70,6 +72,8 @@ if (!ErrorLevel){
     RegExMatch(retrieved, "(?<=WebhookRollSendMinimum=)(.*)", sendMinimum)
     RegExMatch(retrieved, "(?<=WebhookRollPingMinimum=)(.*)", pingMinimum)
     RegExMatch(retrieved, "(?<=WebhookAuraRollImages=)(.*)", auraImages)
+    RegExMatch(retrieved, "(?<=RecordAuraMinimum=)(.*)", recordMinimum)
+    RegExMatch(retrieved, "(?<=RecordAura=)(.*)", recordEnabled)
 } else {
     logMessage("An error occurred while reading config data. Discord messages will not be sent.")
     return
@@ -720,10 +724,18 @@ isColorWhite(c){
     return compareColors(c,0xffffff) < 8
 }
 
+
+recordAura()
+{
+    Sleep, 8000
+    SendInput {LWin down}{Alt down}{g down}{LWin up}{Alt up}{g up}
+}
+
 rollDetection(bypass := 0,is1m := 0,starMap := 0,originalCorners := 0){
     if (rareDisplaying && !bypass) {
         return
     }
+
     if (!GetRobloxHWND()){
         rareDisplaying := 0
         return
@@ -779,8 +791,13 @@ rollDetection(bypass := 0,is1m := 0,starMap := 0,originalCorners := 0){
             if (sendMinimum && sendMinimum < 10000) {
                 webhookPost({embedContent:"You rolled a 1/1k+",embedTitle:"Roll",pings: (pingMinimum && pingMinimum < 10000)})
             }
+            if (recordEnabled == 1 && recordMinimum < 10000)
+            {
+                recordAura()
+            }
             Sleep, 5000
             rareDisplaying := 0
+            return
         }
     }
     if (!bypass) {
@@ -818,7 +835,13 @@ rollDetection(bypass := 0,is1m := 0,starMap := 0,originalCorners := 0){
         handleRollPost(bypass,auraInfo,starMap,originalCorners)
         rareDisplaying := 0
     }
+
+    if (recordEnabled == 1 && RecordMinimum <= auraInfo.rarity)
+    {
+        recordAura()
+    }
 }
+
 
 SystemCursor(OnOff=1)   ; INIT = "I","Init"; OFF = 0,"Off"; TOGGLE = -1,"T","Toggle"; ON = others
 {
