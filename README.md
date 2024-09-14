@@ -8,7 +8,7 @@
   - Once complete, download the most recent version of dSIM through the most recent [GitHub Release](https://github.com/noteab/dolphSol-Improvement-Macro/releases/latest) (Download source code ZIP)
   - After downloading, extract the ZIP file to your desired directory
   - You can now run dolphSol through the Main.ahk file in the folder
-### TO ACCESS PYTHON FEATURES SUCH AS DISCORD BOT, AUTO MERCHANT AND MORE
+### TO ACCESS PYTHON FEATURES SUCH AS DISCORD BOT (OPTIONAL IF YOU WANT TO REMOTE CONTROL YOUR PC!)
 
 1. Download Python (latest version) (If you don't have it installed): https://www.python.org/downloads/ --> Also enable "add PATH to python" option
 2. RUN Installer_v2.py  IN INSTALLATION FOLDER IN THE PYTHON SUPPORT FOLDER
