@@ -1,8 +1,0 @@
-{
-    "auto_run_merchant": false,
-    "auto_run_discord": false,
-    "merchant_hotkey": "",
-    "discord_hotkey": "",
-    "merchant_script_path": "../Merchant Feature/Merchant_Setting_GUI.pyw",
-    "discord_cmd_path": "../discord_cmd.py"
-}
