@@ -1,3 +1,4 @@
+# Port to AHK
 from sys import argv # UNTIL NATIVE AURA DETECTION
 from time import sleep
 

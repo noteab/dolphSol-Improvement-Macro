@@ -34,8 +34,8 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 #Include *i ItemScheduler.ahk
 
-global version := "v1.2.1"
-global currentVersion := version
+global version := "v1.5.0"
+global currentVersion := "v1.5.0"
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -194,6 +194,39 @@ global options := {"DoingObby":1
     ,"SearchSpecialAuras":0     ; Stewart
     ,"Shifter":0
 
+
+    ; Merchant config options (Noteab)
+    ,"AutoMerchantEnabled":0
+
+    ,"Merchant_slider_X":711
+    ,"Merchant_slider_Y":734
+
+    ,"Merchant_Purchase_Amount_X":646
+    ,"Merchant_Purchase_Amount_Y":613
+
+    ,"Merchant_Purchase_Button_X":713
+    ,"Merchant_Purchase_Button_Y":658
+
+    ,"Merchant_Open_Button_X":512
+    ,"Merchant_Open_Button_Y":881
+
+    ,"Merchant_Username_OCR_X":758
+    ,"Merchant_Username_OCR_Y":585
+
+    ,"Merchant_ItemName_OCR_X":758
+    ,"Merchant_ItemName_OCR_Y":386
+
+    ,"Merchant_FirstItem_Pos_X":611
+    ,"Merchant_FirstItem_Pos_Y":722
+
+    ,"Mari_ItemSlot1":0
+    ,"Mari_ItemSlot2":0
+    ,"Mari_ItemSlot3":0
+    ,"Jester_ItemSlot1":0
+    ,"Jester_ItemSlot2":0
+    ,"Jester_ItemSlot3":0
+    ; Merchant config options
+    
     ; Crafting
     ,"ItemCraftingEnabled":0
     ,"CraftingInterval":10
@@ -213,11 +246,7 @@ global options := {"DoingObby":1
     ,"Disconnects":0
     ,"ObbyCompletes":0
     ,"ObbyAttempts":0
-    ,"CollectionLoops":0
-    
-    ; plus options
-    ,"RecordAura":0
-    ,"RecordAuraMinimum":100000}
+    ,"CollectionLoops":0}
 
 global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode="
 
@@ -1124,7 +1153,7 @@ alignCamera(){
     Sleep, 200
 
     rotateCameraMode() ; Default(Classic)
-    resetCameraAngle() ; Fix angle before aligning direction NEEDED FOR POTION CRAFTING FIX
+    ; resetCameraAngle() ; Fix angle before aligning direction
     Sleep, 100
 
     walkSend("d","Down")
@@ -1141,7 +1170,7 @@ alignCamera(){
     rotateCameraMode() ; Follow
     Sleep, 1500
     rotateCameraMode() ; Default(Classic)
-    resetCameraAngle()
+    ; resetCameraAngle()
 
     ; reset() ; Redundant, handleCrafting() will use align() if needed
     removeDim()
@@ -1643,7 +1672,7 @@ ShowMousePos() {
     Tooltip, % "Current: " mx ", " my "`n"
             . "UV Ratio: " p[1] ", " p[2] "`n"
             . "1920x1080: " c[1] ", " c[2]
-    Sleep, 2500
+    Sleep, 5200
     Tooltip
 }
 
@@ -2130,34 +2159,241 @@ useItem(itemName, useAmount := 1) {
 
     ; Special case for "Merchant Teleport"
     if (itemName = "Merchant Teleport") {
-        logMessage("Pressing E for Merchant (if they spawned and wait for my python to do the job)", 1)
-        Sleep, 500
-        Send, {E 3} ; Press E to interact with the NPC
-        Sleep, 19500
-        
-        ; Check for merchant name
-        ; containsText(x,y,w,h "mari") and 4 value: x,y,w,h you have to get it yourself in order to work
-        ; waitTime - Please adjust it for mari (32500 is mari's 32s wait time before reset and realign your character, same for jester, 
-        ; -> if it reset too early, try to increase wait time for mari or jester :)
-    ;     Loop, 5 {
-    ;         if (containsText(755, 581, 210, 39, "mari") || containsText(755, 581, 210, 39, "jester")) {
-    ;             merchantName := containsText(755, 581, 210, 39, "mari") ? "Mari" : "Jester"
-    ;             logMessage("[Merchant]: " merchantName " name found!", 1)
-    ;             updateStatus("Merchant found! Pausing the macro...")
-                
-    ;             ; Calculate the wait time for Mari and Jester
-    ;             waitTime := (merchantName = "Mari") ? 32500 : 56000
-    ;             logMessage("[Merchant]: Merchant timer set, waiting for unpause", 1)
+        if (options.AutoMerchantEnabled = 1) {
+            logMessage("Pressing E for Merchant", 1)
+            Sleep, 750
+            Send, {E 3} ; Press E to interact with the NPC
 
-    ;             Sleep, waitTime
-    ;             alignCamera()
-    ;             Sleep, 2000
-    ;             reset()
-    ;             Sleep, 500
-    ;             break
-    ;         }
-    ;         Sleep, 350
-    ;     }
+            Sleep, 1200
+            Loop, 5 {
+                if (containsText(758, 585, 200, 31, "mari") || containsText(758, 585, 200, 31, "jester")) {
+                    merchantName := containsText(758, 585, 200, 31, "mari") ? "Mari" : "Jester"
+                    logMessage("[Merchant Detection]: " merchantName " name found!", 1)
+                    updateStatus("Merchant found! Pausing the macro...")
+
+                    Sleep, 5500
+                    ; Example usage of manual merchant webhook (or press F11 key for webhook testing)
+                    ; Merchant_Webhook_Main("mari/jester", ["your webhook link here"], "your ps link (leave blank if you dont want to share)", "your discord userid/role ping", "Merchant Face Screenshot")
+
+                    ; Merchant_Webhook_Main()
+                    Merchant_Handler(merchantName)  ; Pass the merchant name (Mari or Jester) to the handler
+                    break
+                }
+                Sleep, 300
+            }
+            
+            Sleep, 1500
+        } else {
+            logMessage("auto merchant disabled", 1)
+        }
+
+    }
+    
+}
+
+
+LoadMerchantOptions(merchantName) {
+    global configPath, MerchantEntries
+
+    MerchantItems := getINIData(configPath)
+    if (!MerchantItems) {
+        logMessage("[LoadMerchantOptions] Unable to read merchant setting in config.ini")
+        return
+    }
+
+    MerchantEntries := []
+    
+    for i, v in MerchantItems {
+        if ((merchantName = "Mari" && InStr(i, "Mari_ItemSlot")) || (merchantName = "Jester" && InStr(i, "Jester_ItemSlot"))) {
+            parts := StrSplit(v, ",")
+            entry := {MerchantName: merchantName, ItemName: parts[1]}
+            if (entry.ItemName = "") {
+                continue
+            }
+            MerchantEntries.Push(entry)
+        }
+    }
+
+    for i, entry in MerchantEntries {
+        logMessage("[Merchant] " merchantName " Item Slot Loaded: " entry.ItemName, 1)
+    }
+}
+
+Merchant_Webhook_Main(Merchant_Name, webhook_urls, ps_link, ping_user_id := "", embedField := "") {
+    getRobloxPos(rX, rY, w, h)
+    ssMap := Gdip_BitmapFromScreen(rX "|" rY "|" w "|" h)
+    Gdip_SaveBitmapToFile(ssMap, merchant_ssPath)
+    Gdip_DisposeBitmap(ssMap)
+
+    ;message content (only ping if ping_user_id is provided)
+    if (ping_user_id != "") {
+        messageContent := "<@" ping_user_id ">"
+    } else {
+        messageContent := ""
+    }
+
+    if (ps_link) {
+        messageContent .= " " ps_link
+    }
+
+    ; Format the merchant name properly
+    StringUpper, Merchant_Name, Merchant_Name, T
+
+    embedContent := Merchant_Name " has been detected on your screen."
+    embedTitle := "**" Merchant_Name " Detected!**"
+    embedColor := (Merchant_Name = "Mari") ? "255" : "8388736"  ; Blue for Mari, Purple for others
+    embedThumbnail := (Merchant_Name = "Mari") 
+        ? "https://static.wikia.nocookie.net/sol-rng/images/3/37/MARI_HIGH_QUALITYY.png/revision/latest?cb=20240704045119"
+        : "https://static.wikia.nocookie.net/sol-rng/images/d/db/Headshot_of_Jester.png/revision/latest?cb=20240630142936"
+
+    ; Construct the payload for the webhook
+    payload_json := "{""content"": """ messageContent """," 
+                  . """embeds"": [{"
+                  . """title"": """ embedTitle """," 
+                  . """description"": """ embedContent """," 
+                  . """color"": " embedColor "," 
+                  . """thumbnail"": {""url"": """ embedThumbnail """}," 
+                  . """image"": {""url"": ""attachment://hewo_merchant.jpg""}," 
+                  . """fields"": [{""name"": ""**" embedField "**"",""value"": """"}],"
+                  . """footer"": {""text"": ""Auto Merchant Detection""}"
+                  . "}]}"
+
+    ; Loop through all webhook URLs and send the notification in parallel
+    for i, url in webhook_urls {
+        try {
+            objParam := {payload_json: payload_json}
+            objParam["file0"] := [merchant_ssPath]
+            Merchant_Webhook_Send(url, objParam)  ; Send the webhook
+
+        } catch e {
+            logMessage("Error sending webhook to " url ": " e, 1)
+        }
+    }
+}
+
+Merchant_Webhook_Send(url, objParam) {
+    try {
+        CreateFormData(postdata, hdr_ContentType, objParam)
+
+        WebRequest := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+        WebRequest.Open("POST", url, true)
+        WebRequest.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko")
+        WebRequest.SetRequestHeader("Content-Type", hdr_ContentType)
+        WebRequest.Send(postdata)
+        WebRequest.WaitForResponse()
+    
+    } catch e {
+        logMessage("[Webhook_Send] Error sending data: " e, 1)
+    }
+}
+
+Merchant_Handler(merchantName) {
+    logMessage("Starting " merchantName " merchant handler", 1)
+    updateStatus("Processing " merchantName " Autobuy...")
+    getRobloxPos(pX, pY, width, height)
+
+    ; Load merchant config for the specific merchant (Mari or Jester)
+    LoadMerchantOptions(merchantName)
+    
+    ; Press open button:
+    Loop, 4 {
+        ClickMouse(512, 881)
+        Sleep, 300
+    }
+    
+    
+    ; Reset the merchant item slider to the top (scroll up)
+    MouseMove, 711, 734
+    Sleep, 200
+    MouseClick, WheelUp, , , 15
+    Sleep, 650
+
+    ; Log the merchant entries loaded from the config
+    if (MerchantEntries.MaxIndex() > 0) {
+        logMessage("Items loaded for purchase: " MerchantEntries.MaxIndex(), 1)
+
+        ; List to store config item names for checking
+        merchantItemNames := []
+        purchasedItems := [] 
+
+        ; Add all MerchantEntries items to the list
+        for i, entry in MerchantEntries {
+            if (entry.MerchantName != "" && entry.ItemName != "None") {
+                logMessage("Adding config item to list: " entry.ItemName, 1)
+                merchantItemNames.Push(entry.ItemName)
+            }
+        }
+
+        ; Loop merchant slots
+        itemCount := 0
+        totalItemsToPurchase := merchantItemNames.MaxIndex()  ; Get total number of items to purchase
+        itemsPurchased := 0  ; Count successfully purchased items
+
+        Loop, 35 {
+            ; If all items have been purchased, exit the loop early
+            if (itemsPurchased >= totalItemsToPurchase) {
+                logMessage("All items have been successfully purchased. Exiting loop.", 1)
+                break
+            }
+
+            if (itemCount >= 3) {
+                logMessage("Scrolling down to reveal more items", 1)
+                MouseClick, WheelDown, , , 2
+                Sleep, 1000
+                itemCount := 0  ; Reset item count after scrolling
+            }
+
+            ; X and Y position for each slot
+            itemYPos := 722  ; Fixed Y position
+            itemXPos := 611 + (itemCount * 185)  ; X offset
+
+            ; Click the item at the calculated position
+            logMessage("Clicking item slot " A_Index " at position X:" itemXPos " Y:" itemYPos, 1)
+            Click, %itemXPos%, %itemYPos%
+            Sleep, 500
+
+            ; OCR detection of items in the merchant shop (scans current slot)
+            Loop, % merchantItemNames.MaxIndex() {
+                itemName := merchantItemNames[A_Index]
+                StringLower, itemNameLower, itemName
+                itemNameTrimmed := Trim(itemNameLower)
+
+                ; Check if the item has already been purchased before scanning
+                if (purchasedItems.HasValue(itemNameTrimmed)) {
+                    logMessage("Item " itemNameTrimmed " has already been purchased. Skipping...", 1)
+                    continue  ; Move to the next item in the loop
+                }
+
+                ; Run OCR detection on the current item slot
+                if (containsText(758, 386, 323, 29, itemNameTrimmed)) {
+                    logMessage("Matching item found: " itemNameTrimmed, 1)
+
+                    ; Set the purchase quantity
+                    ClickMouse(646, 613)
+                    Send, 1
+                    Sleep, 200
+
+                    ; Click purchase button
+                    ClickMouse(713, 658)
+                    Sleep, 5500
+
+                    logMessage("Purchase completed for " itemNameTrimmed, 1)
+
+                    ; Add the item to the purchasedItems list and increment the counter
+                    purchasedItems.Push(itemNameTrimmed)
+                    itemsPurchased++
+
+                    ; Remove purchased item from merchantItemNames to avoid rechecking
+                    merchantItemNames.RemoveAt(A_Index)
+                    break
+                }
+            }
+
+            ; Increment item count after each slot
+            itemCount++
+        }
+    } else {
+        logMessage("No items loaded for " merchantName " from config.ini", 1)
     }
 }
 
@@ -2957,14 +3193,14 @@ CreateMainUI() {
     }
 
     Gui mainUI: New, +hWndhGui
-    ; Gui Color, 0xDADADA
+    Gui Color, 0xDADADA
     Gui Add, Button, gStartClick vStartButton x8 y254 w80 h23 -Tabstop, F1 - Start
     Gui Add, Button, gPauseClick vPauseButton x96 y254 w80 h23 -Tabstop, F2 - Pause
     Gui Add, Button, gStopClick vStopButton x184 y254 w80 h23 -Tabstop, F3 - Stop
     Gui Font, s11 Norm, Segoe UI
     Gui Add, Picture, gDiscordServerClick w26 h20 x462 y254, % mainDir "images\discordIcon.png"
 
-    Gui Add, Tab3, vMainTabs x8 y8 w484 h240, Main|Crafting|Webhook|Settings|Credits|Extras
+    Gui Add, Tab3, vMainTabs x8 y8 w484 h240 +0x800000, Main|Crafting|Status|Settings|Credits|Extras|Merchants
 
     ; main tab
     Gui Tab, 1
@@ -3041,7 +3277,7 @@ CreateMainUI() {
     Gui Add, UpDown, vPotionAutoAddIntervalUpDown Range1-300, 10
     Gui Add, Text, ys wp w60 h35 BackgroundTrans, minutes
 
-    ; Webhook tab
+    ; status tab
     Gui Tab, 3
     Gui Font, s10 w600
     Gui Add, GroupBox, x16 y40 w130 h170 vStatsGroup -Theme +0x50000007, Stats
@@ -3150,60 +3386,78 @@ CreateMainUI() {
     Gui Add, Button, x28 y177 w206 h32 gMoreCreditsClick,% "More Credits"
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x252 y40 w231 h90 vCreditsGroup2 -Theme +0x50000007, Improvment Credits
-    Gui Add, Picture, w60 h60 x259 y62, % mainDir "images\noteab.ico" ; noteab insert your pfp
+    Gui Add, GroupBox, x252 y40 w231 h90 vCreditsGroup2 -Theme +0x50000007, The Inspiration
+    Gui Add, Picture, w60 h60 x259 y62, % mainDir "images\auryn.ico"
     Gui Font, s8 norm
-    Gui Add, Text, x326 y59 w150 h68,% "Noteab and Steve are the main contributors.`nCurious Pengu just does stuff" ; change this all you like
+    Gui Add, Text, x326 y59 w150 h68,% "Natro Macro, a macro for Bee Swarm Simulator has greatly inspired this project and has helped me create this project overall."
 
     Gui Font, s10 w600
     Gui Add, GroupBox, x252 y130 w231 h80 vCreditsGroup3 -Theme +0x50000007, Other
     Gui Font, s9 norm
-    Gui Add, Link, x268 y150 w200 h55, Join the <a href="https://discord.gg/DYUqwJchuV">Discord Server</a>! (Community)`n`nVisit the <a href="https://github.com/noteab/dolphSol-Improvement-Macro">GitHub</a>! (Updates + Versions)
+    Gui Add, Link, x268 y150 w200 h55, Join the <a href="https://discord.gg/DYUqwJchuV">Discord Server</a>! (Community)`n`nVisit the <a href="https://github.com/BuilderDolphin/dolphSol-Macro">GitHub</a>! (Updates + Versions)
 
     ; extras tab
     Gui Tab, 6
     Gui Font, s10 w600
 
     ; General
-    Gui Add, GroupBox, x16 y40 w467 h43 vGeneralEnhancementsGroup -Theme +0x50000007, General
+    Gui Add, GroupBox, x16 y40 w467 h50 vGeneralEnhancementsGroup -Theme +0x50000007, General
     Gui Font, s9 norm
-    Gui Add, CheckBox, gOCREnabledCheckBoxClick vOCREnabledCheckBox x32 y57 w400 h22 +0x2 Section, % " Enable OCR for Self-Correction (Requires English-US PC Language)"
+    Gui Add, CheckBox, gOCREnabledCheckBoxClick vOCREnabledCheckBox x32 y60 w400 h22 +0x2 Section, % " Enable OCR for Self-Correction (Requires English-US PC Language)"
     Gui Add, Button, gOCRHelpClick vOCRHelpButton x457 y50 w23 h23, ?
 
-    Gui Add, Button, gShowBiomeSettings vBiomeButton x350 y100 w128, Configure Biomes
-    Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x350 y+5 w128, Item Scheduler
+    Gui Add, Button, gShowBiomeSettings vBiomeButton x16 y100 w128, Configure Biomes
+    Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x16 y+5 w128, Item Scheduler
 
-    Gui Add, Button, gUIHelpClick vUIHelpButton x380 y220 w100 h23, How can I tell?
+    Gui Add, Button, gUIHelpClick vUIHelpButton x380 y190 w100 h23, How can I tell?
 
     ; Roblox UI style to determine Chat button position
     Gui Font, s10 w600
-    Gui Add, Text, x400 y160, Roblox UI
+    Gui Add, Text, x400 y130, Roblox UI
     Gui Font, s9 norm
     
     ; options["RobloxUpdatedUI"]
-    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y180, Old
+    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y150, Old
     Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio2, New
     GuiControl,, RobloxUpdatedUIRadio1, % (options["RobloxUpdatedUI"] = 1) ? 1 : 0
     GuiControl,, RobloxUpdatedUIRadio2, % (options["RobloxUpdatedUI"] = 2) ? 1 : 0
 
-    ; Record Aura
-    Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y83 w328 h67 vRecordAuraGroup -Theme +0x50000007, Record Aura
-    Gui Font, s9 norm
-    Gui Add, CheckBox, vRecordAuraCheckBox x32 y100 w260 h22 +0x2 Section, % " Record Aura Rolls using Xbox Game Bar"
-    Gui Add, Button, gRecordAuraHelp vRecordAuraHelpButton x318 y92 w23 h23, ?
-    Gui Add, Text, vRecordAuraMinimumHeader x25 y123 w110 h16 BackgroundTrans, % "Record Minimum:"
-    Gui Add, Edit, vRecordAuraMinimumInput x135 y123 w200 h18, 100000
+    Gui Show, % "w500 h284 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Macro " "v1.5.0 (Merchant Experimental v1.3 - Noteab)"
     
-    ; Python Info
-    Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y150 w344 h90 vPythonInfoGroup -Theme +0x50000007, Python Features
+    ; Merchant tab (Mari and Jester!!)
+    Gui, Tab, 7
     Gui Font, s9 norm
-    Gui Add, Text, vPythonInfoText x24 y169 w330 h80 BackgroundTrans, % "Python features such as `n  - Merchant Auto Craft, Item Auto Craft, Discord Bot `nare located withing the 'Python_Features' Folder. Refer to the Github Page for tutorials."
-    
 
-    ; Window Title
-    Gui Show, % "w500 h284 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Improvement Macro " version
+    ; Enable/Disable Auto-Merchant
+    Gui, Add, CheckBox, vAutoMerchantBooleanBox x25 y43 w150, Enable Auto Merchant
+    Gui Add, Button, gMerchantSettings vMerchantSettingsClick x25 y175 w140 h25, Merchant Settings
+    Gui Add, Button, gMerchant_WebhooksGui vWebhookMerchantSettingsClick x300 y175 w140 h25 +Disabled, Merchant Webhooks
+
+    MariSlotOptions := "None||Void Coin|Lucky Penny|Fortune Spoid I|Fortune Spoid II|Fortune Spoid III|Mixed Potion|Lucky Potion|Lucky Potion L|Lucky Potion XL|Speed Potion|Speed Potion L|Speed Potion XL"
+    JesterSlotOptions := "None||Oblivion Potion|Heavenly Potion I|Heavenly Potion II|Rune of Everthing|Strange Potion I|Strange Potion II|Stella Candle|Merchant Tracker|Random Potion Sack"
+    
+    ; Mari's GroupBox and Item Selection
+    Gui Font, s10 w600
+    Gui, Add, GroupBox, x16 y60 w220 h105 vMariGroup -Theme +0x50000007, Mari
+    Gui Font, s9 norm
+    Gui Add, Text, x25 y78 w100 h16 vMariItemOption1Header BackgroundTrans, Item Slot 1:
+    Gui Add, DropDownList, x95 y75 w120 h10 vMariSlot1DropDown R9, % MariSlotOptions
+    Gui Add, Text, x25 y108 w100 h16 vMariItemOption2Header BackgroundTrans, Item Slot 2:
+    Gui Add, DropDownList, x95 y105 w120 h10 vMariSlot2DropDown R9, % MariSlotOptions
+    Gui Add, Text, x25 y138 w100 h16 vMariItemOption3Header BackgroundTrans, Item Slot 3:
+    Gui Add, DropDownList, x95 y135 w120 h10 vMariSlot3DropDown R9, % MariSlotOptions
+
+    ; Jester's GroupBox and Item Selection
+    Gui Font, s10 w600
+    Gui, Add, GroupBox, x255 y60 w220 h105 vJesterGroup -Theme +0x50000007, Jester
+    Gui Font, s9 norm
+    Gui Add, Text, x265 y78 w100 h16 vJesterItemOption1Header BackgroundTrans, Item Slot 1:
+    Gui Add, DropDownList, x335 y75 w120 h10 vJesterSlot1DropDown R9, % JesterSlotOptions
+    Gui Add, Text, x265 y108 w100 h16 vJesterItemOption2Header BackgroundTrans, Item Slot 2:
+    Gui Add, DropDownList, x335 y105 w120 h10 vJesterSlot2DropDown R9, % JesterSlotOptions
+    Gui Add, Text, x265 y138 w100 h16 vJesterItemOption3Header BackgroundTrans, Item Slot 3:
+    Gui Add, DropDownList, x335 y135 w120 h10 vJesterSlot3DropDown R9, % JesterSlotOptions
+
 
     ; status bar
     Gui statusBar:New, +AlwaysOnTop -Caption
@@ -3213,6 +3467,235 @@ CreateMainUI() {
     Gui mainUI:Default
 }
 CreateMainUI()
+
+
+MerchantSettings() {
+    global
+
+    ; Create a new GUI for Merchant Settings
+    Gui, MerchantSettings:New, +AlwaysOnTop +LabelMerchantGui
+    Gui Color, 0xDADADA
+    Gui Font, s9 norm
+    
+    ; Title
+    Gui, Add, Text, x16 y10 w300 h30, More merchant features coming soon weee!
+
+    ; Calibration for Merchant Slider
+    Gui, Add, Text, x16 y50 w250, Merchant Slider Position (X, Y):
+    Gui, Add, Edit, x16 y70 w50 vMerchantSliderX, % options["Merchant_slider_X"]
+    Gui, Add, UpDown, vSliderX_UpDown Range0-2000, % options["Merchant_slider_X"]
+    Gui, Add, Edit, x70 y70 w50 vMerchantSliderY, % options["Merchant_slider_Y"]
+    Gui, Add, UpDown, vSliderY_UpDown Range0-2000, % options["Merchant_slider_Y"]
+
+    ; Calibration for Purchase Amount Button
+    Gui, Add, Text, x16 y100 w250, Purchase Amount Button (X, Y):
+    Gui, Add, Edit, x16 y120 w50 vMerchantPurchaseAmountX, % options["Merchant_Purchase_Amount_X"]
+    Gui, Add, UpDown, vPurchaseAmountX_UpDown Range0-2000, % options["Merchant_Purchase_Amount_X"]
+    Gui, Add, Edit, x70 y120 w50 vMerchantPurchaseAmountY, % options["Merchant_Purchase_Amount_Y"]
+    Gui, Add, UpDown, vPurchaseAmountY_UpDown Range0-2000, % options["Merchant_Purchase_Amount_Y"]
+
+    ; Calibration for Purchase Button
+    Gui, Add, Text, x16 y150 w250, Purchase Button (X, Y):
+    Gui, Add, Edit, x16 y170 w50 vMerchantPurchaseButtonX, % options["Merchant_Purchase_Button_X"]
+    Gui, Add, UpDown, vPurchaseButtonX_UpDown Range0-2000, % options["Merchant_Purchase_Button_X"]
+    Gui, Add, Edit, x70 y170 w50 vMerchantPurchaseButtonY, % options["Merchant_Purchase_Button_Y"]
+    Gui, Add, UpDown, vPurchaseButtonY_UpDown Range0-2000, % options["Merchant_Purchase_Button_Y"]
+
+    ; Calibration for Merchant Open Button
+    Gui, Add, Text, x16 y200 w250, Merchant Open Button (X, Y):
+    Gui, Add, Edit, x16 y220 w50 vMerchantOpenButtonX, % options["Merchant_Open_Button_X"]
+    Gui, Add, UpDown, vOpenButtonX_UpDown Range0-2000, % options["Merchant_Open_Button_X"]
+    Gui, Add, Edit, x70 y220 w50 vMerchantOpenButtonY, % options["Merchant_Open_Button_Y"]
+    Gui, Add, UpDown, vOpenButtonY_UpDown Range0-2000, % options["Merchant_Open_Button_Y"]
+
+    ; Calibration for Username OCR Position
+    Gui, Add, Text, x16 y250 w250, Merchant Name OCR Position (X, Y):
+    Gui, Add, Edit, x16 y270 w50 vMerchantUsernameOCRX, % options["Merchant_Username_OCR_X"]
+    Gui, Add, UpDown, vUsernameOCRX_UpDown Range0-2000, % options["Merchant_Username_OCR_X"]
+    Gui, Add, Edit, x70 y270 w50 vMerchantUsernameOCRY, % options["Merchant_Username_OCR_Y"]
+    Gui, Add, UpDown, vUsernameOCRY_UpDown Range0-2000, % options["Merchant_Username_OCR_Y"]
+
+    ; Calibration for Item Name OCR Position
+    Gui, Add, Text, x16 y300 w250, Item Name OCR Position (X, Y):
+    Gui, Add, Edit, x16 y320 w50 vMerchantItemNameOCRX, % options["Merchant_ItemName_OCR_X"]
+    Gui, Add, UpDown, vItemNameOCRX_UpDown Range0-2000, % options["Merchant_ItemName_OCR_X"]
+    Gui, Add, Edit, x70 y320 w50 vMerchantItemNameOCRY, % options["Merchant_ItemName_OCR_Y"]
+    Gui, Add, UpDown, vItemNameOCRY_UpDown Range0-2000, % options["Merchant_ItemName_OCR_Y"]
+
+    ; Calibration for First Item Slot Position
+    Gui, Add, Text, x16 y350 w250, First Item Slot Position (X, Y):
+    Gui, Add, Edit, x16 y370 w50 vMerchantFirstItemPosX, % options["Merchant_FirstItem_Pos_X"]
+    Gui, Add, UpDown, vFirstItemPosX_UpDown Range0-2000, % options["Merchant_FirstItem_Pos_X"]
+    Gui, Add, Edit, x70 y370 w50 vMerchantFirstItemPosY, % options["Merchant_FirstItem_Pos_Y"]
+    Gui, Add, UpDown, vFirstItemPosY_UpDown Range0-2000, % options["Merchant_FirstItem_Pos_Y"]
+
+    ; Highlight merchant click region button
+    Gui, Add, Button, x50 y410 w200 h25 gMerchant_ItemHighlight, Highlight Merchant Click
+
+    ; Save Calibration button
+    Gui, Add, Button, x50 y450 w200 h25 gSave_Merchant_Calibration, Save Calibration
+
+    Gui, Show, , Merchant Settings
+}
+
+Save_Merchant_Calibration() {
+    Gui MerchantSettings:Default
+    global options
+
+    GuiControlGet, SliderX_UpDown
+    GuiControlGet, SliderY_UpDown
+    GuiControlGet, PurchaseAmountX_UpDown
+    GuiControlGet, PurchaseAmountY_UpDown
+    GuiControlGet, PurchaseButtonX_UpDown
+    GuiControlGet, PurchaseButtonY_UpDown
+    GuiControlGet, OpenButtonX_UpDown
+    GuiControlGet, OpenButtonY_UpDown
+    GuiControlGet, UsernameOCRX_UpDown
+    GuiControlGet, UsernameOCRY_UpDown
+    GuiControlGet, ItemNameOCRX_UpDown
+    GuiControlGet, ItemNameOCRY_UpDown
+    GuiControlGet, FirstItemPosX_UpDown
+    GuiControlGet, FirstItemPosY_UpDown
+
+    options["Merchant_slider_X"] := SliderX_UpDown
+    options["Merchant_slider_Y"] := SliderY_UpDown
+    options["Merchant_Purchase_Amount_X"] := PurchaseAmountX_UpDown
+    options["Merchant_Purchase_Amount_Y"] := PurchaseAmountY_UpDown
+    options["Merchant_Purchase_Button_X"] := PurchaseButtonX_UpDown
+    options["Merchant_Purchase_Button_Y"] := PurchaseButtonY_UpDown
+    options["Merchant_Open_Button_X"] := OpenButtonX_UpDown
+    options["Merchant_Open_Button_Y"] := OpenButtonY_UpDown
+    options["Merchant_Username_OCR_X"] := UsernameOCRX_UpDown
+    options["Merchant_Username_OCR_Y"] := UsernameOCRY_UpDown
+    options["Merchant_ItemName_OCR_X"] := ItemNameOCRX_UpDown
+    options["Merchant_ItemName_OCR_Y"] := ItemNameOCRY_UpDown
+    options["Merchant_FirstItem_Pos_X"] := FirstItemPosX_UpDown
+    options["Merchant_FirstItem_Pos_Y"] := FirstItemPosY_UpDown
+
+    saveOptions()
+}
+
+
+Merchant_ItemHighlight() {
+    global options
+
+    GuiControlGet, SliderX_UpDown
+    GuiControlGet, SliderY_UpDown
+    GuiControlGet, PurchaseAmountX_UpDown
+    GuiControlGet, PurchaseAmountY_UpDown
+    GuiControlGet, PurchaseButtonX_UpDown
+    GuiControlGet, PurchaseButtonY_UpDown
+    GuiControlGet, OpenButtonX_UpDown
+    GuiControlGet, OpenButtonY_UpDown
+    GuiControlGet, UsernameOCRX_UpDown
+    GuiControlGet, UsernameOCRY_UpDown
+    GuiControlGet, ItemNameOCRX_UpDown
+    GuiControlGet, ItemNameOCRY_UpDown
+    GuiControlGet, FirstItemPosX_UpDown
+    GuiControlGet, FirstItemPosY_UpDown
+
+    Highlight(SliderX_UpDown-5, SliderY_UpDown-5, 10, 10, 8500) ;merchant slider box
+    Highlight(PurchaseAmountX_UpDown-5, PurchaseAmountY_UpDown-5, 10, 10, 8500, "green") ;purchase amount pos
+    Highlight(PurchaseButtonX_UpDown-5, PurchaseButtonY_UpDown-5, 10, 10, 8500, "green") ;purchase button pos
+    Highlight(OpenButtonX_UpDown, OpenButtonY_UpDown, 10, 10, 8500) ;merchant open button
+    Highlight(UsernameOCRX_UpDown, UsernameOCRY_UpDown, 200, 31, 8500, "blue") ;merchant username ocr
+    Highlight(ItemNameOCRX_UpDown, ItemNameOCRY_UpDown, 323, 29, 8500) ;merchant on-sale item name ocr
+
+    ; First Item Slot
+    Highlight(FirstItemPosX_UpDown-5, FirstItemPosY_UpDown-5, 10, 10, 8500, "purple") ;merchant on-sale first item name slot
+
+    ; Second Item Slot (calculated using the offset)
+    secondItemX := FirstItemPosX_UpDown + 185 - 5 ; calculate the second item slot X with offset
+    Highlight(secondItemX, FirstItemPosY_UpDown-5, 10, 10, 8500, "purple") ;merchant on-sale second item slot
+}
+
+
+Merchant_WebhooksGui() {
+    global NewWebhookAlias, NewWebhookURL, NewPingUserID, NewMerchantPrivateServerLink, WebhookList
+    
+    Gui, MerchantWebhooksSettings:New, +AlwaysOnTop +LabelWebhooksGui
+    Gui Color, 0xDADADA
+    Gui Font, s9 norm
+
+    ; Title
+    Gui, Add, Text, x16 y10 w300 h30, Discord Webhook Management
+    
+    ; New Webhook Section
+    Gui, Add, Text, x16 y50 w250, New Webhook Alias:
+    Gui, Add, Edit, x16 y70 w250 vNewWebhookAlias
+
+    Gui, Add, Text, x16 y100 w250, New Webhook URL:
+    Gui, Add, Edit, x16 y120 w250 vNewWebhookURL
+
+    Gui, Add, Text, x16 y150 w250, Ping User ID (Optional):
+    Gui, Add, Edit, x16 y170 w250 vNewPingUserID
+
+    Gui, Add, Text, x16 y200 w250, Merchant Private Server Link (Optional):
+    Gui, Add, Edit, x16 y220 w250 vNewMerchantPrivateServerLink
+
+    Gui, Add, Button, x16 y260 w120 h30 gMerchant_AddWebhook, Add Webhook
+
+    ; Existing Webhooks Section
+    Gui, Add, ListBox, x16 y300 w300 h200 vWebhookList, % Merchant_ListWebhooks()
+
+    Gui, Add, Button, x16 y520 w120 h30 gMerchant_DeleteWebhook, Delete Selected Webhook
+
+    Gui, Show, , Discord Webhooks
+}
+
+Merchant_AddWebhook() {
+    global NewWebhookAlias, NewWebhookURL, NewPingUserID, Merchant_Webhooks
+    Gui, Submit, NoHide  ; This submits the form's content to the associated variables
+    
+    ; Check if both the alias and URL are provided
+    if (NewWebhookAlias = "" || NewWebhookURL = "") {
+        MsgBox, Please provide both a webhook alias and URL.
+        return
+    }
+
+    ; Add the new webhook to the array
+    webhook := {"alias": NewWebhookAlias, "url": NewWebhookURL, "pingUserID": NewPingUserID}
+    Merchant_Webhooks.Push(webhook)
+
+    ; Update ListBox
+    GuiControl,, WebhookList, % Merchant_ListWebhooks()
+}
+
+Merchant_DeleteWebhook() {
+    global Merchant_Webhooks
+    Gui, Submit, NoHide
+
+    ; Get the selected index in the ListBox
+    GuiControlGet, selectedIndex, , WebhookList
+
+    ; Ensure a valid selection is made
+    if (selectedIndex > 0) {
+        selectedItem := Merchant_ListWebhooks().Split("`n")[selectedIndex]
+        alias := StrSplit(selectedItem, " | ")[1]
+
+        ; Find and remove the corresponding webhook based on the alias
+        for index, webhook in Merchant_Webhooks {
+            if (webhook.alias = alias) {
+                Merchant_Webhooks.RemoveAt(index)
+                break
+            }
+        }
+
+        ; Update ListBox
+        GuiControl,, WebhookList, % Merchant_ListWebhooks()
+    } else {
+        MsgBox, Please select a webhook to delete.
+    }
+}
+
+Merchant_ListWebhooks() {
+    global Merchant_Webhooks
+    output := ""
+    for index, webhook in Merchant_Webhooks {
+        output .= webhook.alias " | " webhook.url "`n"
+    }
+    return output
+}
 
 ; Create the Aura settings popup
 ShowAuraSettings() {
@@ -3373,13 +3856,12 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"ClaimDailyQuestsCheckBox":"ClaimDailyQuests"
     ,"OCREnabledCheckBox":"OCREnabled"
     ,"ShifterCheckBox":"Shifter"
-    ,"RecordAuraCheckBox":"RecordAura" ; Curious Pengu
     ,"ScanLoopAttemptsUpDownInterval": "ScanLoopInterval" ; Noteab
     ,"StorageYPosScanInterval":"StorageButtonYPosScanVALUE" ; Noteab
     ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE"} ; Noteab
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
-    ,"WebhookRollPingInput":"WebhookRollPingMinimum", "RecordAuraMinimumInput":"RecordAuraMinimum"}
+    ,"WebhookRollPingInput":"WebhookRollPingMinimum"}
 updateUIOptions(){
     for i,v in directValues {
         GuiControl,,%i%,% options[v]
@@ -3403,6 +3885,16 @@ updateUIOptions(){
     Loop 3 {
         v := options["PotionCraftingSlot" . A_Index]
         GuiControl,ChooseString,PotionCraftingSlot%A_Index%DropDown,% potionIndex[v]
+    }
+
+    Loop 3 {
+        v := options["Mari_ItemSlot" . A_Index]
+        GuiControl, Choose, MariSlot%A_Index%DropDown, %v%
+    }
+
+    Loop 3 {
+        v := options["Jester_ItemSlot" . A_Index]
+        GuiControl, Choose, JesterSlot%A_Index%DropDown, %v%
     }
 }
 updateUIOptions()
@@ -3467,6 +3959,16 @@ applyNewUIOptions(){
     Loop 3 {
         GuiControlGet, rValue,,PotionCraftingSlot%A_Index%DropDown
         options["PotionCraftingSlot" . A_Index] := reversePotionIndex[rValue]
+    }
+
+    Loop 3 {
+        GuiControlGet, rValue,,MariSlot%A_Index%DropDown
+        options["Mari_ItemSlot" . A_Index] := rValue
+    }
+
+    Loop 3 {
+        GuiControlGet, rValue,,JesterSlot%A_Index%DropDown
+        options["Jester_ItemSlot" . A_Index] := rValue
     }
 }
 
@@ -3999,30 +4501,6 @@ UIHelpClick:
     Gui, Show, AutoSize  ; Adjust the GUI window size to fit the image
     return
 
-RecordAuraHelp:
-    Gui mainUI:Default
-    helpText = 
-(
-Recording Auras uses Xbox Game Bar's record last 30 Seconds feature to record you rolling your auras.
-To enable this:
-1. Open Roblox
-2. Press Win+G
-3. Enable Record Last 30 Seconds Option
-    - If there is any problem with xbox game bar reinstall it
-        - Search up eleven forums reinstall game bar
-    - If xbox bar greyed out
-        - Search up ARG99 Xbox game bar greyed out on YOUTUBE
-4. Open Main.ahk
-5. Enable Record Last 30 Seconds Option
-6. Check the Checbock: Enable Gaming features for this app to record gameplay
-
-
-Record Minimum:
-You can specify the minimum rarity of rolls to record. 
-Default = 100000
-)
-    MsgBox, 0, Recording Auras, % helpText
-    return
 ; gui close buttons
 mainUIGuiClose:
     stop(1)
@@ -4064,6 +4542,9 @@ return
         Sleep, 500
         reset()
         return
+
+    F9:: ShowMousePos()
+    F11:: Merchant_Webhook_Main("Mari", [""], "", "", "Merchant Face Screenshot")
 #If
 
 #If running || reconnecting

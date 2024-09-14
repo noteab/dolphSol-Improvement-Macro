@@ -75,22 +75,22 @@ def save_private_server_link():
     except IndexError:
         messagebox.showerror("Error", f"Invalid link format. Please ensure the link contains 'privateServerLinkCode=' by convert a sharelink code to privateServerLinkCode!")
 
-# Toggle Auto Item Add
-def toggle_auto_item_add():
-    enable = auto_item_add_var.get()
-    config['enable_auto_item_crafting'] = enable
-    save_config()
+# # Toggle Auto Item Add
+# def toggle_auto_item_add():
+#     enable = auto_item_add_var.get()
+#     config['enable_auto_item_crafting'] = enable
+#     save_config()
 
-# Update Slot Option
-def update_slot_option(slot, value):
-    config[f'slot_{slot}'] = value
-    save_config()
+# # Update Slot Option
+# def update_slot_option(slot, value):
+#     config[f'slot_{slot}'] = value
+#     save_config()
 
-# Update Crafting Interval
-def update_craft_interval(interval):
-    config['crafting_interval'] = interval
-    save_config()
-    print(f"Crafting Interval set to: {interval} minute(s)")
+# # Update Crafting Interval
+# def update_craft_interval(interval):
+#     config['crafting_interval'] = interval
+#     save_config()
+#     print(f"Crafting Interval set to: {interval} minute(s)")
     
     
 # Update Bot Info in .env
@@ -144,32 +144,28 @@ def display_bounding_box(scaling_factor=0.85):
     cv2.imshow('Biome OCR Region (Scaled)', screen_resized)
     cv2.waitKey(1)
 
-
-# Autostarts
-def startDiscord():
-    subprocess.call([sys.executable, os.path.join(os.path.dirname(__file__),"data/discord_cmd.py")])
-
-def startMerchant():
-    subprocess.call([sys.executable, os.path.join(os.path.dirname(__file__),"Merchant Feature/Merchant_Setting_GUI.pyw")])
-
 # Initialize main window
 root = tk.Tk()
-root.title("Python Bot Settings v1.2")
+
+with open(os.path.join(os.path.dirname(__file__), "data/VERSION.txt")) as VERSION_FILE:
+    content = VERSION_FILE.read()
+    VERSION = content.split('=')[1].strip().strip('"')
+
+root.title(f"Discord Bot Settings {VERSION}")
 root.geometry("750x380")
 
 # Create notebook (tabs)
 notebook = ttk.Notebook(root)
 
-# Main tab
-main_tab = ttk.Frame(notebook, width=350, height=50)
-main_tab.pack_propagate(False)
-notebook.add(main_tab, text="< Main >")
+# # Main tab
+# main_tab = ttk.Frame(notebook, width=350, height=50)
+# main_tab.pack_propagate(False)
+# notebook.add(main_tab, text="< Main >")
 
-# Setting tab
-setting_tab = ttk.Frame(notebook, width=350, height=50)
-setting_tab.pack_propagate(False)
-notebook.add(setting_tab, text="< Settings >")
-
+# Bot setting tab
+bot_tab = ttk.Frame(notebook, width=350, height=50)
+bot_tab.pack_propagate(False)
+notebook.add(bot_tab, text="< Discord Bot >")
 
 # Biome setting tab
 biome_tab = ttk.Frame(notebook, width=350, height=50)
@@ -181,16 +177,11 @@ reconnect_tab = ttk.Frame(notebook, width=350, height=50)
 reconnect_tab.pack_propagate(False)
 notebook.add(reconnect_tab, text="< Reconnect PS >")
 
-# Bot setting tab
-bot_tab = ttk.Frame(notebook, width=350, height=50)
-bot_tab.pack_propagate(False)
-notebook.add(bot_tab, text="< Bot >")
 
-# external app tab
-external_tab = ttk.Frame(notebook, width=350, height=50)
-external_tab.pack_propagate(False)
-notebook.add(external_tab, text="< External Apps >")
-
+# Setting tab
+setting_tab = ttk.Frame(notebook, width=350, height=50)
+setting_tab.pack_propagate(False)
+notebook.add(setting_tab, text="< Settings >")
 
 # Auto Biome Section (Merged with Biome OCR Region)
 auto_biome_frame = ttk.Labelframe(biome_tab, text="Auto Biome & Biome OCR Region")
@@ -241,7 +232,7 @@ ttk.Label(auto_biome_frame, text="Biome X Region:").grid(row=1, column=0, sticky
 x_slider = tk.Scale(auto_biome_frame, from_=0, to_=5000, orient="horizontal", variable=biome_x_var, command=update_biome_x, resolution=0.1, length=400)
 x_slider.grid(row=1, column=1, padx=5, pady=2)
 x_entry = ttk.Entry(auto_biome_frame, textvariable=biome_x_var, width=6)
-x_entry.grid(row=1, column=2, padx=5, pady=2)
+x_entry.grid(row=1, column=2, padx=10, pady=2)
 x_entry.bind("<Return>", lambda event: update_biome_x(x_entry.get()))
 
 # Biome Y Region
@@ -268,36 +259,36 @@ height_entry = ttk.Entry(auto_biome_frame, textvariable=biome_height_var, width=
 height_entry.grid(row=4, column=2, padx=5, pady=2)
 height_entry.bind("<Return>", lambda event: update_biome_height(height_entry.get()))
 
-# Auto Item Add Section
-auto_item_add_var = tk.BooleanVar(value=config.get('enable_auto_item_crafting', False))
-auto_item_add_frame = ttk.Labelframe(main_tab, text="Auto Item Crafting (Replicated from original method DolphSol)")
-auto_item_add_frame.pack(fill="x", padx=10, pady=5)
+# # Auto Item Add Section
+# auto_item_add_var = tk.BooleanVar(value=config.get('enable_auto_item_crafting', False))
+# auto_item_add_frame = ttk.Labelframe(main_tab, text="Auto Item Crafting (Replicated from original method DolphSol)")
+# auto_item_add_frame.pack(fill="x", padx=10, pady=5)
 
-enable_auto_item_add = ttk.Checkbutton(auto_item_add_frame, text="Enable Auto Crafting ?", variable=auto_item_add_var, command=toggle_auto_item_add)
-enable_auto_item_add.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+# enable_auto_item_add = ttk.Checkbutton(auto_item_add_frame, text="Enable Auto Crafting ?", variable=auto_item_add_var, command=toggle_auto_item_add)
+# enable_auto_item_add.grid(row=0, column=0, sticky="w", padx=5, pady=5)
 
-# Crafting Slots
-slots_frame = ttk.Labelframe(auto_item_add_frame, text="Crafting Slots")
-slots_frame.grid(row=1, column=0, padx=5, pady=5)
+# # Crafting Slots
+# slots_frame = ttk.Labelframe(auto_item_add_frame, text="Crafting Slots")
+# slots_frame.grid(row=1, column=0, padx=5, pady=5)
 
-# Dropdowns for each slot
-slot_options = [item['Item_Name'] for item in config.get('item_crafting_choices', [])]
+# # Dropdowns for each slot
+# slot_options = [item['Item_Name'] for item in config.get('item_crafting_choices', [])]
 
-slot_vars = [tk.StringVar(value=config.get(f'slot_{i+1}', "None")) for i in range(3)]
-for i in range(3):
-    ttk.Label(slots_frame, text=f"Slot {i+1}:").grid(row=i, column=0, sticky="w", padx=5, pady=2)
+# slot_vars = [tk.StringVar(value=config.get(f'slot_{i+1}', "None")) for i in range(3)]
+# for i in range(3):
+#     ttk.Label(slots_frame, text=f"Slot {i+1}:").grid(row=i, column=0, sticky="w", padx=5, pady=2)
     
-    combobox = ttk.Combobox(slots_frame, textvariable=slot_vars[i], values=slot_options, state="readonly", width=20)
-    combobox.grid(row=i, column=1, padx=5, pady=2)
+#     combobox = ttk.Combobox(slots_frame, textvariable=slot_vars[i], values=slot_options, state="readonly", width=20)
+#     combobox.grid(row=i, column=1, padx=5, pady=2)
     
-    # Bind the selection event to update the config when a new item is selected
-    combobox.bind('<<ComboboxSelected>>', lambda event, i=i: update_slot_option(i+1, slot_vars[i].get()))
+#     # Bind the selection event to update the config when a new item is selected
+#     combobox.bind('<<ComboboxSelected>>', lambda event, i=i: update_slot_option(i+1, slot_vars[i].get()))
 
-# Crafting Interval
-craft_interval_var = tk.StringVar(value=config.get('crafting_interval', "1"))
-ttk.Label(auto_item_add_frame, text="Crafting Interval (minutes):").grid(row=2, column=0, sticky="w", padx=5, pady=5)
-craft_interval_spinbox = ttk.Spinbox(auto_item_add_frame, from_=1, to_=60, textvariable=craft_interval_var, width=5, command=lambda: update_craft_interval(craft_interval_var.get()))
-craft_interval_spinbox.grid(row=2, column=1, sticky="w", padx=5, pady=5)
+# # Crafting Interval
+# craft_interval_var = tk.StringVar(value=config.get('crafting_interval', "1"))
+# ttk.Label(auto_item_add_frame, text="Crafting Interval (minutes):").grid(row=2, column=0, sticky="w", padx=5, pady=5)
+# craft_interval_spinbox = ttk.Spinbox(auto_item_add_frame, from_=1, to_=60, textvariable=craft_interval_var, width=5, command=lambda: update_craft_interval(craft_interval_var.get()))
+# craft_interval_spinbox.grid(row=2, column=1, sticky="w", padx=5, pady=5)
 
 # Initialize the reconnect variable
 reconnect_var = BooleanVar(value=config.get('enable_reconnect', False))
@@ -321,36 +312,31 @@ save_link_button.grid(row=2, column=0, columnspan=2, pady=10)
 
 
 # Bot Info Section
-bot_info_frame = ttk.Labelframe(bot_tab, text="Bot Information")
+bot_info_frame = ttk.Labelframe(bot_tab, text="Discord Bot Settings")
 bot_info_frame.pack(fill="x", padx=10, pady=5)
 
 bot_token_var = tk.StringVar(value=os.getenv('DISCORD_BOT_TOKEN', ''))
 channel_id_var = tk.StringVar(value=os.getenv('DISCORD_CHANNEL_ID', ''))
 user_id_var = tk.StringVar(value=os.getenv('YOUR_DISCORD_USER_ID', ''))
 
-ttk.Label(bot_info_frame, text="Bot Token:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
-bot_token_entry = ttk.Entry(bot_info_frame, textvariable=bot_token_var, width=50)
+ttk.Label(bot_info_frame, text="Discord Bot Token:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+bot_token_entry = ttk.Entry(bot_info_frame, textvariable=bot_token_var, width=68)
 bot_token_entry.grid(row=0, column=1, padx=5, pady=5)
 
 ttk.Label(bot_info_frame, text="Channel ID:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
-channel_id_entry = ttk.Entry(bot_info_frame, textvariable=channel_id_var, width=50)
+channel_id_entry = ttk.Entry(bot_info_frame, textvariable=channel_id_var, width=68)
 channel_id_entry.grid(row=1, column=1, padx=5, pady=5)
 
 ttk.Label(bot_info_frame, text="User ID:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
-user_id_entry = ttk.Entry(bot_info_frame, textvariable=user_id_var, width=50)
+user_id_entry = ttk.Entry(bot_info_frame, textvariable=user_id_var, width=68)
 user_id_entry.grid(row=2, column=1, padx=5, pady=5)
 
 update_button = ttk.Button(bot_info_frame, text="Update Bot Info", command=update_bot_info)
-update_button.grid(row=3, column=0, columnspan=2, pady=10)
+update_button.grid(row=3, column=0, columnspan=2, pady=10, ipadx=40)
 
 # Import Config Button in Settings Tab
 import_config_button = ttk.Button(setting_tab, text="Import Config", command=import_config)
 import_config_button.pack(pady=20, ipady=10, ipadx=240)
-
-# Links to Stuff
-start_merchant_autobuy_button = ttk.Button(external_tab, text="Merchant Autobuy", command=run_merchant_autobuy).pack(pady=10, ipadx=20)
-start_autorun = ttk.Button(external_tab, text="Autostart + Hotkeys", command=run_autostart).pack(ipadx=20)
-
 
 # Pack notebook (tabs) to main window
 notebook.pack(expand=True, fill="both", padx=10, pady=10)

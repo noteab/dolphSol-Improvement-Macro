@@ -36,8 +36,6 @@ global discordID := ""
 global discordGlitchID := "" ; can be a role or a user. role is prefixed with "&"
 global sendMinimum := 10000
 global pingMinimum := 100000
-global recordEnabled := 0
-global recordMinimum := 100000
 global auraImages := 0
 
 global rareDisplaying := 0
@@ -64,13 +62,14 @@ FileRead, retrieved, %configPath%
 if (!ErrorLevel){
     RegExMatch(retrieved, "(?<=WebhookEnabled=)(.*)", webhookEnabled)
     RegExMatch(retrieved, "(?<=WebhookLink=)(.*)", webhookURL)
+    if (!webhookEnabled || !webhookURL){
+        ExitApp
+    }
     RegExMatch(retrieved, "(?<=DiscordUserID=)(.*)", discordID)
     RegExMatch(retrieved, "(?<=DiscordGlitchID=)(.*)", discordGlitchID)
     RegExMatch(retrieved, "(?<=WebhookRollSendMinimum=)(.*)", sendMinimum)
     RegExMatch(retrieved, "(?<=WebhookRollPingMinimum=)(.*)", pingMinimum)
     RegExMatch(retrieved, "(?<=WebhookAuraRollImages=)(.*)", auraImages)
-    RegExMatch(retrieved, "(?<=RecordAuraMinimum=)(.*)", recordMinimum)
-    RegExMatch(retrieved, "(?<=RecordAura=)(.*)", recordEnabled)
 } else {
     logMessage("An error occurred while reading config data. Discord messages will not be sent.")
     return
@@ -436,9 +435,6 @@ Class CreateFormData {
 }
 
 webhookPost(data := 0){
-    if (!webhookEnabled || !webhookURL){
-        return
-    }
     data := data ? data : {}
 
     url := webhookURL
@@ -724,15 +720,6 @@ isColorWhite(c){
     return compareColors(c,0xffffff) < 8
 }
 
-sendAuraToPython(auraRarity)
-{
-    MsgBox, 4, , % "In function"
-    Sleep, 3
-    Run, %A_WorkingDir%\../Python_Features/data/Aura Recording Feature/record_aura.py recordEnabled recordMinimum auraRarity
-    MsgBox, 4, , % recordEnabled recordMinimum auraRarity
-    Sleep, 8
-}
-
 rollDetection(bypass := 0,is1m := 0,starMap := 0,originalCorners := 0){
     if (rareDisplaying && !bypass) {
         return
@@ -792,11 +779,8 @@ rollDetection(bypass := 0,is1m := 0,starMap := 0,originalCorners := 0){
             if (sendMinimum && sendMinimum < 10000) {
                 webhookPost({embedContent:"You rolled a 1/1k+",embedTitle:"Roll",pings: (pingMinimum && pingMinimum < 10000)})
             }
-            MsgBox, 4, , % "In function"
-            sendAuraToPython(9999)
             Sleep, 5000
             rareDisplaying := 0
-            return
         }
     }
     if (!bypass) {
@@ -834,7 +818,6 @@ rollDetection(bypass := 0,is1m := 0,starMap := 0,originalCorners := 0){
         handleRollPost(bypass,auraInfo,starMap,originalCorners)
         rareDisplaying := 0
     }
-    sendAuraToPython(auraInfo.rarity)
 }
 
 SystemCursor(OnOff=1)   ; INIT = "I","Init"; OFF = 0,"Off"; TOGGLE = -1,"T","Toggle"; ON = others
@@ -892,6 +875,8 @@ SendToMain(ByRef StringToSend) {
 }
 
 secondTick() {
+    rollDetection()
+
     detectedBiome := determineBiome()
     if (!detectedBiome || detectedBiome == currentBiome) {
         return
