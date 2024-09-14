@@ -6,7 +6,10 @@ CoordMode, Mouse, Screen
 #Include ..\lib\pathReference.ahk
 
 sleep, 2000
+sleep, 2000
 walkSend("w","Down")
+;walkSleep(4880)
+walkSleep(4630)
 ;walkSleep(4880)
 walkSleep(4630)
 press("d",500)

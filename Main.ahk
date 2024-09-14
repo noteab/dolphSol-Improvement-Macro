@@ -1,4 +1,4 @@
-﻿; dolpSol Macro
+; dolpSol Macro
 ;   A macro for Sol's RNG on Roblox
 ;   GNU General Public License
 ;   Free for anyone to use
@@ -2202,6 +2202,10 @@ useItem(itemName, useAmount := 1) {
     
 }
 
+    }
+    
+}
+
 ; check if the merchant is still on cooldown
 IsMerchantOnCooldown(merchantName) {
     cooldownPeriod := 180000  ; (3 minutes)
@@ -3176,7 +3180,9 @@ mainLoop(){
             handleCrafting()
         }
     }
-    
+
+    useItem("Merchant Teleport")
+
     if (options.DoingObby && (A_TickCount - lastObby) >= (obbyCooldown*1000)){
         ; align()
         reset()
@@ -3903,6 +3909,8 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"ClaimDailyQuestsCheckBox":"ClaimDailyQuests"
     ,"OCREnabledCheckBox":"OCREnabled"
     ,"ShifterCheckBox":"Shifter"
+    ,"RecordAuraCheckBox":"RecordAura" ; Curious Pengu
+    ,"AutoMerchantBooleanBox": "AutoMerchantEnabled"
     ,"ScanLoopAttemptsUpDownInterval": "ScanLoopInterval" ; Noteab
     ,"StorageYPosScanInterval":"StorageButtonYPosScanVALUE" ; Noteab
     ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE"
