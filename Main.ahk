@@ -10,12 +10,11 @@
 ;   
 ;   Feel free to provide any suggestions (through discord preferably, @builderdolphin). 
 
-#Requires AutoHotkey v1.1.33+ 64-bit
+#Requires AutoHotkey v1.1+ 64-bit
 #SingleInstance, force
 #NoEnv
 #Persistent
 SetBatchLines, -1
-SetKeyDelay, 1
 
 
 global loggingEnabled := 1 ; Debug logging to file, disabled for public to prevent storage overload, change to 1 to enable
@@ -35,7 +34,8 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 #Include *i ItemScheduler.ahk
 
-global version := "v1.5.1 - ERA 9 Hotfix by Niko"
+global version := "v1.5.0"
+global currentVersion := "v1.5.0"
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -60,8 +60,8 @@ global lastLoggedMessage := ""
 global delayMultiplier := 3 ; Delay multiplier for slower computers - Mainly for camera mode changes
 global auraNames := [] ; List of aura names for webhook pings
 global biomes := []
-global ItemSchedulerEntries := []  ; Initialize the array for item usage entries
 global lastMerchantTime := {}
+global ItemSchedulerEntries := []  ; Initialize the array for item usage entries
 global MerchantEntries := [] ; Merchant Item Holder
 global Merchant_Webhooks := []
 global StellaPortalDelay := 0 ; Extra wait time (ms) after entering portal before moving to cauldron - 1000ms = 1s
@@ -172,6 +172,9 @@ global options := {"DoingObby":1
     ,"AutoEquipY":-0.438
     ,"PrivateServerId":""
     ,"InOwnPrivateServer":1 ; Determines side button positions
+    ,"ScanLoopInterval":1 ; How many attempts/tries to scan and count left side buttons (If 7 buttons then you're on friend/public server, 8 is you are on your PS instead) - Noteab
+    ,"StorageButtonYPosScanVALUE":318 ; Storage Y Pos value in main option - Noteab
+    ,"StorageYOffsetIntervalVALUE":70 ; Storage Y Pos highlight box for easier look while adjusting - Noteab
     ,"WebhookEnabled":0
     ,"WebhookLink":""
     ,"WebhookImportantOnly":0
@@ -195,11 +198,6 @@ global options := {"DoingObby":1
     ,"SearchSpecialAuras":0     ; Stewart
     ,"Shifter":0
 
-    ; Auto buttons scan (Noteab)
-    ,"ScanLoopInterval":1 ; How many attempts/tries to scan and count left side buttons (If 7 buttons then you're on friend/public server, 8 is you are on your PS instead) - Noteab
-    ,"StorageButtonYPosScanVALUE":318 ; Storage Y Pos value in main option - Noteab
-    ,"StorageYOffsetIntervalVALUE":70 ; Storage Y Pos highlight box for easier look while adjusting - Noteab
-    ,"AutoClaimQuestEnabled":0 ; Toggle for Auto Claim Quest from Amraki (why he doesnt add this, what a silly guy :at:)
 
     ; Merchant config options (Noteab)
     ,"AutoMerchantEnabled":0
@@ -231,10 +229,8 @@ global options := {"DoingObby":1
     ,"Jester_ItemSlot1":0
     ,"Jester_ItemSlot2":0
     ,"Jester_ItemSlot3":0
-
     ; Merchant config options
-
-
+    
     ; Crafting
     ,"ItemCraftingEnabled":0
     ,"CraftingInterval":10
@@ -460,7 +456,7 @@ updateStaticData() {
         MsgBox, 0, Macro Announcement, % sData.announcement
         options.LastAnnouncement := getUnixTime()
     }
-
+    
     if (officialVersion && officialVersion != currentVersion) {
         updateMessage := officialData.updateInfo.updateNotes
     } else {
@@ -966,30 +962,6 @@ reset() {
     press("Enter",150)
     Sleep, 50 * delayMultiplier
 
-    MouseMove, % A_ScreenWidth, % A_ScreenHeight/2
-
-    Sleep, 1000 ; tysm @unconstitutional
-    
-    clickMenuButton(2)
-
-    Sleep, 200
-
-    getRobloxPos(rX,rY,rW,rH)
-    MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
-    Sleep, 200
-    MouseClick
-    Sleep, 200
-
-    Sleep, 500
-
-    ; Get window position and size
-    getRobloxPos(pX,pY,width,height)
-
-    ; Pan camera
-    centerX := Floor(pX + width/2)
-    centerY := Floor(pY + height/2)
-    MouseClickDrag(centerX, centerY, centerX, centerY + 200)
-
     atSpawn := 1
 }
 
@@ -1005,18 +977,18 @@ arcaneTeleport(){
 
 global initialized := 0
 global running := 0
+global isFirstScan := 0
+global Storage_YPos_Scan := 0
+global Storage_YOffset_Scan := 0
 
 initialize() {
     initialized := 1
-
-    resetZoom()
 
     if (disableAlignment) {
         ; Re-enable for reconnects
         disableAlignment := false
     } else {
-        reset()
-    ; alignCamera()
+        alignCamera()
     }
 }
 
@@ -1041,6 +1013,11 @@ resetZoom(){
         Click, WheelUp
         Sleep, 50
     }
+
+    Click, Right Down
+    MouseMove, A_ScreenWidth // 2, A_ScreenHeight
+    Click, Right Up
+
     Loop 10 {
         Click, WheelDown
         Sleep, 50
@@ -1048,7 +1025,7 @@ resetZoom(){
 }
 
 resetCameraAngle(){
-    ; resetZoom()
+    ;resetZoom()
 
     ; Get window position and size
     getRobloxPos(pX,pY,width,height)
@@ -1180,7 +1157,7 @@ alignCamera(){
     Sleep, 200
 
     rotateCameraMode() ; Default(Classic)
-    resetCameraAngle() ; Fix angle before aligning direction
+    ; resetCameraAngle() ; Fix angle before aligning direction
     Sleep, 100
 
     walkSend("d","Down")
@@ -1197,7 +1174,7 @@ alignCamera(){
     rotateCameraMode() ; Follow
     Sleep, 1500
     rotateCameraMode() ; Default(Classic)
-    resetCameraAngle()
+    ; resetCameraAngle()
 
     ; reset() ; Redundant, handleCrafting() will use align() if needed
     removeDim()
@@ -1303,7 +1280,7 @@ runPath(pathName,voidPoints,noCenter = 0){
             }
             PixelGetColor, pColor, % rX+width*0.5, % rY+height*0.5, RGB
             centerBlack := compareColors(pColor,0x000000) < 8
-            if (blackCorners = 4 && centerBlack){
+            if (blackCorners = 3 && centerBlack){
                 if (!voidCooldown){
                     voidCooldown := 5
                     expectedVoids -= 1
@@ -1367,48 +1344,48 @@ walkToJakesShop(){
 
 walkToPotionCrafting(){
     sleep, 2000
-    walkSend("s","Down")
-    walkSend("d","Down")
+    walkSend("w","Down")
+    walkSend("a","Down")
     walkSleep(3800)
-    walkSend("d","Up")
+    walkSend("a","Up")
     walkSleep(675)
-    walkSend("s","Up")
-    walkSend("d","Down")
+    walkSend("w","Up")
+    walkSend("a","Down")
     walkSleep(777)
     jump()
-    walkSend("s","Down")
-    walkSleep(200)
-    walkSend("s","Up")
-    walkSend("d","Down")
-    walkSleep(800)
     walkSend("w","Down")
-    walkSleep(235)
+    walkSleep(200)
     walkSend("w","Up")
+    walkSend("a","Down")
+    walkSleep(800)
+    walkSend("s","Down")
+    walkSleep(235)
+    walkSend("s","Up")
     walkSleep(1225)
     jump()
     walkSleep(350)
-    walkSend("d","Up")
-    walkSend("d","Down")
+    walkSend("a","Up")
+    walkSend("a","Down")
     walkSleep(2500)
-    press("w",500)
-    walkSend("s","Up")
-    walkSend("w","Down")
+    press("s",500)
+    walkSend("a","Up")
+    walkSend("s","Down")
     walkSleep(100)
     jump()
     walkSleep(800)
-    walkSend("d","Down")
+    walkSend("a","Down")
     walkSleep(400)
     jump()
     walkSleep(200)
-    walkSend("w","Up")
+    walkSend("s","Up")
     walkSleep(500)
     jump()
     walkSleep(740)
-    walkSend("d","up")
+    walkSend("a","up")
     walkSleep(200)
-    walkSend("w","down")
+    walkSend("s","down")
     walkSleep(3050)
-    walkSend("w","up")
+    walkSend("s","up")
     Sleep, 200
 }
 
@@ -1696,10 +1673,10 @@ ShowMousePos() {
     MouseGetPos, mx,my
     p := getAspectRatioUVFromPosition(mx,my,storageAspectRatio)
     c := convertScreenCoordinates(mx,my)
-    Tooltip, % "Current x,y pos: " mx ", " my "`n"
+    Tooltip, % "Current: " mx ", " my "`n"
             . "UV Ratio: " p[1] ", " p[2] "`n"
             . "1920x1080: " c[1] ", " c[2]
-    Sleep, 5000
+    Sleep, 5200
     Tooltip
 }
 
@@ -1865,7 +1842,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
     } else if (retryCount = 2) {
         updateStatus("Crafting Failed. Fixing Camera...")
         Sleep, 2000
-        ; alignCamera()
+        alignCamera()
         reset()
         Sleep, 500
         handleCrafting(0,retryCount+1)
@@ -1894,7 +1871,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         ; OCR - Check for "Close" button
         if (!isCraftingMenuOpen()) {
             updateStatus("Failed to open Potion menu")
-            ; alignCamera()
+            alignCamera()
             handleCrafting(1,retryCount+1)
             return
         }
@@ -1966,7 +1943,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         if (!isCraftingMenuOpen()) {
             updateStatus("Failed to open Jake's Shop")
             handleCrafting(2,retryCount+1)
-            ; alignCamera()
+            alignCamera()
             return
         }
 
@@ -2116,7 +2093,7 @@ EquipAura(auraName := "") {
         posBtn := getPositionFromAspectRatioUV(StorageSearchUV[1], StorageSearchUV[2], storageAspectRatio)
     }
     ClickMouse(posBtn[1], posBtn[2])
-    Send, % auraName
+    SendInput, % auraName
     Sleep, 500
 
     ; Search Result
@@ -2206,6 +2183,10 @@ useItem(itemName, useAmount := 1) {
                     updateStatus("Merchant found! Pausing the macro...")
                     Sleep, 5500
 
+                    ; Example usage of manual merchant webhook (or press F11 key for webhook testing)
+                    ; Merchant_Webhook_Main("mari/jester", ["your webhook link here"], "your ps link (leave blank if you dont want to share)", "your discord userid/role ping", "Merchant Face Screenshot")
+                    ; Merchant_Webhook_Main()
+                    
                     ; Call Merchant_Handler function
                     Merchant_Handler(merchantName)
                     break
@@ -2217,7 +2198,8 @@ useItem(itemName, useAmount := 1) {
         } else {
             logMessage("Auto merchant disabled", 1)
         }
-}
+    }
+    
 }
 
 ; check if the merchant is still on cooldown
@@ -2239,7 +2221,6 @@ UpdateMerchantCooldown(merchantName) {
     lastMerchantTime[merchantName] := A_TickCount
     logMessage(merchantName " cooldown started. Will be on cooldown for 3 minutes.", 1)
 }
-
 
 LoadMerchantOptions(merchantName) {
     global configPath, MerchantEntries
@@ -2461,7 +2442,6 @@ Merchant_Handler(merchantName) {
         logMessage("No items loaded for " merchantName " from config.ini", 1)
     }
 }
-
 
 checkBottomLeft(){
     getRobloxPos(rX,rY,width,height)
@@ -2764,7 +2744,6 @@ containsText(x, y, width, height, text) {
     }
 }
 
-; Noteab (Windy) Progress
 FindSolsRNGButtons() {
     try {
         Gui, Default
@@ -2837,7 +2816,7 @@ FindSolsRNGButtons() {
             centerX := x + w / 2
             centerY := y + yOffset + h / 2
             MouseMove, %centerX%, %centerY%
-            Sleep, 75  ; Delay before getting the pixel color
+            Sleep, 30  ; Delay before getting the pixel color
 
             ; Scan within the button area for the white pixel color
             ScanArea := { "left": x, "top": y + yOffset, "right": x + w - 1, "bottom": y + yOffset + h - 1 }
@@ -2920,6 +2899,10 @@ ToggleStorageYPOS_Highlight() {
 }
 
 attemptReconnect(failed := 0){
+    ; Set default y position and offset of storage instead since guicontrolget dumped error when reconnecting, gg my macro :broken_heart:
+    Storage_YPos_Scan := 318
+    Storage_YOffset_Scan := 70 
+    
     logMessage("[attemptReconnect] Reconnect check - Fail count: " failed)
     initialized := 0
     if (reconnecting && !failed){
@@ -3134,6 +3117,9 @@ mainLoop(){
 	
     enableAutoRoll() ; Check after ClickPlay to make sure not left off due to lag, etc
 
+    if (!isFirstScan){
+        FindSolsRNGButtons()
+    }
     ; Equip preferred aura
     if (options.AutoEquipEnabled) {
         EquipAura(options.AutoEquipAura)
@@ -3215,7 +3201,6 @@ mainLoop(){
             ; align()
             updateStatus("Obby Failed, Retrying")
             lastObby := A_TickCount - obbyCooldown*1000
-            reset()
             obbyRun()
             hasBuff := checkHasObbyBuff(BRCornerX,BRCornerY,statusEffectHeight)
             Sleep, 1000
@@ -3232,7 +3217,7 @@ mainLoop(){
 
     if (options.CollectItems){
         reset()
-        Sleep, 1000
+        Sleep, 2000
         searchForItems()
     }
 
@@ -3528,6 +3513,7 @@ CreateMainUI() {
     Gui mainUI:Default
 }
 CreateMainUI()
+
 
 MerchantSettings() {
     global
@@ -3903,7 +3889,6 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"PotionCraftingCheckBox":"PotionCraftingEnabled"
     ,"PotionAutoAddCheckBox":"PotionAutoAddEnabled"
     ,"PotionAutoAddIntervalUpDown":"PotionAutoAddInterval"
-    ,"OwnPrivateServerCheckBox":"InOwnPrivateServer"
     ,"ReconnectCheckBox":"ReconnectEnabled"
     ,"RestartRobloxCheckBox":"RestartRobloxEnabled"
     ,"RestartRobloxIntervalUpDown":"RestartRobloxInterval"
@@ -3920,7 +3905,7 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"ShifterCheckBox":"Shifter"
     ,"ScanLoopAttemptsUpDownInterval": "ScanLoopInterval" ; Noteab
     ,"StorageYPosScanInterval":"StorageButtonYPosScanVALUE" ; Noteab
-    ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE" ; Noteab
+    ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE"
     ,"AutoMerchantBooleanBox": "AutoMerchantEnabled"} ; Noteab
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
@@ -4599,16 +4584,34 @@ return
 ; hotkeys
 #If !running
     F1::startMacro()
+
+    ^F2::
+        alignCamera()
+        Sleep, 500
+        reset()
+        return
+
     F9:: ShowMousePos()
-    F11:: Merchant_Webhook_Main("jester", [""], "", "", "Merchant Face Screenshot")
+    F11:: Merchant_Webhook_Main("Mari", [""], "", "", "Merchant Face Screenshot")
 #If
 
 #If running || reconnecting
     F2::handlePause()
 
+    ^F2::
+        handlePause()
+        Sleep, 500
+        alignCamera()
+        Sleep, 500
+        reset()
+        Sleep, 1500
+        handlePause()
+        return
+        
     F3::
-    stop()
-    Reload
+        stop()
+        Reload
+        return
 #If
 
 #If selectingAutoEquip

@@ -70,46 +70,13 @@ press2(k, k2, duration := 50) {
 }
 
 reset() {
-    global atSpawn
-
-    ; if (atSpawn) {
-    ;     return
-    ; }
-
-    press("Esc",150)
-    Sleep, 50 * delayMultiplier
-    press("r",150)
-    Sleep, 50 * delayMultiplier
-    press("Enter",150)
-    Sleep, 50 * delayMultiplier
-
-    MouseMove, % A_ScreenWidth, % A_ScreenHeight/2
-
-    Sleep, 1000 ; tysm @unconstitutional
-    
-    clickMenuButton(2)
-
-    Sleep, 200
-
-    getRobloxPos(rX,rY,rW,rH)
-    MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
-    Sleep, 200
-    MouseClick
-    Sleep, 200
-
-    Sleep, 500
-
-    ; Get window position and size
-    getRobloxPos(pX,pY,width,height)
-
-    ; Pan camera
-    centerX := Floor(pX + width/2)
-    centerY := Floor(pY + height/2)
-    MouseClickDrag(centerX, centerY, centerX, centerY + 200)
-
-    atSpawn := 1
+    press("Esc")
+    Sleep, 100
+    press("r")
+    Sleep, 100
+    press("Enter")
+    Sleep, 100
 }
-
 jump() {
     press("Space")
 }
@@ -183,11 +150,9 @@ closeChat(){
     }
 }
 
-global menuBarOffset := 20 ;10 pixels from left edge
+global menuBarOffset := 10 ;10 pixels from left edge
 
 getMenuButtonPosition(num, ByRef posX := "", ByRef posY := ""){ ; num is 1-7, 1 being top, 7 only existing if you are the private server owner
-    num := options["InOwnPrivateServer"] ? num : num + 1
-    
     getRobloxPos(rX, rY, width, height)
 
     menuBarVSpacing := 10.5*(height/1080)
@@ -196,7 +161,7 @@ getMenuButtonPosition(num, ByRef posX := "", ByRef posY := ""){ ; num is 1-7, 1 
     startPos := [menuEdgeCenter[1]+(menuBarButtonSize/2),menuEdgeCenter[2]+(menuBarButtonSize/4)-(menuBarButtonSize+menuBarVSpacing-1)*3.5] ; final factor = 0.5x (x is number of menu buttons visible to all, so exclude private server button)
     
     posX := startPos[1]
-    posY := startPos[2] + (menuBarButtonSize+menuBarVSpacing)*(num-0.5)
+    posY := startPos[2] + (menuBarButtonSize+menuBarVSpacing)*(num-1)
 
     MouseMove, % posX, % posY
 }
@@ -223,43 +188,6 @@ rotateCameraMode(){
     Sleep, 250
 
     camFollowMode := !camFollowMode
-}
-
-resetCameraAngle(){
-    ; resetZoom()
-
-    ; Get window position and size
-    getRobloxPos(pX,pY,width,height)
-
-    ; Pan camera
-    centerX := Floor(pX + width/2)
-    centerY := Floor(pY + height/2)
-    MouseClickDrag(centerX, centerY, centerX, centerY + 200)
-}
-
-MouseClickDrag(x1, y1, x2, y2) {
-    ; Move to start position
-    MoveMouseDll(x1, y1, false)
-    Sleep, 50
-    Send {RButton Down} ; Press the button
-    Sleep, 50
-    
-    ; Drag to end position
-    MoveMouseDll(x2 - x1, y2 - y1, true)
-    Sleep, 50
-    Send, {RButton Up} ; Release the button
-}
-
-MoveMouseDll(x, y, relative := true) {
-    MOUSEEVENTF_MOVE := 0x0001
-    MOUSEEVENTF_ABSOLUTE := 0x8000
-    
-    flags := MOUSEEVENTF_MOVE
-    if (!relative) {
-        flags := flags | MOUSEEVENTF_ABSOLUTE
-    }
-    
-    DllCall("mouse_event", "UInt", flags, "Int", x, "Int", y, "UInt", 0, "UInt", 0)
 }
 
 alignCamera(){
