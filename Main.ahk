@@ -2296,18 +2296,32 @@ Merchant_Handler(merchantName) {
     updateStatus("Processing " merchantName " Autobuy...")
     getRobloxPos(pX, pY, width, height)
 
+    open_button_X := options.Merchant_Open_Button_X
+    open_button_Y := options.Merchant_Open_Button_Y
+    slider_X := options.Merchant_slider_X
+    slider_Y := options.Merchant_slider_Y
+    purchase_Amount_X := options.Merchant_Purchase_Amount_X
+    purchase_Amount_Y := options.Merchant_Purchase_Amount_Y
+    purchase_Button_X := options.Merchant_Purchase_Button_X
+    purchase_Button_Y := options.Merchant_Purchase_Button_Y
+    username_OCR_X := options.Merchant_Username_OCR_X
+    username_OCR_Y := options.Merchant_Username_OCR_Y
+    itemName_OCR_X := options.Merchant_ItemName_OCR_X
+    itemName_OCR_Y := options.Merchant_ItemName_OCR_Y
+    firstItem_Pos_X := options.Merchant_FirstItem_Pos_X
+    firstItem_Pos_Y := options.Merchant_FirstItem_Pos_Y
+
     ; Load merchant config for the specific merchant (Mari or Jester)
     LoadMerchantOptions(merchantName)
-    
+
     ; Press open button:
     Loop, 4 {
-        ClickMouse(512, 881)
+        ClickMouse(open_button_X, open_button_Y)
         Sleep, 300
     }
     
-    
     ; Reset the merchant item slider to the top (scroll up)
-    MouseMove, 711, 734
+    MouseMove, slider_X, slider_Y
     Sleep, 200
     MouseClick, WheelUp, , , 15
     Sleep, 650
@@ -2316,7 +2330,6 @@ Merchant_Handler(merchantName) {
     if (MerchantEntries.MaxIndex() > 0) {
         logMessage("Items loaded for purchase: " MerchantEntries.MaxIndex(), 1)
 
-        ; List to store config item names for checking
         merchantItemNames := []
         purchasedItems := [] 
 
@@ -2334,7 +2347,6 @@ Merchant_Handler(merchantName) {
         itemsPurchased := 0  ; Count successfully purchased items
 
         Loop, 35 {
-            ; If all items have been purchased, exit the loop early
             if (itemsPurchased >= totalItemsToPurchase) {
                 logMessage("All items have been successfully purchased. Exiting loop.", 1)
                 break
@@ -2344,12 +2356,12 @@ Merchant_Handler(merchantName) {
                 logMessage("Scrolling down to reveal more items", 1)
                 MouseClick, WheelDown, , , 2
                 Sleep, 1000
-                itemCount := 0  ; Reset item count after scrolling
+                itemCount := 0
             }
 
             ; X and Y position for each slot
-            itemYPos := 722  ; Fixed Y position
-            itemXPos := 611 + (itemCount * 185)  ; X offset
+            itemYPos := firstItem_Pos_Y  ; Use dynamic Y position from options
+            itemXPos := firstItem_Pos_X + (itemCount * 185)  ; X offset
 
             ; Click the item at the calculated position
             logMessage("Clicking item slot " A_Index " at position X:" itemXPos " Y:" itemYPos, 1)
@@ -2365,20 +2377,20 @@ Merchant_Handler(merchantName) {
                 ; Check if the item has already been purchased before scanning
                 if (purchasedItems.HasValue(itemNameTrimmed)) {
                     logMessage("Item " itemNameTrimmed " has already been purchased. Skipping...", 1)
-                    continue  ; Move to the next item in the loop
+                    continue
                 }
 
                 ; Run OCR detection on the current item slot
-                if (containsText(758, 386, 323, 29, itemNameTrimmed)) {
+                if (containsText(itemName_OCR_X, itemName_OCR_Y, 323, 29, itemNameTrimmed)) {
                     logMessage("Matching item found: " itemNameTrimmed, 1)
 
-                    ; Set the purchase quantity
-                    ClickMouse(646, 613)
+                    ; purchase quantity
+                    ClickMouse(purchase_Amount_X, purchase_Amount_Y)
                     Send, 1
                     Sleep, 200
 
-                    ; Click purchase button
-                    ClickMouse(713, 658)
+                    ; purchase button
+                    ClickMouse(purchase_Button_X, purchase_Button_Y)
                     Sleep, 5500
 
                     logMessage("Purchase completed for " itemNameTrimmed, 1)
@@ -3493,6 +3505,7 @@ MerchantSettings() {
     
     ; Title
     Gui, Add, Text, x16 y10 w300 h30, More merchant features coming soon weee!
+    Gui, Add, Text, x16 y25 w300 h30, (Press F9 to show mouse x,y position)
 
     ; Calibration for Merchant Slider
     Gui, Add, Text, x16 y50 w250, Merchant Slider Position (X, Y):
