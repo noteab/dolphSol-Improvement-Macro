@@ -10,11 +10,12 @@
 ;   
 ;   Feel free to provide any suggestions (through discord preferably, @builderdolphin). 
 
-#Requires AutoHotkey v1.1+ 64-bit
+#Requires AutoHotkey v1.1.33+ 64-bit
 #SingleInstance, force
 #NoEnv
 #Persistent
 SetBatchLines, -1
+SetKeyDelay, 1
 
 
 global loggingEnabled := 1 ; Debug logging to file, disabled for public to prevent storage overload, change to 1 to enable
@@ -34,8 +35,7 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 #Include *i ItemScheduler.ahk
 
-global version := "v1.3"
-global currentVersion := "v1.3"
+global version := "v1.5.1 - ERA 9 Hotfix by Niko"
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
     ; File is not extracted or not saved with other necessary files
@@ -61,6 +61,9 @@ global delayMultiplier := 3 ; Delay multiplier for slower computers - Mainly for
 global auraNames := [] ; List of aura names for webhook pings
 global biomes := []
 global ItemSchedulerEntries := []  ; Initialize the array for item usage entries
+global lastMerchantTime := {}
+global MerchantEntries := [] ; Merchant Item Holder
+global Merchant_Webhooks := []
 global StellaPortalDelay := 0 ; Extra wait time (ms) after entering portal before moving to cauldron - 1000ms = 1s
 global currentBiome := ""
 
@@ -91,6 +94,7 @@ logMessage("Macro opened")
 
 configPath := mainDir . "settings\config.ini"
 global ssPath := "ss.jpg"
+global merchant_ssPath := "hewo_merchant.jpg"
 global pathDir := mainDir . "paths\"
 global imgDir := mainDir . "images\"
 
@@ -168,9 +172,6 @@ global options := {"DoingObby":1
     ,"AutoEquipY":-0.438
     ,"PrivateServerId":""
     ,"InOwnPrivateServer":1 ; Determines side button positions
-    ,"ScanLoopInterval":1 ; How many attempts/tries to scan and count left side buttons (If 7 buttons then you're on friend/public server, 8 is you are on your PS instead) - Noteab
-    ,"StorageButtonYPosScanVALUE":318 ; Storage Y Pos value in main option - Noteab
-    ,"StorageYOffsetIntervalVALUE":70 ; Storage Y Pos highlight box for easier look while adjusting - Noteab
     ,"WebhookEnabled":0
     ,"WebhookLink":""
     ,"WebhookImportantOnly":0
@@ -194,6 +195,11 @@ global options := {"DoingObby":1
     ,"SearchSpecialAuras":0     ; Stewart
     ,"Shifter":0
 
+    ; Auto buttons scan (Noteab)
+    ,"ScanLoopInterval":1 ; How many attempts/tries to scan and count left side buttons (If 7 buttons then you're on friend/public server, 8 is you are on your PS instead) - Noteab
+    ,"StorageButtonYPosScanVALUE":318 ; Storage Y Pos value in main option - Noteab
+    ,"StorageYOffsetIntervalVALUE":70 ; Storage Y Pos highlight box for easier look while adjusting - Noteab
+    ,"AutoClaimQuestEnabled":0 ; Toggle for Auto Claim Quest from Amraki (why he doesnt add this, what a silly guy :at:)
 
     ; Merchant config options (Noteab)
     ,"AutoMerchantEnabled":0
@@ -225,8 +231,10 @@ global options := {"DoingObby":1
     ,"Jester_ItemSlot1":0
     ,"Jester_ItemSlot2":0
     ,"Jester_ItemSlot3":0
+
     ; Merchant config options
-    
+
+
     ; Crafting
     ,"ItemCraftingEnabled":0
     ,"CraftingInterval":10
@@ -246,11 +254,7 @@ global options := {"DoingObby":1
     ,"Disconnects":0
     ,"ObbyCompletes":0
     ,"ObbyAttempts":0
-    ,"CollectionLoops":0
-
-    ; plus options
-    ,"RecordAura":0
-    ,"RecordAuraMinimum":100000}
+    ,"CollectionLoops":0}
 
 global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode="
 
@@ -434,7 +438,7 @@ getURLContent(url) {
 }
 
 updateStaticData() {
-    updateURL := "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/lib/staticData.json"
+    updateURL := "https://raw.githubusercontent.com/BuilderDolphin/dolphSol-Macro/main/lib/staticData.json"
 
     content := getURLContent(updateURL)
     if (content != "") {
@@ -456,7 +460,7 @@ updateStaticData() {
         MsgBox, 0, Macro Announcement, % sData.announcement
         options.LastAnnouncement := getUnixTime()
     }
-    
+
     if (officialVersion && officialVersion != currentVersion) {
         updateMessage := officialData.updateInfo.updateNotes
     } else {
@@ -470,7 +474,7 @@ updateStaticData() {
 
     options.FirstTime := 0
     vLink := sData.updateInfo.versionLink
-    Run % (vLink ? vLink : "https://github.com/noteab/dolphSol-Improvement-Macro/releases/latest")
+    Run % (vLink ? vLink : "https://github.com/BuilderDolphin/dolphSol-Macro/releases/latest")
     ExitApp
 }
 
@@ -571,7 +575,7 @@ saveOptions()
 
 updateYesClicked(){
     vLink := sData.updateInfo.versionLink
-    Run % (vLink ? vLink : "https://github.com/noteab/dolphSol-Improvement-Macro/releases/latest")
+    Run % (vLink ? vLink : "https://github.com/BuilderDolphin/dolphSol-Macro/releases/latest")
     ExitApp
 }
 
@@ -962,6 +966,30 @@ reset() {
     press("Enter",150)
     Sleep, 50 * delayMultiplier
 
+    MouseMove, % A_ScreenWidth, % A_ScreenHeight/2
+
+    Sleep, 1000 ; tysm @unconstitutional
+    
+    clickMenuButton(2)
+
+    Sleep, 200
+
+    getRobloxPos(rX,rY,rW,rH)
+    MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
+    Sleep, 200
+    MouseClick
+    Sleep, 200
+
+    Sleep, 500
+
+    ; Get window position and size
+    getRobloxPos(pX,pY,width,height)
+
+    ; Pan camera
+    centerX := Floor(pX + width/2)
+    centerY := Floor(pY + height/2)
+    MouseClickDrag(centerX, centerY, centerX, centerY + 200)
+
     atSpawn := 1
 }
 
@@ -977,18 +1005,18 @@ arcaneTeleport(){
 
 global initialized := 0
 global running := 0
-global isFirstScan := 0
-global Storage_YPos_Scan := 0
-global Storage_YOffset_Scan := 0
 
 initialize() {
     initialized := 1
+
+    resetZoom()
 
     if (disableAlignment) {
         ; Re-enable for reconnects
         disableAlignment := false
     } else {
-    alignCamera()
+        reset()
+    ; alignCamera()
     }
 }
 
@@ -1013,11 +1041,6 @@ resetZoom(){
         Click, WheelUp
         Sleep, 50
     }
-
-    Click, Right Down
-    MouseMove, A_ScreenWidth // 2, A_ScreenHeight
-    Click, Right Up
-
     Loop 10 {
         Click, WheelDown
         Sleep, 50
@@ -1025,7 +1048,7 @@ resetZoom(){
 }
 
 resetCameraAngle(){
-    resetZoom()
+    ; resetZoom()
 
     ; Get window position and size
     getRobloxPos(pX,pY,width,height)
@@ -1033,7 +1056,7 @@ resetCameraAngle(){
     ; Pan camera
     centerX := Floor(pX + width/2)
     centerY := Floor(pY + height/2)
-    MouseClickDrag(centerX, centerY, centerX, centerY + 50)
+    MouseClickDrag(centerX, centerY, centerX, centerY + 200)
 }
 
 MouseClickDrag(x1, y1, x2, y2) {
@@ -1174,7 +1197,7 @@ alignCamera(){
     rotateCameraMode() ; Follow
     Sleep, 1500
     rotateCameraMode() ; Default(Classic)
-    ; resetCameraAngle()
+    resetCameraAngle()
 
     ; reset() ; Redundant, handleCrafting() will use align() if needed
     removeDim()
@@ -1280,7 +1303,7 @@ runPath(pathName,voidPoints,noCenter = 0){
             }
             PixelGetColor, pColor, % rX+width*0.5, % rY+height*0.5, RGB
             centerBlack := compareColors(pColor,0x000000) < 8
-            if (blackCorners = 3 && centerBlack){
+            if (blackCorners = 4 && centerBlack){
                 if (!voidCooldown){
                     voidCooldown := 5
                     expectedVoids -= 1
@@ -1344,48 +1367,48 @@ walkToJakesShop(){
 
 walkToPotionCrafting(){
     sleep, 2000
-    walkSend("w","Down")
-    walkSend("a","Down")
+    walkSend("s","Down")
+    walkSend("d","Down")
     walkSleep(3800)
-    walkSend("a","Up")
+    walkSend("d","Up")
     walkSleep(675)
-    walkSend("w","Up")
-    walkSend("a","Down")
+    walkSend("s","Up")
+    walkSend("d","Down")
     walkSleep(777)
     jump()
-    walkSend("w","Down")
-    walkSleep(200)
-    walkSend("w","Up")
-    walkSend("a","Down")
-    walkSleep(800)
     walkSend("s","Down")
-    walkSleep(235)
+    walkSleep(200)
     walkSend("s","Up")
+    walkSend("d","Down")
+    walkSleep(800)
+    walkSend("w","Down")
+    walkSleep(235)
+    walkSend("w","Up")
     walkSleep(1225)
     jump()
     walkSleep(350)
-    walkSend("a","Up")
-    walkSend("a","Down")
+    walkSend("d","Up")
+    walkSend("d","Down")
     walkSleep(2500)
-    press("s",500)
-    walkSend("a","Up")
-    walkSend("s","Down")
+    press("w",500)
+    walkSend("s","Up")
+    walkSend("w","Down")
     walkSleep(100)
     jump()
     walkSleep(800)
-    walkSend("a","Down")
+    walkSend("d","Down")
     walkSleep(400)
     jump()
     walkSleep(200)
-    walkSend("s","Up")
+    walkSend("w","Up")
     walkSleep(500)
     jump()
     walkSleep(740)
-    walkSend("a","up")
+    walkSend("d","up")
     walkSleep(200)
-    walkSend("s","down")
+    walkSend("w","down")
     walkSleep(3050)
-    walkSend("s","up")
+    walkSend("w","up")
     Sleep, 200
 }
 
@@ -1673,10 +1696,10 @@ ShowMousePos() {
     MouseGetPos, mx,my
     p := getAspectRatioUVFromPosition(mx,my,storageAspectRatio)
     c := convertScreenCoordinates(mx,my)
-    Tooltip, % "Current: " mx ", " my "`n"
+    Tooltip, % "Current x,y pos: " mx ", " my "`n"
             . "UV Ratio: " p[1] ", " p[2] "`n"
             . "1920x1080: " c[1] ", " c[2]
-    Sleep, 5200
+    Sleep, 5000
     Tooltip
 }
 
@@ -1842,7 +1865,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
     } else if (retryCount = 2) {
         updateStatus("Crafting Failed. Fixing Camera...")
         Sleep, 2000
-        alignCamera()
+        ; alignCamera()
         reset()
         Sleep, 500
         handleCrafting(0,retryCount+1)
@@ -1871,7 +1894,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         ; OCR - Check for "Close" button
         if (!isCraftingMenuOpen()) {
             updateStatus("Failed to open Potion menu")
-            alignCamera()
+            ; alignCamera()
             handleCrafting(1,retryCount+1)
             return
         }
@@ -1943,7 +1966,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         if (!isCraftingMenuOpen()) {
             updateStatus("Failed to open Jake's Shop")
             handleCrafting(2,retryCount+1)
-            alignCamera()
+            ; alignCamera()
             return
         }
 
@@ -2093,7 +2116,7 @@ EquipAura(auraName := "") {
         posBtn := getPositionFromAspectRatioUV(StorageSearchUV[1], StorageSearchUV[2], storageAspectRatio)
     }
     ClickMouse(posBtn[1], posBtn[2])
-    SendInput, % auraName
+    Send, % auraName
     Sleep, 500
 
     ; Search Result
@@ -2166,33 +2189,55 @@ useItem(itemName, useAmount := 1) {
         if (options.AutoMerchantEnabled = 1) {
             logMessage("Pressing E for Merchant", 1)
             Sleep, 750
-            Send, {E 3} ; Press E to interact with the NPC
-
+            Send, {E 3}
+            
             Sleep, 1200
             Loop, 5 {
                 if (containsText(758, 585, 200, 31, "mari") || containsText(758, 585, 200, 31, "jester")) {
                     merchantName := containsText(758, 585, 200, 31, "mari") ? "Mari" : "Jester"
                     logMessage("[Merchant Detection]: " merchantName " name found!", 1)
+
+                    ; Check if the merchant is on cooldown
+                    if (IsMerchantOnCooldown(merchantName)) {
+                        logMessage(merchantName " is on cooldown. Skipping purchase.", 1)
+                        break
+                    }
+
                     updateStatus("Merchant found! Pausing the macro...")
-
                     Sleep, 5500
-                    ; Example usage of manual merchant webhook (or press F11 key for webhook testing)
-                    ; Merchant_Webhook_Main("mari/jester", ["your webhook link here"], "your ps link (leave blank if you dont want to share)", "your discord userid/role ping", "Merchant Face Screenshot")
 
-                    ; Merchant_Webhook_Main()
-                    Merchant_Handler(merchantName)  ; Pass the merchant name (Mari or Jester) to the handler
+                    ; Call Merchant_Handler function
+                    Merchant_Handler(merchantName)
                     break
                 }
                 Sleep, 300
             }
-            
+
             Sleep, 1500
         } else {
-            logMessage("auto merchant disabled", 1)
+            logMessage("Auto merchant disabled", 1)
         }
+}
+}
 
-    }
+; check if the merchant is still on cooldown
+IsMerchantOnCooldown(merchantName) {
+    cooldownPeriod := 180000  ; (3 minutes)
     
+    if (lastMerchantTime.HasKey(merchantName)) {
+        elapsedTime := A_TickCount - lastMerchantTime[merchantName]
+        if (elapsedTime < cooldownPeriod) {
+            remainingTime := Round((cooldownPeriod - elapsedTime) / 1000)
+            logMessage(merchantName " is on cooldown for " remainingTime " more seconds.", 1)
+            return true
+        }
+    }
+    return false
+}
+
+UpdateMerchantCooldown(merchantName) {
+    lastMerchantTime[merchantName] := A_TickCount
+    logMessage(merchantName " cooldown started. Will be on cooldown for 3 minutes.", 1)
 }
 
 
@@ -2315,9 +2360,9 @@ Merchant_Handler(merchantName) {
     LoadMerchantOptions(merchantName)
 
     ; Press open button:
-    Loop, 4 {
+    Loop, 5 {
         ClickMouse(open_button_X, open_button_Y)
-        Sleep, 300
+        Sleep, 250
     }
     
     ; Reset the merchant item slider to the top (scroll up)
@@ -2346,7 +2391,7 @@ Merchant_Handler(merchantName) {
         totalItemsToPurchase := merchantItemNames.MaxIndex()  ; Get total number of items to purchase
         itemsPurchased := 0  ; Count successfully purchased items
 
-        Loop, 35 {
+        Loop, 50 {
             if (itemsPurchased >= totalItemsToPurchase) {
                 logMessage("All items have been successfully purchased. Exiting loop.", 1)
                 break
@@ -2408,10 +2453,15 @@ Merchant_Handler(merchantName) {
             ; Increment item count after each slot
             itemCount++
         }
+
+        ; Update merchant cooldown after successful purchases
+        UpdateMerchantCooldown(merchantName)
+
     } else {
         logMessage("No items loaded for " merchantName " from config.ini", 1)
     }
 }
+
 
 checkBottomLeft(){
     getRobloxPos(rX,rY,width,height)
@@ -2714,6 +2764,7 @@ containsText(x, y, width, height, text) {
     }
 }
 
+; Noteab (Windy) Progress
 FindSolsRNGButtons() {
     try {
         Gui, Default
@@ -2869,10 +2920,6 @@ ToggleStorageYPOS_Highlight() {
 }
 
 attemptReconnect(failed := 0){
-    ; Set default y position and offset of storage instead since guicontrolget dumped error when reconnecting, gg my macro :broken_heart:
-    Storage_YPos_Scan := 318
-    Storage_YOffset_Scan := 70 
-    
     logMessage("[attemptReconnect] Reconnect check - Fail count: " failed)
     initialized := 0
     if (reconnecting && !failed){
@@ -3087,9 +3134,6 @@ mainLoop(){
 	
     enableAutoRoll() ; Check after ClickPlay to make sure not left off due to lag, etc
 
-    if (!isFirstScan){
-        FindSolsRNGButtons()
-    }
     ; Equip preferred aura
     if (options.AutoEquipEnabled) {
         EquipAura(options.AutoEquipAura)
@@ -3171,6 +3215,7 @@ mainLoop(){
             ; align()
             updateStatus("Obby Failed, Retrying")
             lastObby := A_TickCount - obbyCooldown*1000
+            reset()
             obbyRun()
             hasBuff := checkHasObbyBuff(BRCornerX,BRCornerY,statusEffectHeight)
             Sleep, 1000
@@ -3187,7 +3232,7 @@ mainLoop(){
 
     if (options.CollectItems){
         reset()
-        Sleep, 2000
+        Sleep, 1000
         searchForItems()
     }
 
@@ -3209,14 +3254,14 @@ CreateMainUI() {
     }
 
     Gui mainUI: New, +hWndhGui
-    ; Gui Color, 0xDADADA
+    Gui Color, 0xDADADA
     Gui Add, Button, gStartClick vStartButton x8 y254 w80 h23 -Tabstop, F1 - Start
     Gui Add, Button, gPauseClick vPauseButton x96 y254 w80 h23 -Tabstop, F2 - Pause
     Gui Add, Button, gStopClick vStopButton x184 y254 w80 h23 -Tabstop, F3 - Stop
     Gui Font, s11 Norm, Segoe UI
     Gui Add, Picture, gDiscordServerClick w26 h20 x462 y254, % mainDir "images\discordIcon.png"
 
-    Gui Add, Tab3, vMainTabs x8 y8 w484 h240, Main|Crafting|Webhook|Settings|Credits|Extras|Merchant
+    Gui Add, Tab3, vMainTabs x8 y8 w484 h240 +0x800000, Main|Crafting|Status|Settings|Credits|Extras|Merchants
 
     ; main tab
     Gui Tab, 1
@@ -3293,7 +3338,7 @@ CreateMainUI() {
     Gui Add, UpDown, vPotionAutoAddIntervalUpDown Range1-300, 10
     Gui Add, Text, ys wp w60 h35 BackgroundTrans, minutes
 
-    ; webhook tab
+    ; status tab
     Gui Tab, 3
     Gui Font, s10 w600
     Gui Add, GroupBox, x16 y40 w130 h170 vStatsGroup -Theme +0x50000007, Stats
@@ -3402,53 +3447,43 @@ CreateMainUI() {
     Gui Add, Button, x28 y177 w206 h32 gMoreCreditsClick,% "More Credits"
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x252 y40 w231 h90 vCreditsGroup2 -Theme +0x50000007, dSIM Credits
-    Gui Add, Picture, w60 h60 x259 y62, % mainDir "images\noteab.ico" ; noteab insert your pfp
+    Gui Add, GroupBox, x252 y40 w231 h90 vCreditsGroup2 -Theme +0x50000007, The Inspiration
+    Gui Add, Picture, w60 h60 x259 y62, % mainDir "images\auryn.ico"
     Gui Font, s8 norm
-    Gui Add, Text, x326 y59 w150 h68,% "Noteab and Steve are the main contributors.`nCurious Pengu just does stuff" ; change this all you like
+    Gui Add, Text, x326 y59 w150 h68,% "Natro Macro, a macro for Bee Swarm Simulator has greatly inspired this project and has helped me create this project overall."
 
     Gui Font, s10 w600
     Gui Add, GroupBox, x252 y130 w231 h80 vCreditsGroup3 -Theme +0x50000007, Other
     Gui Font, s9 norm
-    Gui Add, Link, x268 y150 w200 h55, Join the <a href="https://discord.gg/DYUqwJchuV">Discord Server</a>! (Community)`n`nVisit the <a href="https://github.com/noteab/dolphSol-Improvement-Macro">GitHub</a>! (Updates + Versions)
+    Gui Add, Link, x268 y150 w200 h55, Join the <a href="https://discord.gg/DYUqwJchuV">Discord Server</a>! (Community)`n`nVisit the <a href="https://github.com/BuilderDolphin/dolphSol-Macro">GitHub</a>! (Updates + Versions)
 
     ; extras tab
     Gui Tab, 6
     Gui Font, s10 w600
 
     ; General
-    Gui Add, GroupBox, x16 y40 w467 h43 vGeneralEnhancementsGroup -Theme +0x50000007, General
+    Gui Add, GroupBox, x16 y40 w467 h50 vGeneralEnhancementsGroup -Theme +0x50000007, General
     Gui Font, s9 norm
-    Gui Add, CheckBox, gOCREnabledCheckBoxClick vOCREnabledCheckBox x32 y57 w400 h22 +0x2 Section, % " Enable OCR for Self-Correction (Requires English-US PC Language)"
+    Gui Add, CheckBox, gOCREnabledCheckBoxClick vOCREnabledCheckBox x32 y60 w400 h22 +0x2 Section, % " Enable OCR for Self-Correction (Requires English-US PC Language)"
     Gui Add, Button, gOCRHelpClick vOCRHelpButton x457 y50 w23 h23, ?
 
-    Gui Add, Button, gShowBiomeSettings vBiomeButton x350 y100 w128, Configure Biomes
-    Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x350 y+5 w128, Item Scheduler
+    Gui Add, Button, gShowBiomeSettings vBiomeButton x16 y100 w128, Configure Biomes
+    Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x16 y+5 w128, Item Scheduler
 
-    Gui Add, Button, gUIHelpClick vUIHelpButton x380 y220 w100 h23, How can I tell?
+    Gui Add, Button, gUIHelpClick vUIHelpButton x380 y190 w100 h23, How can I tell?
 
     ; Roblox UI style to determine Chat button position
     Gui Font, s10 w600
-    Gui Add, Text, x400 y160, Roblox UI
+    Gui Add, Text, x400 y130, Roblox UI
     Gui Font, s9 norm
-
+    
     ; options["RobloxUpdatedUI"]
-    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y180, Old
+    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y150, Old
     Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio2, New
     GuiControl,, RobloxUpdatedUIRadio1, % (options["RobloxUpdatedUI"] = 1) ? 1 : 0
     GuiControl,, RobloxUpdatedUIRadio2, % (options["RobloxUpdatedUI"] = 2) ? 1 : 0
 
-    ; Record Aura
-    Gui Font, s10 w600
-    Gui Add, GroupBox, x16 y83 w328 h67 vRecordAuraGroup -Theme +0x50000007, Record Aura
-    Gui Font, s9 norm
-    Gui Add, CheckBox, vRecordAuraCheckBox x32 y100 w260 h22 +0x2 Section, % " Record Aura Rolls using Xbox Game Bar"
-    Gui Add, Button, gRecordAuraHelp vRecordAuraHelpButton x318 y92 w23 h23, ?
-    Gui Add, Text, vRecordAuraMinimumHeader x25 y123 w110 h16 BackgroundTrans, % "Record Minimum:"
-    Gui Add, Edit, vRecordAuraMinimumInput x135 y123 w200 h18, 100000
-
-    ; Window Title
-    Gui Show, % "w500 h284 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Improvement Macro " version
+    Gui Show, % "w500 h284 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Macro " "v1.5.0 (Merchant Experimental v1.3 - Noteab)"
     
     ; Merchant tab (Mari and Jester!!)
     Gui, Tab, 7
@@ -3493,7 +3528,6 @@ CreateMainUI() {
     Gui mainUI:Default
 }
 CreateMainUI()
-
 
 MerchantSettings() {
     global
@@ -3869,6 +3903,7 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"PotionCraftingCheckBox":"PotionCraftingEnabled"
     ,"PotionAutoAddCheckBox":"PotionAutoAddEnabled"
     ,"PotionAutoAddIntervalUpDown":"PotionAutoAddInterval"
+    ,"OwnPrivateServerCheckBox":"InOwnPrivateServer"
     ,"ReconnectCheckBox":"ReconnectEnabled"
     ,"RestartRobloxCheckBox":"RestartRobloxEnabled"
     ,"RestartRobloxIntervalUpDown":"RestartRobloxInterval"
@@ -3883,13 +3918,13 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"ClaimDailyQuestsCheckBox":"ClaimDailyQuests"
     ,"OCREnabledCheckBox":"OCREnabled"
     ,"ShifterCheckBox":"Shifter"
-    ,"RecordAuraCheckBox":"RecordAura" ; Curious Pengu
     ,"ScanLoopAttemptsUpDownInterval": "ScanLoopInterval" ; Noteab
     ,"StorageYPosScanInterval":"StorageButtonYPosScanVALUE" ; Noteab
-    ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE"} ; Noteab
+    ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE" ; Noteab
+    ,"AutoMerchantBooleanBox": "AutoMerchantEnabled"} ; Noteab
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
-    ,"WebhookRollPingInput":"WebhookRollPingMinimum", "RecordAuraMinimumInput":"RecordAuraMinimum"}
+    ,"WebhookRollPingInput":"WebhookRollPingMinimum"}
 updateUIOptions(){
     for i,v in directValues {
         GuiControl,,%i%,% options[v]
@@ -4515,31 +4550,6 @@ WebhookHelpClick:
     MsgBox, 0, Discord Webhook, % "Section for connecting a Discord Webhook to have status messages displayed in a target Discord Channel. Enable this option by entering a valid Discord Webhook link.`n`nTo create a webhook, you must have Administrator permissions in a server (preferably your own, separate server). Go to your target channel, then configure it. Go to Integrations, and create a Webhook in the Webhooks Section. After naming it whatever you like, copy the Webhook URL, then paste it into the macro. Now you can enable the Discord Webhook option!`n`nRequires a valid Webhook URL to enable.`n`nImportant events only - The webhook will only send important events such as disconnects, rolls, and initialization, instead of all of the obby/collecting/crafting ones.`n`nYou can provide your Discord ID here as well to be pinged for rolling a rarity group or higher when detected by the system. You can select the minimum notification/send rarity in the Roll Detection system.`n`nHourly Inventory Screenshots - Screenshots of both your Aura Storage and Item Inventory are sent to your webhook."
     return
 
-    RecordAuraHelp:
-    Gui mainUI:Default
-    helpText = 
-(
-Recording Auras uses Xbox Game Bar's record last 30 Seconds feature to record you rolling your auras.
-To enable this:
-1. Open Roblox
-2. Press Win+G
-3. Enable Record Last 30 Seconds Option
-    - If there is any problem with xbox game bar reinstall it
-        - Search up eleven forums reinstall game bar
-    - If xbox bar greyed out
-        - Search up ARG99 Xbox game bar greyed out on YOUTUBE
-4. Open Main.ahk
-5. Enable Record Last 30 Seconds Option
-6. Check the Checbock: Enable Gaming features for this app to record gameplay
-
-
-Record Minimum:
-You can specify the minimum rarity of rolls to record. 
-Default = 100000
-)
-    MsgBox, 0, Recording Auras, % helpText
-    return
-
 RollDetectionHelpClick:
     MsgBox, 0, Roll Detection, % "Section for detecting rolled auras through the registered star color (if 10k+). Any 10k+ auras that can be sent will be sent to the webhook, with the option to ping if the rarity is above the minimum.`n`nFor minimum settings, the number determines the lowest possible rarity the webhook will send/ping for. Values of 0 will disable the option completely. Values under 10,000 will toggle all 1k+ rolls, due to them being near undetectable.`n`nAura Images can be toggled to show the wiki-based images of your rolled auras in the webhook. WARNING: After some testing, this has proven to show some lag, leading to some send delay issues. Use at your own risk!"
     return
@@ -4589,43 +4599,16 @@ return
 ; hotkeys
 #If !running
     F1::startMacro()
-
-    ^F2::
-        alignCamera()
-        Sleep, 500
-        reset()
-        return
-
     F9:: ShowMousePos()
-    F11:: Merchant_Webhook_Main("Mari", [""], "", "", "Merchant Face Screenshot")
+    F11:: Merchant_Webhook_Main("jester", [""], "", "", "Merchant Face Screenshot")
 #If
 
 #If running || reconnecting
     F2::handlePause()
 
-    ^F2::
-        handlePause()
-        Sleep, 500
-        alignCamera()
-        Sleep, 500
-        reset()
-        Sleep, 1500
-        handlePause()
-        return
-
-    F8::
-        Sleep, 500
-        alignCamera()
-        Sleep, 2000
-        reset()
-        Sleep, 500
-        handlePause()
-        return
-        
     F3::
-        stop()
-        Reload
-        return
+    stop()
+    Reload
 #If
 
 #If selectingAutoEquip
