@@ -5,11 +5,10 @@ CoordMode, Pixel, Screen
 CoordMode, Mouse, Screen
 #Include ..\lib\pathReference.ahk
 
+sleep, 2000
 walkSend("w","Down")
-walkSend("d","Down")
-walkSleep(2500)
-walkSend("d","Up")
-walkSleep(2000)
+;walkSleep(4880)
+walkSleep(4630)
 press("d",500)
 walkSleep(1000)
 press("d",250)
@@ -87,4 +86,3 @@ if (options.VIP){
     walkSleep(500)
     walkSend("w","Up")
 }
-
