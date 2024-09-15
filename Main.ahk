@@ -264,7 +264,14 @@ global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?pr
 
 ; Must be called in correct order
 loadData() ; Load config data
-updateStaticData() ; Get latest data for update check, aura names, etc.
+; updateStaticData() ; Get latest data for update check, aura names, etc.
+
+announcement := "NEW DISCORD SERVER. GO TO GITHUB MAIN PAGE AND READ README"
+if (announcement != "" && (getUnixTime() - options.LastAnnouncement >= 24*60*60*1000)) { ; 24hrs
+    MsgBox, 0, Macro Announcement, % announcement
+    options.LastAnnouncement := getUnixTime()
+}
+
 
 ; Disable OCR mode if resolution isn't supported
 ; Now enabling the mode will notify of requirements
@@ -441,27 +448,27 @@ getURLContent(url) {
     }
 }
 
-updateStaticData() {
-    content := getURLContent(updateURL)
-    if (content != "") {
-        FileDelete, staticData.json
-        FileAppend, %content%, staticData.json
+; updateStaticData() {
+;     content := getURLContent(updateURL)
+;     if (content != "") {
+;         FileDelete, staticData.json
+;         FileAppend, %content%, staticData.json
 
-        officialData := Jxon_Load(content)[1]
-    }
+;         officialData := Jxon_Load(content)[1]
+;     }
 
-    if (content == "") {
-        MsgBox, 16, Update Check, % "Unable to check for update. Error: " . e.Message . "`nContinuing with current StaticData.json data.`nCheck your network connection and restart to try again."
-        return
-    }
+;     if (content == "") {
+;         MsgBox, 16, Update Check, % "Unable to check for update. Error: " . e.Message . "`nContinuing with current StaticData.json data.`nCheck your network connection and restart to try again."
+;         return
+;     }
 
-    ; Show Announcement once daily at most
-    sData := officialData
-    if (sData.announcement != "" && (getUnixTime() - options.LastAnnouncement >= 24*60*60*1000)) { ; 24hrs
-        MsgBox, 0, Macro Announcement, % sData.announcement
-        options.LastAnnouncement := getUnixTime()
-    }
-}
+;     ; Show Announcement once daily at most
+;     sData := officialData
+;     if (sData.announcement != "" && (getUnixTime() - options.LastAnnouncement >= 24*60*60*1000)) { ; 24hrs
+;         MsgBox, 0, Macro Announcement, % sData.announcement
+;         options.LastAnnouncement := getUnixTime()
+;     }
+; }
 
 ; data loading
 loadData(){
