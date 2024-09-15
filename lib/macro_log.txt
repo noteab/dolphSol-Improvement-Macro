@@ -133,3 +133,42 @@
 12:24:04 Macro opened
 12:24:04 [loadData] Loading config data
 12:24:15 [stop] Terminating application.
+12:26:12 Macro opened
+12:26:12 [loadData] Loading config data
+12:26:30 =====================================
+12:26:30 [updateStatus] New status: Starting Macro
+12:26:30 System Information:
+12:26:30     OS Version: 10.0.22631
+12:26:30     AHK Version: 1.1.37.02
+12:26:30     Screen Width: 1920
+12:26:30     Screen Height: 1080
+12:26:30     Screen DPI: 96
+12:26:30     Active Language: Unknown
+12:26:30 Macro Variables:
+12:26:30     Version: v1.3.1
+12:26:30     OCR Enabled: 0
+12:26:30 [updateStatus] New status: Macro Started
+12:26:30 Roblox Information:
+12:26:30     Window ID: 0x50aec
+12:26:30     Width: 1920
+12:26:30     Height: 1080
+12:26:30 
+12:26:30 [startMacro] Starting main loop
+12:26:31 [checkDisconnect] Checking for disconnect
+12:26:31 [updateStatus] New status: Scanning button... (Tries: )
+12:26:33 [updateStatus] New status: Scanning button... (Tries: 1)
+12:26:33 [FindSolsRNGButton] Attempt 1 completed. Buttons found so far: 7
+12:26:34 [FindSolsRNGButton] Total buttons found: 7
+12:26:34 [updateStatus] New status: Initializing
+12:26:58 [updateStatus] New status: Performing Mouse Actions
+12:27:01 [updateStatus] New status: Doing Obby
+12:27:23 [updateStatus] New status: Obby Failed, Retrying
+12:27:24 [updateStatus] New status: Doing Obby
+12:27:37 [updateStatus] New status: Searching for Items
+12:28:16 [checkDisconnect] Checking for disconnect
+12:28:17 [updateStatus] New status: Performing Mouse Actions
+12:28:20 [updateStatus] New status: Doing Obby
+12:28:21 [updateStatus] New status: Macro Stopped
+12:28:21 Macro opened
+12:28:21 [loadData] Loading config data
+12:28:32 [stop] Terminating application.
