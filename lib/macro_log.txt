@@ -174,3 +174,13 @@
 12:28:32 [stop] Terminating application.
 01:24:22 Macro opened
 01:24:22 [loadData] Loading config data
+01:29:07 [stop] Terminating application.
+01:29:09 Macro opened
+01:29:09 [loadData] Loading config data
+01:29:16 [stop] Terminating application.
+01:29:19 Macro opened
+01:29:19 [loadData] Loading config data
+01:29:21 [stop] Terminating application.
+01:29:34 Macro opened
+01:29:34 [loadData] Loading config data
+01:29:35 [stop] Terminating application.
