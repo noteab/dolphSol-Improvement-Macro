@@ -17,3 +17,54 @@
 11:17:10 [loadData] Loading config data
 11:17:10     [GetRobloxHWND] Roblox Process: Unknown
 11:17:21 [stop] Terminating application.
+11:31:55 Macro opened
+11:31:55 [loadData] Loading config data
+11:31:55 [loadData] Missing key: MerchantWebhook_Jester_UserID
+11:31:55 [loadData] Missing key: MerchantWebhook_Mari_UserID
+11:31:55 [loadData] Missing key: MerchantWebhook_PS_Link
+11:31:55 [loadData] Missing key: MerchantWebhookAlias
+11:31:55 [loadData] Missing key: MerchantWebhookLink
+11:31:55     [GetRobloxHWND] Roblox Process: Unknown
+11:33:16 =====================================
+11:33:16 [updateStatus] New status: Starting Macro
+11:33:16 System Information:
+11:33:16     OS Version: 10.0.22631
+11:33:16     AHK Version: 1.1.37.02
+11:33:16     Screen Width: 1920
+11:33:16     Screen Height: 1080
+11:33:16     Screen DPI: 96
+11:33:16     Active Language: Unknown
+11:33:16 Macro Variables:
+11:33:16     Version: v1.3.1
+11:33:16     OCR Enabled: 0
+11:33:16 [updateStatus] New status: Macro Started
+11:33:16 Roblox Information:
+11:33:16     Window ID: 0x50aec
+11:33:16     Width: 1920
+11:33:16     Height: 1057
+11:33:16 
+11:33:16 [startMacro] Starting main loop
+11:33:16 [checkDisconnect] Checking for disconnect
+11:33:17 [updateStatus] New status: Scanning button... (Tries: )
+11:33:19 [updateStatus] New status: Scanning button... (Tries: 1)
+11:33:19 [FindSolsRNGButton] Attempt 1 completed. Buttons found so far: 8
+11:33:20 [FindSolsRNGButton] Total buttons found: 8
+11:33:20 [updateStatus] New status: Initializing
+11:33:44 [updateStatus] New status: Performing Mouse Actions
+11:33:45 [updateStatus] New status: Inventory screenshots
+11:33:47 [webhookPost] Error creating webhook data:
+11:33:47     
+11:33:49 [webhookPost] Error creating webhook data:
+11:33:49     
+11:33:51 [webhookPost] Error creating webhook data:
+11:33:51     
+11:33:52 [updateStatus] New status: Using items
+11:33:52     Using item: Merchant Teleport
+11:33:59     Pressing E for Merchant
+11:34:06 [updateStatus] New status: Doing Obby
+11:34:19 [updateStatus] New status: Macro Stopped
+11:34:19     [stop] Exiting running path: C:\Users\Curious Pengu\Documents\Apps\dolphSol\dolphSol-Improvement-Macro\paths\doObby.ahk
+11:34:19 [stop] Terminating application.
+11:35:08 Macro opened
+11:35:08 [loadData] Loading config data
+11:35:12 [stop] Terminating application.

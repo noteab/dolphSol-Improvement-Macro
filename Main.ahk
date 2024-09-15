@@ -3188,8 +3188,6 @@ mainLoop(){
         }
     }
 
-    useItem("Merchant Teleport")
-
     if (options.DoingObby && (A_TickCount - lastObby) >= (obbyCooldown*1000)){
         ; align()
         reset()
