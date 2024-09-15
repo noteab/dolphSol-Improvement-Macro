@@ -264,7 +264,7 @@ global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?pr
 
 ; Must be called in correct order
 loadData() ; Load config data
-;updateStaticData() ; Get latest data for update check, aura names, etc.
+updateStaticData() ; Get latest data for update check, aura names, etc.
 
 ; Disable OCR mode if resolution isn't supported
 ; Now enabling the mode will notify of requirements
@@ -442,15 +442,12 @@ getURLContent(url) {
 }
 
 updateStaticData() {
-    updateURL := "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/lib/staticData.json"
-
     content := getURLContent(updateURL)
     if (content != "") {
         FileDelete, staticData.json
         FileAppend, %content%, staticData.json
 
         officialData := Jxon_Load(content)[1]
-        officialVersion := officialData.updateInfo.latestVersion
     }
 
     if (content == "") {
@@ -464,22 +461,6 @@ updateStaticData() {
         MsgBox, 0, Macro Announcement, % sData.announcement
         options.LastAnnouncement := getUnixTime()
     }
-    
-    if (officialVersion && officialVersion != currentVersion) {
-        updateMessage := officialData.updateInfo.updateNotes
-    } else {
-        return
-    }
-
-    uNotes := sData.updateInfo.updateNotes
-    MsgBox, 36, New Update Available, % "`nWould you like to head to the GitHub page to update your macro?" . (uNotes ? ("`n`nUpdate Notes:`n" . uNotes) : "")
-    IfMsgBox No
-        return
-
-    options.FirstTime := 0
-    vLink := sData.updateInfo.versionLink
-    Run % (vLink ? vLink : "https://github.com/noteab/dolphSol-Improvement-Macro/releases/latest")
-    ExitApp
 }
 
 ; data loading
