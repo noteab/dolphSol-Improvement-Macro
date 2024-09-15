@@ -1,5 +1,6 @@
 # dolphSol Improvement Macro (dSIM)
-[DISCORD SERVER](https://discord.gg/FyrVp3Vhe9)
+[DISCORD SERVER](https://discord.gg/FyrVp3Vhe9)\
+\
  A macro for the Roblox game "Sol's RNG", including features such as obby completion and item collection. A work in progress - BuilderDolphin
  This Improved version of this macro includes many community request features. A work in progress - noteab
 
