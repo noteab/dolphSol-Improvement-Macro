@@ -50,6 +50,7 @@ global biomeData := {"Normal":{color: 0xdddddd}
 ,"Windy":{color: 0x9ae5ff, duration: 120, display: 0, ping: 0}
 ,"Rainy":{color: 0x027cbd, duration: 120, display: 0, ping: 0}
 ,"Snowy":{color: 0xDceff9, duration: 120, display: 0, ping: 0}
+,"SandStorm":{color: 0x8F7057, duration: 600, display: 1, ping: 0}
 ,"Hell":{color: 0xff4719, duration: 660, display: 1, ping: 0}
 ,"Starfall":{color: 0x011ab7, duration: 600, display: 0, ping: 0}
 ,"Corruption":{color: 0x6d32a8, duration: 660, display: 0, ping: 0}
@@ -511,58 +512,58 @@ global similarCharacters := {"1":"l"
     ,"w":"W"
     ,"W":"w"}
 
-identifyBiome(inputStr){
-    if (!inputStr)
-        return 0
+    identifyBiome(inputStr){
+        if (!inputStr)
+            return 0
+        
+        internalStr := RegExReplace(inputStr,"\s")
+        internalStr := RegExReplace(internalStr,"^([\[\(\{\|IJ]+)")
+        internalStr := RegExReplace(internalStr,"([\]\)\}\|IJ]+)$")
     
-    internalStr := RegExReplace(inputStr,"\s")
-    internalStr := RegExReplace(internalStr,"^([\[\(\{\|IJ]+)")
-    internalStr := RegExReplace(internalStr,"([\]\)\}\|IJ]+)$")
-
-    highestRatio := 0
-    matchingBiome := ""
-
-    for v,_ in biomeData {
-        if (v = "Glitched"){
-            continue
-        }
-        scanIndex := 1
-        accuracy := 0
-        Loop % StrLen(v) {
-            checkingChar := SubStr(v,A_Index,1)
-            Loop % StrLen(internalStr) - scanIndex + 1 {
-                index := scanIndex + A_Index - 1
-                targetChar := SubStr(internalStr, index, 1)
-                if (targetChar = checkingChar){
-                    accuracy += 3 - A_Index
-                    scanIndex := index+1
-                    break
-                } else if (similarCharacters[targetChar] = checkingChar){
-                    accuracy += 2.5 - A_Index
-                    scanIndex := index+1
-                    break
+        highestRatio := 0
+        matchingBiome := ""
+    
+        for v,_ in biomeData {
+            if (v = "Glitched"){
+                continue
+            }
+            scanIndex := 1
+            accuracy := 0
+            Loop % StrLen(v) {
+                checkingChar := SubStr(v,A_Index,1)
+                Loop % StrLen(internalStr) - scanIndex + 1 {
+                    index := scanIndex + A_Index - 1
+                    targetChar := SubStr(internalStr, index, 1)
+                    if (targetChar = checkingChar){
+                        accuracy += 3 - A_Index
+                        scanIndex := index+1
+                        break
+                    } else if (similarCharacters[targetChar] = checkingChar){
+                        accuracy += 2.5 - A_Index
+                        scanIndex := index+1
+                        break
+                    }
                 }
             }
+            ratio := accuracy/(StrLen(v)*2)
+            if (ratio > highestRatio){
+                matchingBiome := v
+                highestRatio := ratio
+            }
         }
-        ratio := accuracy/(StrLen(v)*2)
-        if (ratio > highestRatio){
-            matchingBiome := v
-            highestRatio := ratio
+    
+        if (highestRatio < 0.70){
+            matchingBiome := 0
+            glitchedCheck := StrLen(internalStr)-StrLen(RegExReplace(internalStr,"\d")) + (RegExMatch(internalStr,"\.") ? 4 : 0)
+            if (glitchedCheck >= 20){
+                OutputDebug, % "glitched biome pro!"
+                matchingBiome := "Glitched"
+            }
         }
-    }
-
-    if (highestRatio < 0.70){
-        matchingBiome := 0
-        glitchedCheck := StrLen(internalStr)-StrLen(RegExReplace(internalStr,"\d")) + (RegExMatch(internalStr,"\.") ? 4 : 0)
-        if (glitchedCheck >= 20){
-            OutputDebug, % "glitched biome pro!"
-            matchingBiome := "Glitched"
-        }
-    }
-
-
-    return matchingBiome
+    
+        return matchingBiome
 }
+
 
 determineBiome(){
     ; logMessage("[determineBiome] Determining biome...")

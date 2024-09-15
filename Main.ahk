@@ -34,7 +34,7 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 #Include *i ItemScheduler.ahk
 
-global version := "v1.3.1.1"
+global version := "v1.3.1.2"
 global currentVersion := version
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
@@ -230,9 +230,15 @@ global options := {"DoingObby":1
     ,"Mari_ItemSlot1":0
     ,"Mari_ItemSlot2":0
     ,"Mari_ItemSlot3":0
+    ,"Mari_Amount_1":0
+    ,"Mari_Amount_2":0
+    ,"Mari_Amount_3":0
     ,"Jester_ItemSlot1":0
     ,"Jester_ItemSlot2":0
     ,"Jester_ItemSlot3":0
+    ,"Jester_Amount_1":0
+    ,"Jester_Amount_2":0
+    ,"Jester_Amount_3":0
     ; Merchant config options
     
     ; Crafting
@@ -264,14 +270,13 @@ global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?pr
 
 ; Must be called in correct order
 loadData() ; Load config data
-; updateStaticData() ; Get latest data for update check, aura names, etc.
+;updateStaticData() ; Get latest data for update check, aura names, etc.
 
 announcement := "NEW DISCORD SERVER. GO TO GITHUB MAIN PAGE AND READ README"
 if (announcement != "" && (getUnixTime() - options.LastAnnouncement >= 24*60*60*1000)) { ; 24hrs
     MsgBox, 0, Macro Announcement, % announcement
     options.LastAnnouncement := getUnixTime()
 }
-
 
 ; Disable OCR mode if resolution isn't supported
 ; Now enabling the mode will notify of requirements
@@ -448,27 +453,46 @@ getURLContent(url) {
     }
 }
 
-; updateStaticData() {
-;     content := getURLContent(updateURL)
-;     if (content != "") {
-;         FileDelete, staticData.json
-;         FileAppend, %content%, staticData.json
+updateStaticData() {
+    updateURL := "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/Noteab-Improvement/lib/staticData.json"
 
-;         officialData := Jxon_Load(content)[1]
-;     }
+    content := getURLContent(updateURL)
+    if (content != "") {
+        FileDelete, staticData.json
+        FileAppend, %content%, staticData.json
 
-;     if (content == "") {
-;         MsgBox, 16, Update Check, % "Unable to check for update. Error: " . e.Message . "`nContinuing with current StaticData.json data.`nCheck your network connection and restart to try again."
-;         return
-;     }
+        officialData := Jxon_Load(content)[1]
+        officialVersion := officialData.updateInfo.latestVersion
+    }
 
-;     ; Show Announcement once daily at most
-;     sData := officialData
-;     if (sData.announcement != "" && (getUnixTime() - options.LastAnnouncement >= 24*60*60*1000)) { ; 24hrs
-;         MsgBox, 0, Macro Announcement, % sData.announcement
-;         options.LastAnnouncement := getUnixTime()
-;     }
-; }
+    if (content == "") {
+        MsgBox, 16, Update Check, % "Unable to check for update. Error: " . e.Message . "`nContinuing with current StaticData.json data.`nCheck your network connection and restart to try again."
+        return
+    }
+
+    ; Show Announcement once daily at most
+    sData := officialData
+    if (sData.announcement != "" && (getUnixTime() - options.LastAnnouncement >= 24*60*60*1000)) { ; 24hrs
+        MsgBox, 0, Macro Announcement, % sData.announcement
+        options.LastAnnouncement := getUnixTime()
+    }
+    
+    if (officialVersion && officialVersion != currentVersion) {
+        updateMessage := officialData.updateInfo.updateNotes
+    } else {
+        return
+    }
+
+    uNotes := sData.updateInfo.updateNotes
+    MsgBox, 36, New Update Available, % "`nWould you like to head to the GitHub page to update your macro?" . (uNotes ? ("`n`nUpdate Notes:`n" . uNotes) : "")
+    IfMsgBox No
+        return
+
+    options.FirstTime := 0
+    vLink := sData.updateInfo.versionLink
+    Run % (vLink ? vLink : "https://github.com/noteab/dolphSol-Improvement-Macro/releases/latest")
+    ExitApp
+}
 
 ; data loading
 loadData(){
@@ -2121,7 +2145,12 @@ EquipAura(auraName := "") {
 useItem(itemName, useAmount := 1) {
     updateStatus("Using items")
     logMessage("Using item: " itemName, 1)
+    merchantPing := 0
 
+    ; Testing log
+    ; logMessage("Merchant OCR X: " options["Merchant_Username_OCR_X"])
+    ; logMessage("mari ping userid: " merchantPing)
+    
     ; Open Inventory
     clickMenuButton(3)
     waitForInvVisible()
@@ -2163,32 +2192,40 @@ useItem(itemName, useAmount := 1) {
             logMessage("Pressing E for Merchant", 1)
             Sleep, 750
             Send, {E 3}
-            
+
             Sleep, 1200
-            Loop, 5 {
-                if (containsText(758, 585, 200, 31, "mari") || containsText(758, 585, 200, 31, "jester")) {
-                    if (containsText(758, 585, 200, 31, "mari")) {
-                        merchantName := "Mari"
-                    } else if (containsText(758, 585, 200, 31, "jester")) {
-                        merchantName := "Jester"
-                    }
+            Loop, 12 {
+                if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 35, "Mari")) {
+                    merchantName := "Mari"
+                    merchantPing := options["MerchantWebhook_Mari_UserID"]
+                    logMessage("[Merchant Detection]: Mari name found!", 1)
+                }
 
-                    logMessage("[Merchant Detection]: " merchantName " name found!", 1)
+                else if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 35, "Jester")) {
+                    merchantName := "Jester"
+                    merchantPing := options["MerchantWebhook_Jester_UserID"]
+                    logMessage("[Merchant Detection]: Jester name found!", 1)
+                }
 
-                    ; Check if the merchant is on cooldown
+                if (merchantName != "") {
                     if (IsMerchantOnCooldown(merchantName)) {
                         logMessage(merchantName " is on cooldown. Skipping purchase.", 1)
                         break
                     }
 
                     updateStatus("Merchant found! Pausing the macro...")
-                    Sleep, 5500
+                    Merchant_Webhook_Main(merchantName, options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], merchantPing, "Merchant Face Screenshot")
+                    Sleep, 4950
 
                     ; Call Merchant_Handler function
-                    Merchant_Handler(merchantName)
+                    Merchant_Handler(merchantName, merchantPing)
+                    press("i", 500)
+                    Sleep, 200
+                    press("o", 250)
                     break
                 }
-                Sleep, 300
+
+                Sleep, 500
             }
 
             Sleep, 1500
@@ -2233,21 +2270,32 @@ LoadMerchantOptions(merchantName) {
     
     for i, v in MerchantItems {
         if ((merchantName = "Mari" && InStr(i, "Mari_ItemSlot")) || (merchantName = "Jester" && InStr(i, "Jester_ItemSlot"))) {
-            parts := StrSplit(v, ",")
-            entry := {MerchantName: merchantName, ItemName: parts[1]}
-            if (entry.ItemName = "") {
-                continue
+            ; skip the amount keys, check item slots here
+            if !InStr(i, "Amount") {
+                slotNumber := StrReplace(i, merchantName . "_ItemSlot")
+
+                ; if item slot exists
+                if (v != "None" && v != "") {
+                    amountKey := merchantName . "_Amount_" . slotNumber
+                    amount := MerchantItems[amountKey]
+                    if (!amount) {
+                        amount := 1
+                    }
+                    entry := {MerchantName: merchantName, ItemName: v, Amount: amount}
+                    MerchantEntries.Push(entry)
+                }
             }
-            MerchantEntries.Push(entry)
         }
     }
 
     for i, entry in MerchantEntries {
-        logMessage("[Merchant] " merchantName " Item Slot Loaded: " entry.ItemName, 1)
+        logMessage("[Merchant] " merchantName " Item Slot Loaded: " entry.ItemName " with Amount: " entry.Amount, 1)
     }
 }
 
-Merchant_Webhook_Main(Merchant_Name, webhook_urls, ps_link, ping_user_id := "", embedField := "") {
+
+
+Merchant_Webhook_Main(Merchant_Name, webhook_url, ps_link, ping_user_id := "", embedField := "") {
     getRobloxPos(rX, rY, w, h)
     ssMap := Gdip_BitmapFromScreen(rX "|" rY "|" w "|" h)
     Gdip_SaveBitmapToFile(ssMap, merchant_ssPath)
@@ -2286,16 +2334,15 @@ Merchant_Webhook_Main(Merchant_Name, webhook_urls, ps_link, ping_user_id := "", 
                   . """footer"": {""text"": ""Auto Merchant Detection""}"
                   . "}]}"
 
-    ; Loop through all webhook URLs and send the notification in parallel
-    for i, url in webhook_urls {
-        try {
-            objParam := {payload_json: payload_json}
-            objParam["file0"] := [merchant_ssPath]
-            Merchant_Webhook_Send(url, objParam)  ; Send the webhook
+    ; Loop all webhook URLs and send the notification in parallel
+    ; for i, url in webhook_urls {} 
+    try {
+        objParam := {payload_json: payload_json}
+        objParam["file0"] := [merchant_ssPath]
+        Merchant_Webhook_Send(webhook_url, objParam)  ; Send the webhook
 
-        } catch e {
-            logMessage("Error sending webhook to " url ": " e, 1)
-        }
+    } catch e {
+        logMessage("Error sending webhook to " webhook_url ": " e, 1)
     }
 }
 
@@ -2315,45 +2362,40 @@ Merchant_Webhook_Send(url, objParam) {
     }
 }
 
-Merchant_Handler(merchantName) {
+Merchant_Handler(merchantName, merchant_ping) {
     logMessage("Starting " merchantName " merchant handler", 1)
     updateStatus("Processing " merchantName " Autobuy...")
     getRobloxPos(pX, pY, width, height)
-    open_button_X := options.Merchant_Open_Button_X
-    open_button_Y := options.Merchant_Open_Button_Y
-    slider_X := options.Merchant_slider_X
-    slider_Y := options.Merchant_slider_Y
-    purchase_Amount_X := options.Merchant_Purchase_Amount_X
-    purchase_Amount_Y := options.Merchant_Purchase_Amount_Y
-    purchase_Button_X := options.Merchant_Purchase_Button_X
-    purchase_Button_Y := options.Merchant_Purchase_Button_Y
-    username_OCR_X := options.Merchant_Username_OCR_X
-    username_OCR_Y := options.Merchant_Username_OCR_Y
-    itemName_OCR_X := options.Merchant_ItemName_OCR_X
-    itemName_OCR_Y := options.Merchant_ItemName_OCR_Y
-    firstItem_Pos_X := options.Merchant_FirstItem_Pos_X
-    firstItem_Pos_Y := options.Merchant_FirstItem_Pos_Y
+
     ; Load merchant config for the specific merchant (Mari or Jester)
     LoadMerchantOptions(merchantName)
     
     ; Press open button:
-    Loop, 5 {
-        ClickMouse(open_button_X, open_button_Y)
-        Sleep, 250
+    Loop, 4 {
+        ClickMouse(options["Merchant_Open_Button_X"], options["Merchant_Open_Button_Y"])
+        Sleep, 100
     }
     
-    
-    ; Reset the merchant item slider to the top (scroll up)
-    MouseMove, slider_X, slider_Y
-    Sleep, 200
-    MouseClick, WheelUp, , , 15
-    Sleep, 650
+    Merchant_Webhook_Main(merchantName, options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"],, "Item screenshot")
 
-    ; Log the merchant entries loaded from the config
+    ; Reset the merchant item slider to the top (scroll up)
+    MouseMove, options["Merchant_slider_X"], options["Merchant_slider_Y"]
+    Sleep, 100
+
+    Loop, 17 {
+        MouseClick, WheelUp
+        Sleep, 60
+    }
+
+    press("o", 260)
+
+    Sleep, 150
+
+    ; Load the merchant entries from the config
     if (MerchantEntries.MaxIndex() > 0) {
         logMessage("Items loaded for purchase: " MerchantEntries.MaxIndex(), 1)
 
-        ; List to store config item names for checking
+        ; store config item names for checking
         merchantItemNames := []
         purchasedItems := [] 
 
@@ -2367,31 +2409,30 @@ Merchant_Handler(merchantName) {
 
         ; Loop merchant slots
         itemCount := 0
-        totalItemsToPurchase := merchantItemNames.MaxIndex()  ; Get total number of items to purchase
-        itemsPurchased := 0  ; Count successfully purchased items
+        totalItemsToPurchase := merchantItemNames.MaxIndex()  ; total number of items to purchase
+        itemsPurchased := 0 
 
-        Loop, 25 {
-            ; If all items have been purchased, exit the loop early
+        Loop, 24 {
             if (itemsPurchased >= totalItemsToPurchase) {
                 logMessage("All items have been successfully purchased. Exiting loop.", 1)
                 break
             }
 
-            if (itemCount >= 3) {
-                logMessage("Scrolling down to reveal more items", 1)
-                MouseClick, WheelDown, , , 2
-                Sleep, 1000
-                itemCount := 0  ; Reset item count after scrolling
+            if (itemCount >= 4) {
+                ;logMessage("Scrolling down to reveal more items", 1)
+                MouseClick, WheelDown, , , 3
+                Sleep, 650
+                itemCount := 0
             }
 
             ; X and Y position for each slot
-            itemYPos := firstItem_Pos_Y  ; Use dynamic Y position from options
-            itemXPos := firstItem_Pos_X + (itemCount * 185)  ; X offset
+            itemYPos := options["Merchant_FirstItem_Pos_Y"] ; Y position from options
+            itemXPos := options["Merchant_FirstItem_Pos_X"] + (itemCount * 180)  ; X offset
 
             ; Click the item at the calculated position
             logMessage("Clicking item slot " A_Index " at position X:" itemXPos " Y:" itemYPos, 1)
             Click, %itemXPos%, %itemYPos%
-            Sleep, 500
+            Sleep, 600
 
             ; OCR detection of items in the merchant shop (scans current slot)
             Loop, % merchantItemNames.MaxIndex() {
@@ -2399,24 +2440,24 @@ Merchant_Handler(merchantName) {
                 StringLower, itemNameLower, itemName
                 itemNameTrimmed := Trim(itemNameLower)
 
-                ; Check if the item has already been purchased before scanning
-                if (containsText(itemName_OCR_X, itemName_OCR_Y, 323, 29, itemNameTrimmed)) {
+                if (purchasedItems.HasValue(itemNameTrimmed)) {
                     logMessage("Item " itemNameTrimmed " has already been purchased. Skipping...", 1)
-                    continue  ; Move to the next item in the loop
+                    continue
                 }
 
                 ; Run OCR detection on the current item slot
-                if (containsText(758, 386, 323, 29, itemNameTrimmed)) {
+                if (containsText(options["Merchant_ItemName_OCR_X"], options["Merchant_ItemName_OCR_Y"], 323, 29, itemNameTrimmed)) {
                     logMessage("Matching item found: " itemNameTrimmed, 1)
 
                     ; purchase quantity
-                    ClickMouse(purchase_Amount_X, purchase_Amount_Y)
-                    Send, 1
-                    Sleep, 200
+                    itemAmount := MerchantEntries[A_Index].Amount
+                    ClickMouse(options["Merchant_Purchase_Amount_X"], options["Merchant_Purchase_Amount_Y"])
+                    Send, %itemAmount%  ; Dynamically send the amount to be purchased
+                    Sleep, 150
 
                     ; purchase button
-                    ClickMouse(purchase_Button_X, purchase_Button_Y)
-                    Sleep, 5500
+                    ClickMouse(options["Merchant_Purchase_Button_X"], options["Merchant_Purchase_Button_Y"])
+                    Sleep, 4950
 
                     logMessage("Purchase completed for " itemNameTrimmed, 1)
 
@@ -2732,6 +2773,7 @@ containsText(x, y, width, height, text) {
         StringLower, ocrText, ocrText
         StringLower, text, text
         textFound := InStr(ocrText, text)
+
         if (textFound > 0) { ; Reduce logging by only saving when found
             logMessage("[containsText] Searching: " text "  |  Found: '" ocrText "'", 1)
         }
@@ -3243,9 +3285,9 @@ CreateMainUI() {
     Gui Add, Button, gPauseClick vPauseButton x96 y254 w80 h23 -Tabstop, F2 - Pause
     Gui Add, Button, gStopClick vStopButton x184 y254 w80 h23 -Tabstop, F3 - Stop
     Gui Font, s11 Norm, Segoe UI
-    Gui Add, Picture, gDiscordServerClick w26 h20 x462 y254, % mainDir "images\discordIcon.png"
+    Gui Add, Picture, gDiscordServerClick w26 h20 x495 y254, % mainDir "images\discordIcon.png"
 
-    Gui Add, Tab3, vMainTabs x8 y8 w484 h240, Main|Crafting|Webhook|Settings|Credits|Extras|Merchant
+    Gui Add, Tab3, vMainTabs x8 y8 w600 h240, Main|Crafting|Webhook|Settings|Credits|Extras|Merchant
 
     ; main tab
     Gui Tab, 1
@@ -3330,12 +3372,12 @@ CreateMainUI() {
     Gui Add, Text, vStatsDisplay x22 y58 w118 h146, runtime: 123`ndisconnects: 1000
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x151 y40 w200 h170 vWebhookGroup -Theme +0x50000007, Discord Webhook
+    Gui Add, GroupBox, x151 y40 w235 h170 vWebhookGroup -Theme +0x50000007, Discord Webhook
     Gui Font, s7.5 norm
     Gui Add, CheckBox, vWebhookCheckBox x166 y63 w120 h16 +0x2 gEnableWebhookToggle, % " Enable Webhook"
     Gui Add, Text, x161 y85 w100 h20 vWebhookInputHeader BackgroundTrans, Webhook URL:
     Gui Add, Edit, x166 y103 w169 h18 vWebhookInput,% ""
-    Gui Add, Button, gWebhookHelpClick vWebhookHelpButton x325 y50 w23 h23, ?
+    Gui Add, Button, gWebhookHelpClick vWebhookHelpButton x360 y50 w23 h23, ?
     Gui Add, CheckBox, vWebhookImportantOnlyCheckBox x166 y126 w140 h16 +0x2, % " Important events only"
     Gui Add, Text, vWebhookUserIDHeader x161 y145 w150 h14 BackgroundTrans, % "Discord User ID (Pings):"
     Gui Add, Edit, x166 y162 w169 h16 vWebhookUserIDInput,% ""
@@ -3345,20 +3387,20 @@ CreateMainUI() {
     Gui Add, UpDown, vInvScreenshotinterval Range1-1440
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x356 y40 w127 h50 vStatusOtherGroup -Theme +0x50000007, Other
+    Gui Add, GroupBox, x396 y40 w127 h50 vStatusOtherGroup -Theme +0x50000007, Other
     Gui Font, s9 norm
-    Gui Add, CheckBox, vStatusBarCheckBox x366 y63 w110 h20 +0x2, % " Enable Status Bar"
+    Gui Add, CheckBox, vStatusBarCheckBox x406 y63 w110 h20 +0x2, % " Enable Status Bar"
 
     Gui Font, s9 w600
-    Gui Add, GroupBox, x356 y90 w127 h120 vRollDetectionGroup -Theme +0x50000007, Roll Detection
+    Gui Add, GroupBox, x396 y90 w127 h120 vRollDetectionGroup -Theme +0x50000007, Roll Detection
     Gui Font, s8 norm
-    Gui Add, Button, gRollDetectionHelpClick vRollDetectionHelpButton x457 y99 w23 h23, ?
-    Gui Add, Text, vWebhookRollSendHeader x365 y110 w110 h16 BackgroundTrans, % "Send Minimum:"
-    Gui Add, Edit, vWebhookRollSendInput x370 y126 w102 h18, 10000
-    Gui Add, Text, vWebhookRollPingHeader x365 y146 w110 h16 BackgroundTrans, % "Ping Minimum:"
-    Gui Add, Edit, vWebhookRollPingInput x370 y162 w102 h18, 100000
-    Gui Add, CheckBox, vWebhookRollImageCheckBox gWebhookRollImageCheckBoxClick x365 y183 w90 h18, Aura Images
-    Gui Add, Picture, gShowAuraSettings vShowAuraSettingsIcon x458 y183 w20 h20, % mainDir "images\settingsIcon.png"
+    Gui Add, Button, gRollDetectionHelpClick vRollDetectionHelpButton x497 y99 w23 h23, ?
+    Gui Add, Text, vWebhookRollSendHeader x405 y110 w110 h16 BackgroundTrans, % "Send Minimum:"
+    Gui Add, Edit, vWebhookRollSendInput x410 y126 w102 h18, 10000
+    Gui Add, Text, vWebhookRollPingHeader x405 y146 w110 h16 BackgroundTrans, % "Ping Minimum:"
+    Gui Add, Edit, vWebhookRollPingInput x410 y162 w102 h18, 100000
+    Gui Add, CheckBox, vWebhookRollImageCheckBox gWebhookRollImageCheckBoxClick x405 y183 w90 h18, Aura Images
+    Gui Add, Picture, gShowAuraSettings vShowAuraSettingsIcon x498 y183 w20 h20, % mainDir "images\settingsIcon.png"
 
     ; Assign the g-label to the icon/button to show the Aura settings popup
     GuiControl, +gShowAuraSettings, vShowAuraSettingsIcon
@@ -3377,24 +3419,24 @@ CreateMainUI() {
     Gui Add, UpDown, vBackOffsetUpDown Range-500-500, 0
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x280 y40 w203 h138 vReconnectSettingsGroup -Theme +0x50000007, Reconnect
+    Gui Add, GroupBox, x320 y40 w203 h138 vReconnectSettingsGroup -Theme +0x50000007, Reconnect
     Gui Font, s9 norm
 
     ; Reconnect Options
-    Gui Add, CheckBox, x296 y61 w150 h16 +0x2 vReconnectCheckBox Section, % " Enable Reconnect"
+    Gui Add, CheckBox, x336 y61 w150 h16 +0x2 vReconnectCheckBox Section, % " Enable Reconnect"
 
     ; Restart Roblox
-    Gui Add, CheckBox, x296 y81 h16 +0x2 vRestartRobloxCheckBox Section, % " Restart Roblox every"
-    Gui Add, Edit, x296 y101 w45 h18 vRestartRobloxIntervalInput Number, 1
+    Gui Add, CheckBox, x336 y81 h16 +0x2 vRestartRobloxCheckBox Section, % " Restart Roblox every"
+    Gui Add, Edit, x336 y101 w45 h18 vRestartRobloxIntervalInput Number, 1
     Gui Add, UpDown, vRestartRobloxIntervalUpDown Range1-24, 1
-    Gui Add, Text, x350 y102 w130 h16 BackgroundTrans, % "hour(s) (Clears RAM)"
+    Gui Add, Text, x390 y102 w130 h16 BackgroundTrans, % "hour(s) (Clears RAM)"
 
     ; Private Server Link
-    Gui Add, Text, x290 y131 w100 h20 vPrivateServerInputHeader BackgroundTrans, Private Server Link:
-    Gui Add, Edit, x294 y148 w177 h20 vPrivateServerInput, % ""
+    Gui Add, Text, x330 y131 w100 h20 vPrivateServerInputHeader BackgroundTrans, Private Server Link:
+    Gui Add, Edit, x334 y148 w177 h20 vPrivateServerInput, % ""
 
     ; Import 
-    Gui Add, Button, vImportSettingsButton gImportSettingsClick x317 y186 w130 h20, Import Settings
+    Gui Add, Button, vImportSettingsButton gImportSettingsClick x357 y186 w130 h20, Import Settings
     ; Migrate from my last improvement macro UI section:
     ; Scan Button Loop
 
@@ -3431,15 +3473,15 @@ CreateMainUI() {
     Gui Add, Button, x28 y177 w206 h32 gMoreCreditsClick,% "More Credits"
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x252 y40 w231 h90 vCreditsGroup2 -Theme +0x50000007, dSIM Credits
-    Gui Add, Picture, w60 h60 x259 y62, % mainDir "images\noteab.ico" ; noteab insert your pfp
+    Gui Add, GroupBox, x282 y40 w231 h90 vCreditsGroup2 -Theme +0x50000007, dSIM Credits
+    Gui Add, Picture, w60 h60 x289 y62, % mainDir "images\noteab.ico" ; noteab insert your pfp - ok sir
     Gui Font, s8 norm
-    Gui Add, Text, x326 y59 w150 h68,% "Noteab and Steve are the main contributors.`nCurious Pengu just does stuff" ; change this all you like
+    Gui Add, Text, x356 y59 w150 h68,% "Noteab and Steve are the main contributors.`nCurious Pengu just does stuff" ; change this all you like
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x252 y130 w231 h80 vCreditsGroup3 -Theme +0x50000007, Other
+    Gui Add, GroupBox, x282 y130 w231 h80 vCreditsGroup3 -Theme +0x50000007, Other
     Gui Font, s9 norm
-    Gui Add, Link, x268 y150 w200 h55, Join the <a href="https://discord.gg/DYUqwJchuV">Discord Server</a>! (Community)`n`nVisit the <a href="https://github.com/noteab/dolphSol-Improvement-Macro">GitHub</a>! (Updates + Versions)
+    Gui Add, Link, x298 y150 w200 h55, Join the <a href="https://discord.gg/DYUqwJchuV">Discord Server</a>! (Community)`n`nVisit the <a href="https://github.com/noteab/dolphSol-Improvement-Macro">GitHub</a>! (Updates + Versions)
 
     ; extras tab
     Gui Tab, 6
@@ -3451,18 +3493,18 @@ CreateMainUI() {
     Gui Add, CheckBox, gOCREnabledCheckBoxClick vOCREnabledCheckBox x32 y57 w400 h22 +0x2 Section, % " Enable OCR for Self-Correction (Requires English-US PC Language)"
     Gui Add, Button, gOCRHelpClick vOCRHelpButton x457 y50 w23 h23, ?
 
-    Gui Add, Button, gShowBiomeSettings vBiomeButton x350 y100 w128, Configure Biomes
+    Gui Add, Button, gShowBiomeSettings vBiomeButton x350 y95 w128, Configure Biomes
     Gui Add, Button, gShowItemSchedulerSettings vSchedulerGUIButton x350 y+5 w128, Item Scheduler
 
-    Gui Add, Button, gUIHelpClick vUIHelpButton x380 y220 w100 h23, How can I tell?
+    Gui Add, Button, gUIHelpClick vUIHelpButton x430 y220 w100 h23, How can I tell?
 
     ; Roblox UI style to determine Chat button position
     Gui Font, s10 w600
-    Gui Add, Text, x400 y160, Roblox UI
+    Gui Add, Text, x450 y160, Roblox UI
     Gui Font, s9 norm
 
     ; options["RobloxUpdatedUI"]
-    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x420 y180, Old
+    Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio1 x470 y180, Old
     Gui Add, Radio, AltSubmit gGetRobloxVersion vRobloxUpdatedUIRadio2, New
     GuiControl,, RobloxUpdatedUIRadio1, % (options["RobloxUpdatedUI"] = 1) ? 1 : 0
     GuiControl,, RobloxUpdatedUIRadio2, % (options["RobloxUpdatedUI"] = 2) ? 1 : 0
@@ -3477,7 +3519,7 @@ CreateMainUI() {
     Gui Add, Edit, vRecordAuraMinimumInput x135 y123 w200 h18, 100000
 
     ; Window Title
-    Gui Show, % "w500 h284 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Improvement Macro " version
+    Gui Show, % "w545 h284 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Improvement Macro " version
     
     ; Merchant tab (Mari and Jester!!)
     Gui, Tab, 7
@@ -3485,33 +3527,45 @@ CreateMainUI() {
 
     ; Enable/Disable Auto-Merchant
     Gui, Add, CheckBox, vAutoMerchantBooleanBox x25 y43 w150, Enable Auto Merchant
-    Gui Add, Button, gMerchantSettings vMerchantSettingsClick x25 y175 w140 h25, Merchant Settings
-    Gui Add, Button, gMerchant_WebhooksGui vWebhookMerchantSettingsClick x300 y175 w140 h25 +Disabled, Merchant Webhooks
+    Gui Add, Button, gMerchantSettings vMerchantSettingsClick x25 y195 w140 h25, Merchant Settings
+    Gui Add, Button, gMerchant_WebhooksGui vWebhookMerchantSettingsClick x350 y195 w140 h25, Merchant Webhooks
 
     MariSlotOptions := "None||Void Coin|Lucky Penny|Fortune Spoid I|Fortune Spoid II|Fortune Spoid III|Mixed Potion|Lucky Potion|Lucky Potion L|Lucky Potion XL|Speed Potion|Speed Potion L|Speed Potion XL"
     JesterSlotOptions := "None||Oblivion Potion|Heavenly Potion I|Heavenly Potion II|Rune of Everthing|Strange Potion I|Strange Potion II|Stella Candle|Merchant Tracker|Random Potion Sack"
     
     ; Mari's GroupBox and Item Selection
     Gui Font, s10 w600
-    Gui, Add, GroupBox, x16 y60 w220 h105 vMariGroup -Theme +0x50000007, Mari
+    Gui, Add, GroupBox, x16 y58 w255 h130 vMariGroup -Theme +0x50000007, Mari
     Gui Font, s9 norm
-    Gui Add, Text, x25 y78 w100 h16 vMariItemOption1Header BackgroundTrans, Item Slot 1:
-    Gui Add, DropDownList, x95 y75 w120 h10 vMariSlot1DropDown R9, % MariSlotOptions
-    Gui Add, Text, x25 y108 w100 h16 vMariItemOption2Header BackgroundTrans, Item Slot 2:
-    Gui Add, DropDownList, x95 y105 w120 h10 vMariSlot2DropDown R9, % MariSlotOptions
-    Gui Add, Text, x25 y138 w100 h16 vMariItemOption3Header BackgroundTrans, Item Slot 3:
-    Gui Add, DropDownList, x95 y135 w120 h10 vMariSlot3DropDown R9, % MariSlotOptions
+    Gui Add, Text, vMariAmountTitle x215 y66 w110 h16 BackgroundTrans, % "Amount:"
+    Gui Add, Text, x25 y88 w100 h16 vMariItemOption1Header BackgroundTrans, Item Slot 1:
+    Gui Add, DropDownList, x95 y85 w120 h10 vMariSlot1DropDown R9, % MariSlotOptions
+    Gui Add, Edit, x225 y85 w30 h20 vMariSlot1Amount, % options["Mari_ItemSlot1_Amount"]
+
+    Gui Add, Text, x25 y118 w100 h16 vMariItemOption2Header BackgroundTrans, Item Slot 2:
+    Gui Add, DropDownList, x95 y115 w120 h10 vMariSlot2DropDown R9, % MariSlotOptions
+    Gui Add, Edit, x225 y115 w30 h20 vMariSlot2Amount, % options["Mari_ItemSlot2_Amount"]
+
+    Gui Add, Text, x25 y148 w100 h16 vMariItemOption3Header BackgroundTrans, Item Slot 3:
+    Gui Add, DropDownList, x95 y145 w120 h10 vMariSlot3DropDown R9, % MariSlotOptions
+    Gui Add, Edit, x225 y145 w30 h20 vMariSlot3Amount, % options["Mari_ItemSlot3_Amount"]
 
     ; Jester's GroupBox and Item Selection
     Gui Font, s10 w600
-    Gui, Add, GroupBox, x255 y60 w220 h105 vJesterGroup -Theme +0x50000007, Jester
+    Gui, Add, GroupBox, x285 y58 w255 h130 vJesterGroup -Theme +0x50000007, Jester
     Gui Font, s9 norm
-    Gui Add, Text, x265 y78 w100 h16 vJesterItemOption1Header BackgroundTrans, Item Slot 1:
-    Gui Add, DropDownList, x335 y75 w120 h10 vJesterSlot1DropDown R9, % JesterSlotOptions
-    Gui Add, Text, x265 y108 w100 h16 vJesterItemOption2Header BackgroundTrans, Item Slot 2:
-    Gui Add, DropDownList, x335 y105 w120 h10 vJesterSlot2DropDown R9, % JesterSlotOptions
-    Gui Add, Text, x265 y138 w100 h16 vJesterItemOption3Header BackgroundTrans, Item Slot 3:
-    Gui Add, DropDownList, x335 y135 w120 h10 vJesterSlot3DropDown R9, % JesterSlotOptions
+    Gui Add, Text, vJesterAmountTitle x486 y66 w110 h16 BackgroundTrans, % "Amount:"
+    Gui Add, Text, x295 y88 w100 h16 vJesterItemOption1Header BackgroundTrans, Item Slot 1:
+    Gui Add, DropDownList, x365 y85 w120 h10 vJesterSlot1DropDown R9, % JesterSlotOptions
+    Gui Add, Edit, x495 y85 w30 h20 vJesterSlot1Amount, % options["Jester_ItemSlot1_Amount"]
+
+    Gui Add, Text, x295 y118 w100 h16 vJesterItemOption2Header BackgroundTrans, Item Slot 2:
+    Gui Add, DropDownList, x365 y115 w120 h10 vJesterSlot2DropDown R9, % JesterSlotOptions
+    Gui Add, Edit, x495 y115 w30 h20 vJesterSlot2Amount, % options["Jester_ItemSlot2_Amount"]
+
+    Gui Add, Text, x295 y148 w100 h16 vJesterItemOption3Header BackgroundTrans, Item Slot 3:
+    Gui Add, DropDownList, x365 y145 w120 h10 vJesterSlot3DropDown R9, % JesterSlotOptions
+    Gui Add, Edit, x495 y145 w30 h20 vJesterSlot3Amount, % options["Jester_ItemSlot3_Amount"]
 
 
     ; status bar
@@ -3654,7 +3708,7 @@ Merchant_ItemHighlight() {
     Highlight(PurchaseAmountX_UpDown-5, PurchaseAmountY_UpDown-5, 10, 10, 8500, "green") ;purchase amount pos
     Highlight(PurchaseButtonX_UpDown-5, PurchaseButtonY_UpDown-5, 10, 10, 8500, "green") ;purchase button pos
     Highlight(OpenButtonX_UpDown, OpenButtonY_UpDown, 10, 10, 8500) ;merchant open button
-    Highlight(UsernameOCRX_UpDown, UsernameOCRY_UpDown, 200, 31, 8500, "blue") ;merchant username ocr
+    Highlight(UsernameOCRX_UpDown, UsernameOCRY_UpDown, 200, 35, 8500, "blue") ;merchant username ocr
     Highlight(ItemNameOCRX_UpDown, ItemNameOCRY_UpDown, 323, 29, 8500) ;merchant on-sale item name ocr
 
     ; First Item Slot
@@ -3674,19 +3728,19 @@ Merchant_WebhooksGui() {
     Gui Font, s9 norm
 
     ; Title
-    Gui, Add, Text, x16 y10 w300 h30, Discord Webhook Management (only 1 webhook supported, more webhook ping will be avail soon)
+    Gui, Add, Text, x16 y10 w300 h30, ==Merchant Webhook== (only 1 webhook supported, more webhook ping will be avail soon)
     
     ; New Webhook Section
     Gui, Add, Text, x16 y40 w250, New Webhook Alias (e.g., Mari or Jester omg real??! or any silly name you want):
     Gui, Add, Edit, x16 y70 w250 vNewWebhookAlias, % options.MerchantWebhookAlias
 
     Gui, Add, Text, x16 y100 w250, Webhook URL:
-    Gui, Add, Edit, x16 y120 w250 vNewWebhookURL, % options.MerchantWebhookLink
+    Gui, Add, Edit, x16 y120 w250 r1 vNewWebhookURL, % options.MerchantWebhookLink
 
-    Gui, Add, Text, x16 y150 w250, Ping Mari User ID (Optional):
+    Gui, Add, Text, x16 y150 w250, Ping Mari User ID/Role ID (Optional):
     Gui, Add, Edit, x16 y170 w250 vNewPingUserID, % options.MerchantWebhook_Mari_UserID
 
-    Gui, Add, Text, x16 y200 w250, Ping Jester User ID (Optional):
+    Gui, Add, Text, x16 y200 w250, Ping Jester User ID/Role ID (Optional):
     Gui, Add, Edit, x16 y220 w250 vNewJesterPingUserID, % options.MerchantWebhook_Jester_UserID
 
     Gui, Add, Text, x16 y250 w250, Merchant Private Server Link (Optional):
@@ -3735,7 +3789,6 @@ Merchant_AddWebhook() {
 Merchant_DeleteWebhook() {
     global options
 
-    ; Clear the stored webhook info
     options.MerchantWebhookAlias := ""
     options.MerchantWebhookLink := ""
     options.MerchantWebhook_Mari_UserID := ""
@@ -3743,9 +3796,8 @@ Merchant_DeleteWebhook() {
     options.MerchantWebhook_PS_Link := ""
 
     ; Clear the ListBox
-    GuiControl,, WebhookList, ""
+    GuiControl,, WebhookList,
 }
-
 Merchant_ListWebhooks() {
     global options
     output := ""
@@ -3918,7 +3970,13 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"AutoMerchantBooleanBox": "AutoMerchantEnabled"
     ,"ScanLoopAttemptsUpDownInterval": "ScanLoopInterval" ; Noteab
     ,"StorageYPosScanInterval":"StorageButtonYPosScanVALUE" ; Noteab
-    ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE"} ; Noteab
+    ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE"
+    ,"MariSlot1Amount": "Mari_Amount_1"
+    ,"MariSlot2Amount": "Mari_Amount_2" 
+    ,"MariSlot3Amount": "Mari_Amount_3"
+    ,"JesterSlot1Amount": "Jester_Amount_1"
+    ,"JesterSlot2Amount": "Jester_Amount_2"
+    ,"JesterSlot3Amount": "Jester_Amount_3"} ; Noteab
 
 global directNumValues := {"WebhookRollSendInput":"WebhookRollSendMinimum"
     ,"WebhookRollPingInput":"WebhookRollPingMinimum", "RecordAuraMinimumInput":"RecordAuraMinimum"}
@@ -4629,7 +4687,7 @@ return
         return
 
     F9:: ShowMousePos()
-    F11:: Merchant_Webhook_Main("Mari", [""], "", "", "Merchant Face Screenshot")
+    F11:: Merchant_Webhook_Main("Jester", options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], options["MerchantWebhook_Jester_UserID"], "Item screenshot")
 #If
 
 #If running || reconnecting
