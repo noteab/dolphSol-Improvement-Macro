@@ -68,3 +68,68 @@
 11:35:08 Macro opened
 11:35:08 [loadData] Loading config data
 11:35:12 [stop] Terminating application.
+11:38:30 Macro opened
+11:38:30 [loadData] Loading config data
+11:38:33 [stop] Terminating application.
+12:22:52 Macro opened
+12:22:52 [loadData] Loading config data
+12:23:02 =====================================
+12:23:02 [updateStatus] New status: Starting Macro
+12:23:02 System Information:
+12:23:02     OS Version: 10.0.22631
+12:23:02     AHK Version: 1.1.37.02
+12:23:02     Screen Width: 1920
+12:23:02     Screen Height: 1080
+12:23:02     Screen DPI: 96
+12:23:02     Active Language: Unknown
+12:23:03 Macro Variables:
+12:23:03     Version: v1.3.1
+12:23:03     OCR Enabled: 0
+12:23:03 [updateStatus] New status: Macro Started
+12:23:03 Roblox Information:
+12:23:03     Window ID: 0x50aec
+12:23:03     Width: 1920
+12:23:03     Height: 1080
+12:23:03 
+12:23:03 [startMacro] Starting main loop
+12:23:03 [checkDisconnect] Checking for disconnect
+12:23:03 [updateStatus] New status: Scanning button... (Tries: )
+12:23:05 [updateStatus] New status: Scanning button... (Tries: 1)
+12:23:05 [FindSolsRNGButton] Attempt 1 completed. Buttons found so far: 7
+12:23:06 [FindSolsRNGButton] Total buttons found: 7
+12:23:06 [updateStatus] New status: Initializing
+12:23:15 [updateStatus] New status: Macro Stopped
+12:23:15 Macro opened
+12:23:15 [loadData] Loading config data
+12:23:21 =====================================
+12:23:21 [updateStatus] New status: Starting Macro
+12:23:21 System Information:
+12:23:21     OS Version: 10.0.22631
+12:23:21     AHK Version: 1.1.37.02
+12:23:21     Screen Width: 1920
+12:23:21     Screen Height: 1080
+12:23:21     Screen DPI: 96
+12:23:21     Active Language: Unknown
+12:23:21 Macro Variables:
+12:23:21     Version: v1.3.1
+12:23:21     OCR Enabled: 0
+12:23:21 [updateStatus] New status: Macro Started
+12:23:21 Roblox Information:
+12:23:21     Window ID: 0x50aec
+12:23:21     Width: 1920
+12:23:21     Height: 1080
+12:23:21 
+12:23:21 [startMacro] Starting main loop
+12:23:22 [checkDisconnect] Checking for disconnect
+12:23:22 [updateStatus] New status: Scanning button... (Tries: )
+12:23:24 [updateStatus] New status: Scanning button... (Tries: 1)
+12:23:24 [FindSolsRNGButton] Attempt 1 completed. Buttons found so far: 7
+12:23:25 [FindSolsRNGButton] Total buttons found: 7
+12:23:25 [updateStatus] New status: Initializing
+12:23:49 [updateStatus] New status: Performing Mouse Actions
+12:23:52 [updateStatus] New status: Doing Obby
+12:24:03 [updateStatus] New status: Macro Stopped
+12:24:03     [stop] Exiting running path: C:\Users\Curious Pengu\Documents\Apps\dolphSol\dolphSol-Improvement-Macro\paths\doObby.ahk
+12:24:04 Macro opened
+12:24:04 [loadData] Loading config data
+12:24:15 [stop] Terminating application.
