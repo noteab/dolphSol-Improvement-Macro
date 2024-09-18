@@ -1051,6 +1051,7 @@ resetZoom(){
 
 resetCameraAngle(){
     ; tysm @unconstitutional :3
+    reset()
     clickMenuButton(2)
 
     Sleep, 200
@@ -1162,54 +1163,54 @@ rotateCameraMode(){
     retryCount := 0
 }
 
-alignCamera(){
-    startDim(1,"Aligning Camera, Please wait...")
+; alignCamera(){
+;     startDim(1,"Aligning Camera, Please wait...")
 
-    WinActivate, % "ahk_id " GetRobloxHWND()
-    Sleep, 500
+;     WinActivate, % "ahk_id " GetRobloxHWND()
+;     Sleep, 500
 
-    closeChat()
-    Sleep, 200
+;     closeChat()
+;     Sleep, 200
 
-    reset()
-    Sleep, 100
+;     reset()
+;     Sleep, 100
 
-    rotateCameraMode() ; Follow
+;     rotateCameraMode() ; Follow
 
-    clickMenuButton(2)
-    Sleep, 500
+;     clickMenuButton(2)
+;     Sleep, 500
     
-    getRobloxPos(rX,rY,rW,rH)
-    MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
-    Sleep, 200
-    MouseClick
-    Sleep, 200
+;     getRobloxPos(rX,rY,rW,rH)
+;     MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
+;     Sleep, 200
+;     MouseClick
+;     Sleep, 200
 
-    rotateCameraMode() ; Default(Classic)
-    resetCameraAngle() ; Fix angle before aligning direction
-    Sleep, 100
+;     rotateCameraMode() ; Default(Classic)
+;     resetCameraAngle() ; Fix angle before aligning direction
+;     Sleep, 100
 
-    walkSend("d","Down")
-    walkSleep(200)
-    jump()
-    walkSleep(400)
-    walkSend("d","Up")
-    walkSend("w","Down")
-    walkSleep(500)
-    jump()
-    walkSleep(900)
-    walkSend("w","Up")
+;     walkSend("d","Down")
+;     walkSleep(200)
+;     jump()
+;     walkSleep(400)
+;     walkSend("d","Up")
+;     walkSend("w","Down")
+;     walkSleep(500)
+;     jump()
+;     walkSleep(900)
+;     walkSend("w","Up")
 
-    rotateCameraMode() ; Follow
-    Sleep, 1500
-    rotateCameraMode() ; Default(Classic)
-    resetCameraAngle()
+;     rotateCameraMode() ; Follow
+;     Sleep, 1500
+;     rotateCameraMode() ; Default(Classic)
+;     resetCameraAngle()
 
-    ; reset() ; Redundant, handleCrafting() will use align() if needed
-    removeDim()
-    reset()
-    Sleep, 2000
-}
+;     ; reset() ; Redundant, handleCrafting() will use align() if needed
+;     removeDim()
+;     reset()
+;     Sleep, 2000
+; }
 
 align(){ ; align v2
     if (isSpawnCentered && forCollection){
@@ -1373,48 +1374,48 @@ walkToJakesShop(){
 
 walkToPotionCrafting(){
     sleep, 2000
-    walkSend("w","Down")
-    walkSend("a","Down")
+    walkSend("s","Down")
+    walkSend("d","Down")
     walkSleep(3800)
-    walkSend("a","Up")
+    walkSend("d","Up")
     walkSleep(675)
-    walkSend("w","Up")
-    walkSend("a","Down")
+    walkSend("s","Up")
+    walkSend("d","Down")
     walkSleep(777)
     jump()
-    walkSend("w","Down")
-    walkSleep(200)
-    walkSend("w","Up")
-    walkSend("a","Down")
-    walkSleep(800)
     walkSend("s","Down")
-    walkSleep(235)
+    walkSleep(200)
     walkSend("s","Up")
+    walkSend("d","Down")
+    walkSleep(800)
+    walkSend("w","Down")
+    walkSleep(235)
+    walkSend("w","Up")
     walkSleep(1225)
     jump()
     walkSleep(350)
-    walkSend("a","Up")
-    walkSend("a","Down")
+    walkSend("d","Up")
+    walkSend("d","Down")
     walkSleep(2500)
-    press("s",500)
-    walkSend("a","Up")
-    walkSend("s","Down")
+    press("w",500)
+    walkSend("d","Up")
+    walkSend("w","Down")
     walkSleep(100)
     jump()
     walkSleep(800)
-    walkSend("a","Down")
+    walkSend("d","Down")
     walkSleep(400)
     jump()
     walkSleep(200)
-    walkSend("s","Up")
+    walkSend("w","Up")
     walkSleep(500)
     jump()
     walkSleep(740)
-    walkSend("a","up")
+    walkSend("d","up")
     walkSleep(200)
-    walkSend("s","down")
+    walkSend("w","down")
     walkSleep(3050)
-    walkSend("s","up")
+    walkSend("w","up")
     Sleep, 200
 }
 
@@ -1871,7 +1872,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
     } else if (retryCount = 2) {
         updateStatus("Crafting Failed. Fixing Camera...")
         Sleep, 2000
-        alignCamera()
+        resetCameraAngle()
         reset()
         Sleep, 500
         handleCrafting(0,retryCount+1)
@@ -1888,11 +1889,11 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         updateStatus("Walking to Stella's Cave (Crafting)")
         walkToPotionCrafting()
         Sleep, % (StellaPortalDelay && StellaPortalDelay > 0) ? StellaPortalDelay : 0
-        resetCameraAngle()
+        ; resetCameraAngle()
         Sleep, 2000
-        walkSend("a","Down")
-        walkSleep(500)
-        walkSend("a","Up")
+        walkSend("d","Down")
+        walkSleep(200)
+        walkSend("d","Up")
         walkSleep(500)
         press("f")
         walkSleep(1000)
@@ -1900,7 +1901,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         ; OCR - Check for "Close" button
         if (!isCraftingMenuOpen()) {
             updateStatus("Failed to open Potion menu")
-            alignCamera()
+            resetCameraAngle()
             handleCrafting(1,retryCount+1)
             return
         }
@@ -1972,7 +1973,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         if (!isCraftingMenuOpen()) {
             updateStatus("Failed to open Jake's Shop")
             handleCrafting(2,retryCount+1)
-            alignCamera()
+            resetCameraAngle()
             return
         }
 
@@ -4778,7 +4779,7 @@ return
     F1::startMacro()
 
     ^F2::
-        alignCamera()
+        resetCameraAngle()
         Sleep, 500
         reset()
         return
@@ -4793,7 +4794,7 @@ return
     ^F2::
         handlePause()
         Sleep, 500
-        alignCamera()
+        resetCameraAngle()
         Sleep, 500
         reset()
         Sleep, 1500
@@ -4802,7 +4803,7 @@ return
 
     F8::
         Sleep, 500
-        alignCamera()
+        resetCameraAngle()
         Sleep, 2000
         reset()
         Sleep, 500
