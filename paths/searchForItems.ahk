@@ -5,288 +5,538 @@ CoordMode, Pixel, Screen
 CoordMode, Mouse, Screen
 #Include ..\lib\pathReference.ahk
 
-; patch by Amraki
-; revision by sanji (sir.moxxi) and Flash (drflash55). Also unofficially by Xilenti (xianleigh) and Lizz (lizz44fu)
+; revision by sanji (sir.moxxi) and Flash (drflash55)
 
-walkSend("s","Down")
-walkSend("a","Down")
-walkSleep(1300)
-walkSend("a","Up")
-walkSleep(2150)
-walkSend("s","Up")
-collect(1)
+; 2nd revision by InnocentHuman
 
-walkSend("d","Down")
-walkSleep(1000)
-press("s",200)
-walkSleep(2200)
-walkSend("d","Up")
-collect(2)
+; 3rd revision by InnocentHuman and _justalin (Allan)
 
-if (options.Shifter){
+; all credit and contribution of path goes to them :) - Noteab, I'm responsible to make this macro more consistent and reliable at collect item and do stuff smoothly!
+
+Spot1() { ; Allan's Fix
+	
+	walkSend("w","Down")
+	walkSend("d","Down")
+	walkSleep(1100)
+	walkSend("d","Up")
+	walkSleep(2500)
+	walkSend("w","Up")
+	collect(1)
+
+}
+
+Spot2() { 
+
+	walkSend("a","Down")
+	walkSleep(3400)
+	walkSend("a", "Up")
+	collect(2)
+
+}
+
+Spot3() {
+
+	walkSend("a", "Down")
+	walkSleep(300)
+	jump()
+	walkSleep(350)
+	walkSend("s","Down")
+	walkSleep(250)
+	jump()
+	walkSleep(350)
+	walkSend("a", "Up")
+	walkSleep(250)
+	jump()
+	walkSleep(350)
+	walkSend("s","Up")
+	walkSend("a", "Down")
+	walkSleep(100)
+	jump()
+	walkSleep(350)
+	walkSend("w","Down")
+	walkSleep(750)
+	walkSend("a", "Up")
+	walkSend("w","Up")
+	collect(3)
+
+}
+
+Spot4() { ; Allan's Fix
+
+	walkSend("s", "Down")
+	walkSleep(1500)
+        walkSend("s", "Up")
+	walkSend("a","Down")
+	walkSleep(820)
+	walkSend("a","Up")
+	walkSend("w", "Down")
+	walkSleep(600)
+	walkSend("w", "Up")
+	collect(4)
+
+
+}
+
+Spot5() {
+
+	walkSend("d","Down")
+	walkSend("s","Down")
+	walkSleep(3700)
+	walkSend("d","Up")
+	walkSleep(150)
+	jump()
+	walkSleep(500)
+	walkSend("s","Up")
+	collect(5)
+
+}
+
+Spot6() { ; Allan's Fix
+
+	walkSend("d","Down")
+	walkSleep(900)
+	jump()
+	press("s", 400)
+	walkSleep(2500)
+	walkSleep(100)
+	walkSend("d","Up")
+	press("w", 300)
+	collect(6)
+
+}
+
+Spot7() { ; Allan's Fix
+
+	walkSend("d","Down")
+	walkSleep(2500)
+	walkSend("d","Up")
+	walkSend("w","Down")
+	jump()
+	walkSleep(700)
+	walkSend("w","Up")
+	walkSend("d","Down")
+	jump()
+	walkSleep(500)
+	walkSend("d","Up")
+	walkSend("w","Down")
+	jump()
+	walkSleep(400)
+	jump()
+
+
+	walkSleep(800)
+	walkSend("w","Up")
+	walkSend("d","Down")
+	walkSleep(200)
+	walkSend("d","Up")
+	walkSend("w","Down")
+	walkSleep(200)
+	jump()
+	walkSleep(800)
+	jump()
+	walkSleep(200)
+	walkSend("w","Up")
+	walkSend("a","Down")
+	walkSleep(300)
+	walkSend("a","Up")
+
+
+	collect(7)
+
+}
+
+Spot8VIP() { ; All credits to Allan & me
+
+	;tree obby
+
+	walkSend("w","Down")
+	walkSleep(1800)
+	press("d",500)
+	walkSend("w","Up")
+    sleep, 400
+
+	walkSend("a","Down")
+	walkSleep(420)
+	walkSend("a","Up")
+
+	walkSend("w","Down")
+	walkSleep(100)
+	jump()
+	walkSleep(1500)
+	walkSend("d","Down")
+	walkSleep(20)
+	jump()
+    sleep, 700
+
+	jump()
+	walkSleep(100)
+	walkSend("w","Up")
+	walkSleep(300)
+
+	walkSend("w","Down")
+	walkSleep(100)
+	jump()
+	walkSleep(500)
+	walkSend("w","Up")
+	walkSleep(200)
+	jump()
+	walkSleep(400)
+	jump()
+	walkSleep(650)
+	walkSend("d","Up")
+    sleep, 300
+
+
+	;mountain obby
+
+	walkSend("s","Down")
+	walkSleep(300)
+	jump()
+	walkSleep(800)
+	jump()
+	walkSleep(800)
+	walkSend("s","Up")
+
+	press("w","200")
+	walkSend("s","Down")
+	walkSend("d","Down")
+	walkSleep(300)
+	jump()
+	walkSleep(200)
+	walkSend("d","Up")
+	walkSend("a","Down")
+	walkSleep(500)
+	walkSend("a","Up")
+	walkSleep(400)
+	jump()
+
+	walkSleep(800)
+	walkSend("s","Up")
+	walkSend("a","Down")
+	walkSleep(800)
+	walkSend("a","Up")
+
+	walkSend("s","Down")
+	jump()
+	walkSleep(900)
+	walkSend("s","Up")
+
+	walkSend("d","Down")
+	walkSleep(1000)
+	walkSend("d","Up")
+
+	walkSend("w","Down")
+	jump()
+	walkSleep(50)
+	walkSend("w","Up")
+	walkSend("d","Down")
+	walkSleep(200)
+	walkSend("d","Up")
+	walkSend("s","Down")
+	walkSend("d","Down")
+	walkSleep(500)
+	walkSleep(500)
+	walkSend("s","Up")
+	walkSend("d","Up")
+
+	walkSend("d","Down")
+	jump()
+	walkSleep(350)
+	walkSend("d","Up")
+
+	jump()
+	walkSend("s","Down")
+	walkSleep(1700)
+	walkSend("s","Up")
+
+	walkSend("a","Down")
+	walkSleep(800)
+	walkSend("a","Up")
+	walkSend("s","Down")
+	walkSleep(300)
+	walkSend("s","Up")
+
+	walkSend("w","Down")
+	walkSleep(300)
+	walkSend("w","Up")
+	walkSend("a","Down")
+	walkSleep(800)
+	walkSend("a","Up")
 
     walkSend("a","Down")
-    walkSend("w","Down")
-    walkSleep(200)
-    walkSend("a","Up")
-    walkSleep(2150)
-    jump()
-    walkSleep(600)
-    walkSend("d","Down")
-    jump()
-    walkSleep(400)
-    walkSend("d","Up")
-    walkSend("w","Up")
-    walkSleep(100)
-    jump()
-    walkSend("w","Down")
-    walkSleep(550)
-    walkSend("w","Up")
-    collect(3)
+	jump()
+	walkSleep(500)
+	walkSend("a","Up")
 
-    walkSend("w","Down")
-    walkSleep(100)
-    walkSend("d","Down")
-    walkSleep(600)
-    walkSend("d","Up")
-    walkSleep(200)
-    walkSend("w","Up")
-    collect(4)
+	walkSend("w","Down")
+	walkSleep(270)
+	walkSend("w","Up")
+	walkSend("a","Down")
+	walkSleep(420)
+	walkSend("a","Up")
 
-    reset()
-    Sleep, 2000
+	walkSend("a","Down")
+	jump()
+	walkSleep(100)
+	walkSend("a","Up")
+	walkSend("s","Down")
+	walkSend("a","Down")
+	walkSleep(300)
+	walkSend("a","Up")
+	walkSend("s","Up")
 
-    walkSend("w","Down")
-    walkSend("a","Down")
-    walkSleep(3750)
-    walkSend("a","Up")
-    walkSleep(750)
-    walkSend("w","Up")
-    collect(5)
+	;end part
 
-    walkSend("a","Down")
-    walkSleep(1222)
-    ; :)
-    jump()
-    walkSleep(2125)
-    jump()
-    walkSleep(250)
-    walkSend("a","Up")
-    collect(6)
+    sleep, 500
+	walkSend("d","Down")
+	walkSleep(500)
+	walkSend("d","Up")
+	walkSend("s","Down")
+	walkSleep(300)
+	walkSend("s","Up")
+	walkSend("a","Down")
+	walkSleep(400)
+	walkSend("a","Up")
+	walkSleep(500)
+	walkSend("s","Down")
+	walkSleep(300)
+	walkSend("d","Down")
+	walkSleep(150)
+	walkSend("d","up")
+	walkSleep(350)
+	walkSend("s","Up")
+	walkSend("d","Down")
+	walkSleep(300)
+	walkSend("d","Up")
 
 
-    walkSend("a","Down")
-    walkSleep(2500)
-    press("s",500)
-    walkSend("a","Up")
-    walkSend("s","Down")
-    jump()
-    walkSleep(800)
-    walkSend("s","Up")
-    walkSend("a","Down")
-    walkSleep(600)
-    jump()
-    walkSleep(200)
-    walkSend("a","up")
-    walkSleep(300)
-    walkSend("s","Down")
-    walkSleep(800)
-    jump()
-    walkSleep(800)
-    jump()
-    walkSleep(800)
-    jump()
-    press("a",70)
-    walkSleep(800)
-    jump()
-    walkSleep(300)
-    walkSend("s","Up")
-    press("d",150)
 
-    sleep, 100
-    collect(7)
+	collect(8)
 
-} else if (options.VIP){
+}
 
-    walkSend("a","Down")
-    walkSend("w","Down")
-    walkSleep(200)
-    walkSend("a","Up")
-    walkSleep(2150)
-    jump()
-    walkSleep(600)
-    walkSend("d","Down")
-    jump()
-    walkSleep(400)
-    walkSend("d","Up")
-    jump()
-    walkSleep(400)
-    walkSend("w","Up")
-    collect(3)
+Spot8() { ; All credits to Allan & Me
 
-    walkSend("w","Down")
-    walkSleep(100)
-    walkSend("d","Down")
-    walkSleep(600)
-    walkSend("d","Up")
-    walkSleep(200)
-    walkSend("w","Up")
-    collect(4)
+	
 
-    reset()
-    Sleep, 2000
+	;tree obby
 
-    walkSend("w","Down")
-    walkSend("a","Down")
-    walkSleep(3750)
-    walkSend("a","Up")
-    walkSleep(750)
-    walkSend("w","Up")
-    collect(5)
+	walkSend("w","Down")
+	walkSleep(1800)
+	press("d",500)
+	walkSend("w","Up")
+    sleep, 400
 
-    walkSend("a","Down")
-    walkSleep(777)
-    ; :)
-    jump()
-    walkSend("w","Down")
-    walkSleep(350)
-    walkSend("w","Up")
-    walkSend("a","Down")
-    walkSleep(750)
-    walkSend("s","Down")
-    walkSleep(350)
-    walkSend("s","Up")
-    walkSleep(1125)
-    jump()
-    walkSleep(350)
-    walkSend("a","Up")
-    collect(6)
+	walkSend("a","Down")
+	walkSleep(420)
+	walkSend("a","Up")
 
-    walkSend("a","Down")
-    walkSleep(2500)
-    press("s",500)
-    walkSend("a","Up")
-    walkSend("s","Down")
-    walkSleep(100)
-    jump()
-    walkSleep(800)
-    walkSend("a","Down")
-    walkSleep(400)
-    jump()
-    walkSleep(200)
-    walkSend("a","Up")
-    walkSend("s","Down")
-    walkSleep(200)
-    jump()
-    walkSleep(800)
-    jump()
-    walkSleep(600)
-    jump()
-    walkSleep(800)
-    jump()
-    walkSleep(200)
-    walkSend("s","Up")
-    walkSend("d","Down")
-    walksleep(100)
-    walkSend("d","Up")
-    sleep, 100
-    collect(7)
+	walkSend("w","Down")
+	walkSleep(100)
+	jump()
+	walkSleep(550)
+	jump()
+	walkSleep(950)
+	walkSend("w","Up")
 
-} else {
+    sleep, 500
 
-    ; back to spawn
-    reset()
-    Sleep, 2000
+	walkSend("w","Down")
+	walkSend("d","Down")
+	walkSleep(100)
+	jump()
+	walkSleep(500)
+	jump()
+	walkSleep(200)
+	jump()
+	walkSend("w","Up")
+	walkSleep(200)
+	jump()
+	walkSend("w","Down")
+	walkSleep(500)
+	jump()
+	walkSend("w","Up")
+	walkSleep(300)
+	jump()
+	walkSleep(300)
+	jump()
+	walkSleep(600)
+	walkSend("d","Up")
 
-    walkSend("d","Down")
-    walkSleep(300)
-    jump()
-    walkSleep(350)
-    walkSend("w","Down")
-    walkSleep(250)
-    jump()
-    walkSleep(350)
-    walkSend("d","Up")
-    walkSleep(250)
-    jump()
-    walkSleep(350)
-    walkSend("w","Up")
-    walkSend("d","Down")
-    walkSleep(100)
-    jump()
-    walkSleep(350)
-    walkSend("s","Down")
-    walkSleep(350)
-    walkSend("s","Up")
-    walkSleep(225)
-    walkSend("d","Up")
-    collect(3)
+;mountain obby
 
-    walkSend("d","Down")
-    walkSleep(500)
-    walkSend("w","Down")
-    walkSleep(350)
-    walkSend("d","Up")
-    walkSleep(200)
-    walkSend("w","Up")
-    collect(4)
+	walkSend("s","Down")
+	walkSleep(400)
+	jump()
+	walkSleep(900)
+	jump()
+	walkSleep(800)
+	walkSend("s","Up")
 
-    reset()
-    Sleep, 2000
+	press("w","200")
+	walkSend("s","Down")
+	walkSend("d","Down")
+	walkSleep(300)
+	jump()
+	walkSleep(200)
+	walkSend("d","Up")
+	walkSend("a","Down")
+	walkSleep(500)
+	walkSend("a","Up")
+	walkSleep(400)
+	jump()
 
-    walkSend("w","Down")
-    walkSend("a","Down")
-    walkSleep(3750)
-    walkSend("a","Up")
-    walkSleep(750)
-    walkSend("w","Up")
-    collect(5)
+	walkSleep(800)
+	walkSend("s","Up")
+	walkSend("a","Down")
+	walkSleep(800)
+	walkSend("a","Up")
 
-    walkSend("a","Down")
-    walkSleep(777)
-    ; :)
-    jump()
-    walkSend("w","Down")
-    walkSleep(350)
-    walkSend("w","Up")
-    walkSend("a","Down")
-    walkSleep(750)
-    walkSend("s","Down")
-    walkSleep(350)
-    walkSend("s","Up")
-    walkSleep(1125)
-    jump()
-    walkSleep(350)
-    walkSend("a","Up")
-    collect(6)
+	walkSend("s","Down")
+	jump()
+	walkSleep(900)
+	walkSend("s","Up")
 
-    walkSend("a","Down")
-    walkSleep(2500)
-    press("s",500)
-    walkSend("a","Up")
-    walkSend("s","Down")
-    walkSleep(100)
-    jump()
-    walkSleep(800)
-    walkSend("a","Down")
-    walkSleep(400)
-    jump()
-    walkSleep(200)
-    walkSend("a","Up")
-    walkSend("s","Down")
-    walkSleep(200)
-    jump()
-    walkSleep(800)
-    jump()
-    walkSleep(600)
-    jump()
-    walkSleep(800)
-    jump()
-    walkSleep(200)
-    walkSend("s","Up")
-    walkSend("d","Down")
-    walksleep(100)
-    walkSend("d","Up")
-    sleep, 100
-    collect(7)
+	walkSend("d","Down")
+	walkSleep(1000)
+	walkSend("d","Up")
+
+	walkSend("w","Down")
+	jump()
+	walkSleep(50)
+	walkSend("w","Up")
+	walkSend("d","Down")
+	walkSleep(200)
+	walkSend("d","Up")
+	walkSend("s","Down")
+	walkSend("d","Down")
+	walkSleep(500)
+	walkSleep(500)
+	walkSend("s","Up")
+	walkSend("d","Up")
+
+	walkSend("d","Down")
+	jump()
+	walkSleep(350)
+	walkSend("d","Up")
+
+	jump()
+	walkSend("s","Down")
+	walkSleep(1700)
+	walkSend("s","Up")
+
+	walkSend("a","Down")
+	walkSleep(800)
+	walkSend("a","Up")
+	walkSend("s","Down")
+	walkSleep(300)
+	walkSend("s","Up")
+
+	walkSend("w","Down")
+	walkSleep(300)
+	walkSend("w","Up")
+	walkSend("a","Down")
+	walkSleep(800)
+	jump()
+	walkSleep(500)
+	walkSend("a","Up")
+
+
+
+	walkSend("w","Down")
+	walkSleep(270)
+	walkSend("w","Up")
+	walkSend("a","Down")
+	walkSleep(470)
+	walkSend("a","Up")
+
+
+	walkSend("a","Down")
+	jump()
+	walkSleep(100)
+	walkSend("s","Down")
+	walkSleep(500)
+	walkSend("s","Up")
+	walkSleep(100)
+	walkSend("a","Up")
+    sleep, 500
+	walkSend("d","Down")
+	walkSleep(1000)
+	walkSend("d","Up")
+	walkSend("s","Down")
+	walkSleep(600)
+	walkSend("s","Up")
+	walkSleep(100)
+	walkSend("a","Down")
+	walkSleep(400)
+	walkSend("a","Up")
+	walkSleep(500)
+	walkSend("s","Down")
+	walkSleep(1000)
+	walkSend("s","Up")
+	walkSend("d","Down")
+	walkSleep(300)
+	walkSend("d","Up")
+
+
+	collect(8)
+
+}
+
+if options["ItemSpot" . 1] or options["ItemSpot" . 2] {
+	
+	Spot1()
+	
+	if options["ItemSpot" . 2] {
+	
+		Spot2()
+		
+	}
+	
+	reset()
+	Sleep, 1800
+	
+}
+
+if options["ItemSpot" . 3] or options["ItemSpot" . 4] {
+	
+	Spot3()
+	
+	if options["ItemSpot" . 4] {
+	
+		Spot4()
+		
+	}
+	
+	reset()
+	Sleep, 1800
+	
+}
+
+if options["ItemSpot" . 5] or options["ItemSpot" . 6] or options["ItemSpot" . 7] or options["ItemSpot" . 8] {
+	
+	Spot5()
+	
+	if options["ItemSpot" . 6] or options["ItemSpot" . 7] or options["ItemSpot" . 8] {
+	
+		Spot6()
+
+		if options["ItemSpot" . 7] or options["ItemSpot" . 8] {
+		
+			Spot7()
+
+			if options["ItemSpot" . 8] and options.VIP {
+			
+				Spot8VIP()
+
+			}
+			
+			if options["ItemSpot" . 8] and !options.VIP {
+			
+				Spot8()
+
+			}
+
+		}
+	}
 }

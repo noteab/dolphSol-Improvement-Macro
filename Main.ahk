@@ -34,7 +34,7 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 #Include *i ItemScheduler.ahk
 
-global version := "v1.3.1.2"
+global version := "v1.3.2"
 global currentVersion := version
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
@@ -160,6 +160,7 @@ global options := {"DoingObby":1
     ,"ItemSpot5":1
     ,"ItemSpot6":1
     ,"ItemSpot7":1
+    ,"ItemSpot8":1
     ,"Screenshotinterval":60
     ,"WindowX":100
     ,"WindowY":100
@@ -1004,13 +1005,17 @@ global Storage_YOffset_Scan := 0
 initialize() {
     initialized := 1
 
+    resetZoom()
+
     if (disableAlignment) {
         ; Re-enable for reconnects
         disableAlignment := false
     } else {
-    alignCamera()
+        ; reset()
+        ; alignCamera()
     }
 }
+
 
 resetZoom(){
     Loop 2 {
@@ -1027,13 +1032,12 @@ resetZoom(){
     ; press("o", 200) ; TODO: Allow user to configure zoom distance
     ; Sleep, 200
 
-    MouseMove, % A_ScreenWidth/2, % A_ScreenHeight/2
     Sleep, 200
     Loop 20 {
         Click, WheelUp
         Sleep, 50
     }
-
+    
     Click, Right Down
     MouseMove, A_ScreenWidth // 2, A_ScreenHeight
     Click, Right Up
@@ -1044,16 +1048,21 @@ resetZoom(){
     }
 }
 
+
 resetCameraAngle(){
-    resetZoom()
+    ; tysm @unconstitutional :3
+    clickMenuButton(2)
 
-    ; Get window position and size
-    getRobloxPos(pX,pY,width,height)
+    Sleep, 200
 
-    ; Pan camera
-    centerX := Floor(pX + width/2)
-    centerY := Floor(pY + height/2)
-    MouseClickDrag(centerX, centerY, centerX, centerY + 200)
+    getRobloxPos(rX,rY,rW,rH)
+    MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
+    Sleep, 200
+    MouseClick
+    Sleep, 200
+
+    MouseClickDrag, R, rX + rW*0.15, rY + 44 + rH*0.05, rX + rW*0.15, rY + 444 + rH*0.05
+
 }
 
 MouseClickDrag(x1, y1, x2, y2) {
@@ -1194,7 +1203,7 @@ alignCamera(){
     rotateCameraMode() ; Follow
     Sleep, 1500
     rotateCameraMode() ; Default(Classic)
-    ; resetCameraAngle()
+    resetCameraAngle()
 
     ; reset() ; Redundant, handleCrafting() will use align() if needed
     removeDim()
@@ -2193,15 +2202,15 @@ useItem(itemName, useAmount := 1) {
             Sleep, 750
             Send, {E 3}
 
-            Sleep, 1200
-            Loop, 12 {
-                if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 35, "Mari")) {
+            Sleep, 1400
+            Loop, 9 {
+                if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 36, "Mari")) {
                     merchantName := "Mari"
                     merchantPing := options["MerchantWebhook_Mari_UserID"]
                     logMessage("[Merchant Detection]: Mari name found!", 1)
                 }
 
-                else if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 35, "Jester")) {
+                else if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 36, "Jester")) {
                     merchantName := "Jester"
                     merchantPing := options["MerchantWebhook_Jester_UserID"]
                     logMessage("[Merchant Detection]: Jester name found!", 1)
@@ -2219,16 +2228,14 @@ useItem(itemName, useAmount := 1) {
 
                     ; Call Merchant_Handler function
                     Merchant_Handler(merchantName, merchantPing)
-                    press("i", 500)
-                    Sleep, 200
-                    press("o", 250)
+                    resetZoom()
                     break
                 }
 
                 Sleep, 500
             }
 
-            Sleep, 1500
+            Sleep, 400
         } else {
             logMessage("Auto merchant disabled", 1)
         }
@@ -2238,7 +2245,7 @@ useItem(itemName, useAmount := 1) {
 
 ; check if the merchant is still on cooldown
 IsMerchantOnCooldown(merchantName) {
-    cooldownPeriod := 180000  ; (3 minutes)
+    cooldownPeriod := 240000  ; (4 minutes)
     
     if (lastMerchantTime.HasKey(merchantName)) {
         elapsedTime := A_TickCount - lastMerchantTime[merchantName]
@@ -2253,7 +2260,7 @@ IsMerchantOnCooldown(merchantName) {
 
 UpdateMerchantCooldown(merchantName) {
     lastMerchantTime[merchantName] := A_TickCount
-    logMessage(merchantName " cooldown started. Will be on cooldown for 3 minutes.", 1)
+    logMessage(merchantName " cooldown started. Will be on cooldown for 4 minutes.", 1)
 }
 
 
@@ -2295,7 +2302,7 @@ LoadMerchantOptions(merchantName) {
 
 
 
-Merchant_Webhook_Main(Merchant_Name, webhook_url, ps_link, ping_user_id := "", embedField := "") {
+Merchant_Webhook_Main(Merchant_Name, webhook_url, ps_link := "", ping_user_id := "", embedField := "") {
     getRobloxPos(rX, rY, w, h)
     ssMap := Gdip_BitmapFromScreen(rX "|" rY "|" w "|" h)
     Gdip_SaveBitmapToFile(ssMap, merchant_ssPath)
@@ -2362,42 +2369,70 @@ Merchant_Webhook_Send(url, objParam) {
     }
 }
 
+
 Merchant_Handler(merchantName, merchant_ping) {
     logMessage("Starting " merchantName " merchant handler", 1)
     updateStatus("Processing " merchantName " Autobuy...")
-    getRobloxPos(pX, pY, width, height)
+    screenWidth := A_ScreenWidth
+    screenHeight := A_ScreenHeight
 
-    ; Load merchant config for the specific merchant (Mari or Jester)
+    ; load config item from mari/jester
     LoadMerchantOptions(merchantName)
-    
-    ; Press open button:
-    Loop, 4 {
-        ClickMouse(options["Merchant_Open_Button_X"], options["Merchant_Open_Button_Y"])
-        Sleep, 100
-    }
-    
-    Merchant_Webhook_Main(merchantName, options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"],, "Item screenshot")
 
-    ; Reset the merchant item slider to the top (scroll up)
-    MouseMove, options["Merchant_slider_X"], options["Merchant_slider_Y"]
+    ; relative positions to absolute positions
+    openButtonX := options["Merchant_Open_Button_X"] / 1920 * screenWidth
+    openButtonY := options["Merchant_Open_Button_Y"] / 1080 * screenHeight
+    sliderX := options["Merchant_slider_X"] / 1920 * screenWidth
+    sliderY := options["Merchant_slider_Y"] / 1080 * screenHeight
+    purchaseAmountX := options["Merchant_Purchase_Amount_X"] / 1920 * screenWidth
+    purchaseAmountY := options["Merchant_Purchase_Amount_Y"] / 1080 * screenHeight
+    purchaseButtonX := options["Merchant_Purchase_Button_X"] / 1920 * screenWidth
+    purchaseButtonY := options["Merchant_Purchase_Button_Y"] / 1080 * screenHeight
+    itemOCRX := options["Merchant_ItemName_OCR_X"] / 1920 * screenWidth
+    itemOCRY := options["Merchant_ItemName_OCR_Y"] / 1080 * screenHeight
+    firstItemPosX := options["Merchant_FirstItem_Pos_X"] / 1920 * screenWidth
+    firstItemPosY := options["Merchant_FirstItem_Pos_Y"] / 1080 * screenHeight
+
+    resetZoom()
+
+    Sleep, 250
+
+    ; Press open button
+    Loop, 4 {
+        ClickMouse(openButtonX, openButtonY)
+        Sleep, 80
+    }
+
+    ; Move to slider position and scroll up
+    MouseMove, sliderX, sliderY
     Sleep, 100
 
     Loop, 17 {
         MouseClick, WheelUp
-        Sleep, 60
+        Sleep, 30
     }
 
-    press("o", 260)
+    Loop, 2 {
+        MouseClick, WheelDown
+        Sleep, 30
+    }
 
-    Sleep, 150
+    Merchant_Webhook_Main(merchantName, options["MerchantWebhookLink"], , , "Item screenshot")
+    Sleep, 450
+
+    Loop, 18 {
+        MouseClick, WheelUp
+        Sleep, 30
+    }
+
+    Sleep, 130
 
     ; Load the merchant entries from the config
     if (MerchantEntries.MaxIndex() > 0) {
         logMessage("Items loaded for purchase: " MerchantEntries.MaxIndex(), 1)
 
-        ; store config item names for checking
         merchantItemNames := []
-        purchasedItems := [] 
+        purchasedItems := []
 
         ; Add all MerchantEntries items to the list
         for i, entry in MerchantEntries {
@@ -2410,7 +2445,7 @@ Merchant_Handler(merchantName, merchant_ping) {
         ; Loop merchant slots
         itemCount := 0
         totalItemsToPurchase := merchantItemNames.MaxIndex()  ; total number of items to purchase
-        itemsPurchased := 0 
+        itemsPurchased := 0
 
         Loop, 24 {
             if (itemsPurchased >= totalItemsToPurchase) {
@@ -2419,20 +2454,19 @@ Merchant_Handler(merchantName, merchant_ping) {
             }
 
             if (itemCount >= 4) {
-                ;logMessage("Scrolling down to reveal more items", 1)
                 MouseClick, WheelDown, , , 3
-                Sleep, 650
+                Sleep, 450
                 itemCount := 0
             }
 
-            ; X and Y position for each slot
-            itemYPos := options["Merchant_FirstItem_Pos_Y"] ; Y position from options
-            itemXPos := options["Merchant_FirstItem_Pos_X"] + (itemCount * 180)  ; X offset
+            ; Calculate X and Y position for each slot
+            itemYPos := firstItemPosY
+            itemXPos := firstItemPosX + (itemCount * 180 * screenWidth / 1920)  ; Scale by relative width
 
             ; Click the item at the calculated position
             logMessage("Clicking item slot " A_Index " at position X:" itemXPos " Y:" itemYPos, 1)
             Click, %itemXPos%, %itemYPos%
-            Sleep, 600
+            Sleep, 550
 
             ; OCR detection of items in the merchant shop (scans current slot)
             Loop, % merchantItemNames.MaxIndex() {
@@ -2446,17 +2480,17 @@ Merchant_Handler(merchantName, merchant_ping) {
                 }
 
                 ; Run OCR detection on the current item slot
-                if (containsText(options["Merchant_ItemName_OCR_X"], options["Merchant_ItemName_OCR_Y"], 323, 29, itemNameTrimmed)) {
+                if (containsText(itemOCRX, itemOCRY, 323, 29, itemNameTrimmed)) {
                     logMessage("Matching item found: " itemNameTrimmed, 1)
 
-                    ; purchase quantity
+                    ; Purchase quantity
                     itemAmount := MerchantEntries[A_Index].Amount
-                    ClickMouse(options["Merchant_Purchase_Amount_X"], options["Merchant_Purchase_Amount_Y"])
-                    Send, %itemAmount%  ; Dynamically send the amount to be purchased
+                    ClickMouse(purchaseAmountX, purchaseAmountY)
+                    Send, %itemAmount%
                     Sleep, 150
 
-                    ; purchase button
-                    ClickMouse(options["Merchant_Purchase_Button_X"], options["Merchant_Purchase_Button_Y"])
+                    ; Purchase button
+                    ClickMouse(purchaseButtonX, purchaseButtonY)
                     Sleep, 4950
 
                     logMessage("Purchase completed for " itemNameTrimmed, 1)
@@ -2481,6 +2515,9 @@ Merchant_Handler(merchantName, merchant_ping) {
     } else {
         logMessage("No items loaded for " merchantName " from config.ini", 1)
     }
+
+    ; Update merchant cooldown even if you don't want to buy any items
+    UpdateMerchantCooldown(merchantName)
 }
 
 checkBottomLeft(){
@@ -3221,6 +3258,7 @@ mainLoop(){
     if (options.DoingObby && (A_TickCount - lastObby) >= (obbyCooldown*1000)){
         ; align()
         reset()
+        resetCameraAngle()
         obbyRun()
 
         ; MouseGetPos, mouseX, mouseY
@@ -3258,6 +3296,7 @@ mainLoop(){
 
     if (options.CollectItems){
         reset()
+        resetCameraAngle()
         Sleep, 2000
         searchForItems()
     }
@@ -3284,6 +3323,7 @@ CreateMainUI() {
     Gui Add, Button, gStartClick vStartButton x8 y254 w80 h23 -Tabstop, F1 - Start
     Gui Add, Button, gPauseClick vPauseButton x96 y254 w80 h23 -Tabstop, F2 - Pause
     Gui Add, Button, gStopClick vStopButton x184 y254 w80 h23 -Tabstop, F3 - Stop
+
     Gui Font, s11 Norm, Segoe UI
     Gui Add, Picture, gDiscordServerClick w26 h20 x495 y254, % mainDir "images\discordIcon.png"
 
@@ -3320,6 +3360,8 @@ CreateMainUI() {
     Gui Add, CheckBox, vCollectSpot5CheckBox x202 y174 w30 h26 +0x2 -Tabstop, % " 5"
     Gui Add, CheckBox, vCollectSpot6CheckBox x242 y174 w30 h26 +0x2 -Tabstop, % " 6"
     Gui Add, CheckBox, vCollectSpot7CheckBox x282 y174 w30 h26 +0x2 -Tabstop, % " 7"
+    Gui Add, CheckBox, vCollectSpot8CheckBox x322 y174 w30 h26 +0x2 -Tabstop, % " 8*"
+    Gui Add, Button, gSpot8HelpClick vSpot8HelpButton x443 y164 w23 h23, ?
 
     ; crafting tab
     Gui Tab, 2
@@ -3526,46 +3568,46 @@ CreateMainUI() {
     Gui Font, s9 norm
 
     ; Enable/Disable Auto-Merchant
-    Gui, Add, CheckBox, vAutoMerchantBooleanBox x25 y43 w150, Enable Auto Merchant
-    Gui Add, Button, gMerchantSettings vMerchantSettingsClick x25 y195 w140 h25, Merchant Settings
-    Gui Add, Button, gMerchant_WebhooksGui vWebhookMerchantSettingsClick x350 y195 w140 h25, Merchant Webhooks
+    Gui, Add, CheckBox, vAutoMerchantBooleanBox gAutoMerchantReminder x25 y43 w150, Enable Auto Merchant
+    Gui Add, Button, gMerchantSettings vMerchantSettingsClick x25 y205 w140 h25, Merchant Settings
+    Gui Add, Button, gMerchant_WebhooksGui vWebhookMerchantSettingsClick x350 y205 w140 h25, Merchant Webhooks
 
     MariSlotOptions := "None||Void Coin|Lucky Penny|Fortune Spoid I|Fortune Spoid II|Fortune Spoid III|Mixed Potion|Lucky Potion|Lucky Potion L|Lucky Potion XL|Speed Potion|Speed Potion L|Speed Potion XL"
-    JesterSlotOptions := "None||Oblivion Potion|Heavenly Potion I|Heavenly Potion II|Rune of Everthing|Strange Potion I|Strange Potion II|Stella Candle|Merchant Tracker|Random Potion Sack"
+    JesterSlotOptions := "None||Oblivion Potion|Heavenly Potion I|Heavenly Potion II|Rune of Everthing|Rune Of Corruption|Rune Of Hell|Rune of Galaxy|Strange Potion I|Strange Potion II|Stella Candle|Merchant Tracker|Random Potion Sack"
     
     ; Mari's GroupBox and Item Selection
     Gui Font, s10 w600
-    Gui, Add, GroupBox, x16 y58 w255 h130 vMariGroup -Theme +0x50000007, Mari
+    Gui, Add, GroupBox, x16 y65 w255 h130 vMariGroup -Theme +0x50000007, Mari
     Gui Font, s9 norm
-    Gui Add, Text, vMariAmountTitle x215 y66 w110 h16 BackgroundTrans, % "Amount:"
-    Gui Add, Text, x25 y88 w100 h16 vMariItemOption1Header BackgroundTrans, Item Slot 1:
-    Gui Add, DropDownList, x95 y85 w120 h10 vMariSlot1DropDown R9, % MariSlotOptions
-    Gui Add, Edit, x225 y85 w30 h20 vMariSlot1Amount, % options["Mari_ItemSlot1_Amount"]
+    Gui Add, Text, vMariAmountTitle x215 y76 w110 h16 BackgroundTrans, % "Amount:"
+    Gui Add, Text, x25 y98 w100 h16 vMariItemOption1Header BackgroundTrans, Item Slot 1:
+    Gui Add, DropDownList, x95 y95 w120 h10 vMariSlot1DropDown R9, % MariSlotOptions
+    Gui Add, Edit, x225 y95 w30 h20 vMariSlot1Amount, % options["Mari_ItemSlot1_Amount"]
 
-    Gui Add, Text, x25 y118 w100 h16 vMariItemOption2Header BackgroundTrans, Item Slot 2:
-    Gui Add, DropDownList, x95 y115 w120 h10 vMariSlot2DropDown R9, % MariSlotOptions
-    Gui Add, Edit, x225 y115 w30 h20 vMariSlot2Amount, % options["Mari_ItemSlot2_Amount"]
+    Gui Add, Text, x25 y128 w100 h16 vMariItemOption2Header BackgroundTrans, Item Slot 2:
+    Gui Add, DropDownList, x95 y125 w120 h10 vMariSlot2DropDown R9, % MariSlotOptions
+    Gui Add, Edit, x225 y125 w30 h20 vMariSlot2Amount, % options["Mari_ItemSlot2_Amount"]
 
-    Gui Add, Text, x25 y148 w100 h16 vMariItemOption3Header BackgroundTrans, Item Slot 3:
-    Gui Add, DropDownList, x95 y145 w120 h10 vMariSlot3DropDown R9, % MariSlotOptions
-    Gui Add, Edit, x225 y145 w30 h20 vMariSlot3Amount, % options["Mari_ItemSlot3_Amount"]
+    Gui Add, Text, x25 y158 w100 h16 vMariItemOption3Header BackgroundTrans, Item Slot 3:
+    Gui Add, DropDownList, x95 y155 w120 h10 vMariSlot3DropDown R9, % MariSlotOptions
+    Gui Add, Edit, x225 y155 w30 h20 vMariSlot3Amount, % options["Mari_ItemSlot3_Amount"]
 
     ; Jester's GroupBox and Item Selection
     Gui Font, s10 w600
-    Gui, Add, GroupBox, x285 y58 w255 h130 vJesterGroup -Theme +0x50000007, Jester
+    Gui, Add, GroupBox, x285 y65 w255 h130 vJesterGroup -Theme +0x50000007, Jester
     Gui Font, s9 norm
-    Gui Add, Text, vJesterAmountTitle x486 y66 w110 h16 BackgroundTrans, % "Amount:"
-    Gui Add, Text, x295 y88 w100 h16 vJesterItemOption1Header BackgroundTrans, Item Slot 1:
-    Gui Add, DropDownList, x365 y85 w120 h10 vJesterSlot1DropDown R9, % JesterSlotOptions
-    Gui Add, Edit, x495 y85 w30 h20 vJesterSlot1Amount, % options["Jester_ItemSlot1_Amount"]
+    Gui Add, Text, vJesterAmountTitle x486 y76 w110 h16 BackgroundTrans, % "Amount:"
+    Gui Add, Text, x295 y98 w100 h16 vJesterItemOption1Header BackgroundTrans, Item Slot 1:
+    Gui Add, DropDownList, x365 y95 w120 h10 vJesterSlot1DropDown R9, % JesterSlotOptions
+    Gui Add, Edit, x495 y95 w30 h20 vJesterSlot1Amount, % options["Jester_ItemSlot1_Amount"]
 
-    Gui Add, Text, x295 y118 w100 h16 vJesterItemOption2Header BackgroundTrans, Item Slot 2:
-    Gui Add, DropDownList, x365 y115 w120 h10 vJesterSlot2DropDown R9, % JesterSlotOptions
-    Gui Add, Edit, x495 y115 w30 h20 vJesterSlot2Amount, % options["Jester_ItemSlot2_Amount"]
+    Gui Add, Text, x295 y128 w100 h16 vJesterItemOption2Header BackgroundTrans, Item Slot 2:
+    Gui Add, DropDownList, x365 y125 w120 h10 vJesterSlot2DropDown R9, % JesterSlotOptions
+    Gui Add, Edit, x495 y125 w30 h20 vJesterSlot2Amount, % options["Jester_ItemSlot2_Amount"]
 
-    Gui Add, Text, x295 y148 w100 h16 vJesterItemOption3Header BackgroundTrans, Item Slot 3:
-    Gui Add, DropDownList, x365 y145 w120 h10 vJesterSlot3DropDown R9, % JesterSlotOptions
-    Gui Add, Edit, x495 y145 w30 h20 vJesterSlot3Amount, % options["Jester_ItemSlot3_Amount"]
+    Gui Add, Text, x295 y158 w100 h16 vJesterItemOption3Header BackgroundTrans, Item Slot 3:
+    Gui Add, DropDownList, x365 y155 w120 h10 vJesterSlot3DropDown R9, % JesterSlotOptions
+    Gui Add, Edit, x495 y155 w30 h20 vJesterSlot3Amount, % options["Jester_ItemSlot3_Amount"]
 
 
     ; status bar
@@ -3576,7 +3618,6 @@ CreateMainUI() {
     Gui mainUI:Default
 }
 CreateMainUI()
-
 
 MerchantSettings() {
     global
@@ -3593,51 +3634,51 @@ MerchantSettings() {
     ; Calibration for Merchant Slider
     Gui, Add, Text, x16 y50 w250, Merchant Slider Position (X, Y):
     Gui, Add, Edit, x16 y70 w50 vMerchantSliderX, % options["Merchant_slider_X"]
-    Gui, Add, UpDown, vSliderX_UpDown Range0-2000, % options["Merchant_slider_X"]
+    Gui, Add, UpDown, vSliderX_UpDown Range0-4000, % options["Merchant_slider_X"]
     Gui, Add, Edit, x70 y70 w50 vMerchantSliderY, % options["Merchant_slider_Y"]
-    Gui, Add, UpDown, vSliderY_UpDown Range0-2000, % options["Merchant_slider_Y"]
+    Gui, Add, UpDown, vSliderY_UpDown Range0-4000, % options["Merchant_slider_Y"]
 
     ; Calibration for Purchase Amount Button
     Gui, Add, Text, x16 y100 w250, Purchase Amount Button (X, Y):
     Gui, Add, Edit, x16 y120 w50 vMerchantPurchaseAmountX, % options["Merchant_Purchase_Amount_X"]
-    Gui, Add, UpDown, vPurchaseAmountX_UpDown Range0-2000, % options["Merchant_Purchase_Amount_X"]
+    Gui, Add, UpDown, vPurchaseAmountX_UpDown Range0-4000, % options["Merchant_Purchase_Amount_X"]
     Gui, Add, Edit, x70 y120 w50 vMerchantPurchaseAmountY, % options["Merchant_Purchase_Amount_Y"]
-    Gui, Add, UpDown, vPurchaseAmountY_UpDown Range0-2000, % options["Merchant_Purchase_Amount_Y"]
+    Gui, Add, UpDown, vPurchaseAmountY_UpDown Range0-4000, % options["Merchant_Purchase_Amount_Y"]
 
     ; Calibration for Purchase Button
     Gui, Add, Text, x16 y150 w250, Purchase Button (X, Y):
     Gui, Add, Edit, x16 y170 w50 vMerchantPurchaseButtonX, % options["Merchant_Purchase_Button_X"]
-    Gui, Add, UpDown, vPurchaseButtonX_UpDown Range0-2000, % options["Merchant_Purchase_Button_X"]
+    Gui, Add, UpDown, vPurchaseButtonX_UpDown Range0-4000, % options["Merchant_Purchase_Button_X"]
     Gui, Add, Edit, x70 y170 w50 vMerchantPurchaseButtonY, % options["Merchant_Purchase_Button_Y"]
-    Gui, Add, UpDown, vPurchaseButtonY_UpDown Range0-2000, % options["Merchant_Purchase_Button_Y"]
+    Gui, Add, UpDown, vPurchaseButtonY_UpDown Range0-4000, % options["Merchant_Purchase_Button_Y"]
 
     ; Calibration for Merchant Open Button
     Gui, Add, Text, x16 y200 w250, Merchant Open Button (X, Y):
     Gui, Add, Edit, x16 y220 w50 vMerchantOpenButtonX, % options["Merchant_Open_Button_X"]
-    Gui, Add, UpDown, vOpenButtonX_UpDown Range0-2000, % options["Merchant_Open_Button_X"]
+    Gui, Add, UpDown, vOpenButtonX_UpDown Range0-4000, % options["Merchant_Open_Button_X"]
     Gui, Add, Edit, x70 y220 w50 vMerchantOpenButtonY, % options["Merchant_Open_Button_Y"]
-    Gui, Add, UpDown, vOpenButtonY_UpDown Range0-2000, % options["Merchant_Open_Button_Y"]
+    Gui, Add, UpDown, vOpenButtonY_UpDown Range0-4000, % options["Merchant_Open_Button_Y"]
 
     ; Calibration for Username OCR Position
     Gui, Add, Text, x16 y250 w250, Merchant Name OCR Position (X, Y):
     Gui, Add, Edit, x16 y270 w50 vMerchantUsernameOCRX, % options["Merchant_Username_OCR_X"]
-    Gui, Add, UpDown, vUsernameOCRX_UpDown Range0-2000, % options["Merchant_Username_OCR_X"]
+    Gui, Add, UpDown, vUsernameOCRX_UpDown Range0-4000, % options["Merchant_Username_OCR_X"]
     Gui, Add, Edit, x70 y270 w50 vMerchantUsernameOCRY, % options["Merchant_Username_OCR_Y"]
-    Gui, Add, UpDown, vUsernameOCRY_UpDown Range0-2000, % options["Merchant_Username_OCR_Y"]
+    Gui, Add, UpDown, vUsernameOCRY_UpDown Range0-4000, % options["Merchant_Username_OCR_Y"]
 
     ; Calibration for Item Name OCR Position
     Gui, Add, Text, x16 y300 w250, Item Name OCR Position (X, Y):
     Gui, Add, Edit, x16 y320 w50 vMerchantItemNameOCRX, % options["Merchant_ItemName_OCR_X"]
-    Gui, Add, UpDown, vItemNameOCRX_UpDown Range0-2000, % options["Merchant_ItemName_OCR_X"]
+    Gui, Add, UpDown, vItemNameOCRX_UpDown Range0-4000, % options["Merchant_ItemName_OCR_X"]
     Gui, Add, Edit, x70 y320 w50 vMerchantItemNameOCRY, % options["Merchant_ItemName_OCR_Y"]
-    Gui, Add, UpDown, vItemNameOCRY_UpDown Range0-2000, % options["Merchant_ItemName_OCR_Y"]
+    Gui, Add, UpDown, vItemNameOCRY_UpDown Range0-4000, % options["Merchant_ItemName_OCR_Y"]
 
     ; Calibration for First Item Slot Position
     Gui, Add, Text, x16 y350 w250, First Item Slot Position (X, Y):
     Gui, Add, Edit, x16 y370 w50 vMerchantFirstItemPosX, % options["Merchant_FirstItem_Pos_X"]
-    Gui, Add, UpDown, vFirstItemPosX_UpDown Range0-2000, % options["Merchant_FirstItem_Pos_X"]
+    Gui, Add, UpDown, vFirstItemPosX_UpDown Range0-4000, % options["Merchant_FirstItem_Pos_X"]
     Gui, Add, Edit, x70 y370 w50 vMerchantFirstItemPosY, % options["Merchant_FirstItem_Pos_Y"]
-    Gui, Add, UpDown, vFirstItemPosY_UpDown Range0-2000, % options["Merchant_FirstItem_Pos_Y"]
+    Gui, Add, UpDown, vFirstItemPosY_UpDown Range0-4000, % options["Merchant_FirstItem_Pos_Y"]
 
     ; Highlight merchant click region button
     Gui, Add, Button, x50 y410 w200 h25 gMerchant_ItemHighlight, Highlight Merchant Click
@@ -3648,10 +3689,23 @@ MerchantSettings() {
     Gui, Show, , Merchant Settings
 }
 
+AutoMerchantReminder() {
+    Gui, Submit, NoHide
+
+    if (options.AutoMerchantEnabled = 0 || options.AutoMerchantEnabled = 1) {
+        MsgBox, % "Please turn off Shift Lock before starting auto merchant feature! So your mouse wont be get locked to center and cannot press merchant open button!"
+    }
+
+}
+    
 Save_Merchant_Calibration() {
     Gui MerchantSettings:Default
     global options
 
+    screenWidth := A_ScreenWidth
+    screenHeight := A_ScreenHeight
+
+    ; Get values from GUI
     GuiControlGet, SliderX_UpDown
     GuiControlGet, SliderY_UpDown
     GuiControlGet, PurchaseAmountX_UpDown
@@ -3667,28 +3721,50 @@ Save_Merchant_Calibration() {
     GuiControlGet, FirstItemPosX_UpDown
     GuiControlGet, FirstItemPosY_UpDown
 
-    options["Merchant_slider_X"] := SliderX_UpDown
-    options["Merchant_slider_Y"] := SliderY_UpDown
-    options["Merchant_Purchase_Amount_X"] := PurchaseAmountX_UpDown
-    options["Merchant_Purchase_Amount_Y"] := PurchaseAmountY_UpDown
-    options["Merchant_Purchase_Button_X"] := PurchaseButtonX_UpDown
-    options["Merchant_Purchase_Button_Y"] := PurchaseButtonY_UpDown
-    options["Merchant_Open_Button_X"] := OpenButtonX_UpDown
-    options["Merchant_Open_Button_Y"] := OpenButtonY_UpDown
-    options["Merchant_Username_OCR_X"] := UsernameOCRX_UpDown
-    options["Merchant_Username_OCR_Y"] := UsernameOCRY_UpDown
-    options["Merchant_ItemName_OCR_X"] := ItemNameOCRX_UpDown
-    options["Merchant_ItemName_OCR_Y"] := ItemNameOCRY_UpDown
-    options["Merchant_FirstItem_Pos_X"] := FirstItemPosX_UpDown
-    options["Merchant_FirstItem_Pos_Y"] := FirstItemPosY_UpDown
+    ; Convert to relative values based on current screen resolution
+    options["Merchant_slider_X"] := SliderX_UpDown / 1920 * screenWidth
+    options["Merchant_slider_Y"] := SliderY_UpDown / 1080 * screenHeight
+    options["Merchant_Purchase_Amount_X"] := PurchaseAmountX_UpDown / 1920 * screenWidth
+    options["Merchant_Purchase_Amount_Y"] := PurchaseAmountY_UpDown / 1080 * screenHeight
+    options["Merchant_Purchase_Button_X"] := PurchaseButtonX_UpDown / 1920 * screenWidth
+    options["Merchant_Purchase_Button_Y"] := PurchaseButtonY_UpDown / 1080 * screenHeight
+    options["Merchant_Open_Button_X"] := OpenButtonX_UpDown / 1920 * screenWidth
+    options["Merchant_Open_Button_Y"] := OpenButtonY_UpDown / 1080 * screenHeight
+    options["Merchant_Username_OCR_X"] := UsernameOCRX_UpDown / 1920 * screenWidth
+    options["Merchant_Username_OCR_Y"] := UsernameOCRY_UpDown / 1080 * screenHeight
+    options["Merchant_ItemName_OCR_X"] := ItemNameOCRX_UpDown / 1920 * screenWidth
+    options["Merchant_ItemName_OCR_Y"] := ItemNameOCRY_UpDown / 1080 * screenHeight
+    options["Merchant_FirstItem_Pos_X"] := FirstItemPosX_UpDown / 1920 * screenWidth
+    options["Merchant_FirstItem_Pos_Y"] := FirstItemPosY_UpDown / 1080 * screenHeight
 
     saveOptions()
 }
 
+; completeAutoEquipSelection(){
+;     if (!selectingAutoEquip){
+;         return
+;     }
+;     applyNewUIOptions()
+
+;     MouseGetPos, mouseX,mouseY
+;     uv := getAspectRatioUVFromPosition(mouseX,mouseY,storageAspectRatio)
+;     options.AutoEquipX := uv[1]
+;     options.AutoEquipY := uv[2]
+
+;     saveOptions()
+;     cancelAutoEquipSelection()
+
+;     MsgBox, 0,Auto Equip Selection,Success!
+; }
 
 Merchant_ItemHighlight() {
     global options
 
+    ; Get current screen resolution
+    screenWidth := A_ScreenWidth
+    screenHeight := A_ScreenHeight
+
+    ; Get positions for various elements
     GuiControlGet, SliderX_UpDown
     GuiControlGet, SliderY_UpDown
     GuiControlGet, PurchaseAmountX_UpDown
@@ -3703,20 +3779,37 @@ Merchant_ItemHighlight() {
     GuiControlGet, ItemNameOCRY_UpDown
     GuiControlGet, FirstItemPosX_UpDown
     GuiControlGet, FirstItemPosY_UpDown
+    
+    ; Scale positions based on the screen resolution
+    sliderX := SliderX_UpDown / 1920 * screenWidth
+    sliderY := SliderY_UpDown / 1080 * screenHeight
+    purchaseAmountX := PurchaseAmountX_UpDown / 1920 * screenWidth
+    purchaseAmountY := PurchaseAmountY_UpDown / 1080 * screenHeight
+    purchaseButtonX := PurchaseButtonX_UpDown / 1920 * screenWidth
+    purchaseButtonY := PurchaseButtonY_UpDown / 1080 * screenHeight
+    openButtonX := OpenButtonX_UpDown / 1920 * screenWidth
+    openButtonY := OpenButtonY_UpDown / 1080 * screenHeight
+    usernameOCRX := UsernameOCRX_UpDown / 1920 * screenWidth
+    usernameOCRY := UsernameOCRY_UpDown / 1080 * screenHeight
+    itemOCRX := ItemNameOCRX_UpDown / 1920 * screenWidth
+    itemOCRY := ItemNameOCRY_UpDown / 1080 * screenHeight
+    firstItemX := FirstItemPosX_UpDown / 1920 * screenWidth
+    firstItemY := FirstItemPosY_UpDown / 1080 * screenHeight
 
-    Highlight(SliderX_UpDown-5, SliderY_UpDown-5, 10, 10, 8500) ;merchant slider box
-    Highlight(PurchaseAmountX_UpDown-5, PurchaseAmountY_UpDown-5, 10, 10, 8500, "green") ;purchase amount pos
-    Highlight(PurchaseButtonX_UpDown-5, PurchaseButtonY_UpDown-5, 10, 10, 8500, "green") ;purchase button pos
-    Highlight(OpenButtonX_UpDown, OpenButtonY_UpDown, 10, 10, 8500) ;merchant open button
-    Highlight(UsernameOCRX_UpDown, UsernameOCRY_UpDown, 200, 35, 8500, "blue") ;merchant username ocr
-    Highlight(ItemNameOCRX_UpDown, ItemNameOCRY_UpDown, 323, 29, 8500) ;merchant on-sale item name ocr
+    ; Calculate second item slot
+    secondItemX := firstItemX + (185 * screenWidth / 1920)
 
-    ; First Item Slot
-    Highlight(FirstItemPosX_UpDown-5, FirstItemPosY_UpDown-5, 10, 10, 8500, "purple") ;merchant on-sale first item name slot
+    ; Draw highlights
+    Highlight(sliderX-5, sliderY-5, 10, 10, 8500) ; merchant slider box
+    Highlight(purchaseAmountX-5, purchaseAmountY-5, 10, 10, 8500, "green") ; purchase amount pos
+    Highlight(purchaseButtonX-5, purchaseButtonY-5, 10, 10, 8500, "green") ; purchase button pos
+    Highlight(openButtonX, openButtonY, 10, 10, 8500) ; merchant open button
+    Highlight(usernameOCRX, usernameOCRY, 200, 36, 8500, "blue") ; merchant username ocr
+    Highlight(itemOCRX, itemOCRY, 323, 30, 8500) ; merchant on-sale item name ocr
 
-    ; Second Item Slot (calculated using the offset)
-    secondItemX := FirstItemPosX_UpDown + 185 - 5 ; calculate the second item slot X with offset
-    Highlight(secondItemX, FirstItemPosY_UpDown-5, 10, 10, 8500, "purple") ;merchant on-sale second item slot
+    ; Highlight first and second item slots
+    Highlight(firstItemX-5, firstItemY-5, 10, 10, 8500, "purple") ; first item name slot
+    Highlight(secondItemX-5, firstItemY-5, 10, 10, 8500, "purple") ; second item slot
 }
 
 
@@ -3995,7 +4088,7 @@ updateUIOptions(){
         GuiControl,, PrivateServerInput,% ""
     }
     
-    Loop 7 {
+    Loop 8 {
         v := options["ItemSpot" . A_Index]
         GuiControl,,CollectSpot%A_Index%CheckBox,%v%
     }
@@ -4069,7 +4162,7 @@ applyNewUIOptions(){
         }
     }
 
-    Loop 7 {
+    Loop 8 {
         GuiControlGet, rValue,,CollectSpot%A_Index%CheckBox
         options["ItemSpot" . A_Index] := rValue
     }
@@ -4638,6 +4731,10 @@ OCRHelpClick:
     MsgBox, 0, OCR, % "OCR allows the macro to respond to events instead of blindly pressing keys and moving the mouse. Currently requires Roblox to be ran at 1920x1080 resolution and 100% scale."
 	return
 
+Spot8HelpClick:
+    MsgBox, 0, Spots Status, % "Status:`n`nSpot 1: Working`nSpot 2: Fixed`nSpot 3: Working`nSpot 4: Reworked`nSpot 5: Working`nSpot 6: Fixed`nSpot 7: Fixed`nSpot 8: New route, Unstable, Currently in testing phase.`n`n`nAdditional Notes: _justalin made spot 8 possible. Thanks to him the potion collecting rate should improve."
+    return
+
 UIHelpClick:
     Gui, New 
     Gui, Add, Picture, x20 y50, % mainDir "images\UIInformation.png" ; Change to the path of your image file
@@ -4687,7 +4784,7 @@ return
         return
 
     F9:: ShowMousePos()
-    F11:: Merchant_Webhook_Main("Jester", options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], options["MerchantWebhook_Jester_UserID"], "Item screenshot")
+    ;F11:: Merchant_Webhook_Main("Jester", options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], options["MerchantWebhook_Jester_UserID"], "Item screenshot")
 #If
 
 #If running || reconnecting

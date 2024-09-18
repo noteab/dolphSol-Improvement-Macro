@@ -50,7 +50,7 @@ global biomeData := {"Normal":{color: 0xdddddd}
 ,"Windy":{color: 0x9ae5ff, duration: 120, display: 0, ping: 0}
 ,"Rainy":{color: 0x027cbd, duration: 120, display: 0, ping: 0}
 ,"Snowy":{color: 0xDceff9, duration: 120, display: 0, ping: 0}
-,"SandStorm":{color: 0x8F7057, duration: 600, display: 1, ping: 0}
+,"SandStorm":{color: 0x8F7057, duration: 600, display: 0, ping: 0}
 ,"Hell":{color: 0xff4719, duration: 660, display: 1, ping: 0}
 ,"Starfall":{color: 0x011ab7, duration: 600, display: 0, ping: 0}
 ,"Corruption":{color: 0x6d32a8, duration: 660, display: 0, ping: 0}
