@@ -1,0 +1,211 @@
+import pyautogui
+import numpy as np
+import os
+import json
+import requests
+from PIL import Image
+import pytesseract
+import easyocr
+import ctypes
+import time
+
+# Load configuration
+with open('config.json') as f:
+    config = json.load(f)
+
+# Paths for Mari detection
+base_dir = os.path.dirname(os.path.abspath(__file__))
+mari_paths = {
+    'headshot': os.path.join(base_dir, 'merchant_images', 'Mari_Headshot.png'),
+    'headshot1': os.path.join(base_dir, 'merchant_images', 'mari_headshot1.png'),
+    'name': os.path.join(base_dir, 'merchant_images', 'Mari_Name.png'),
+    'leaves_in': os.path.join(base_dir, 'merchant_images', 'leaves_in.png'),
+    'full': os.path.join(base_dir, 'merchant_images', 'mari_full.png'),
+}
+
+# Item paths
+item_paths = {
+    'void_coin': os.path.join(base_dir, 'merchant_images', 'maris', 'void_coin.png'),
+    'lucky_penny': os.path.join(base_dir, 'merchant_images', 'maris', 'lucky_penny.png'),
+    'fortune_spoid_1_blue': os.path.join(base_dir, 'merchant_images', 'maris', 'fortune_spoid_1_blue.png'),
+    'fortune_spoid_1': os.path.join(base_dir, 'merchant_images', 'maris', 'fortune_spoid_1.png'),
+    'fortune_spoid_2_blue': os.path.join(base_dir, 'merchant_images', 'maris', 'fortune_spoid_2_blue.png'),
+    'fortune_spoid_2': os.path.join(base_dir, 'merchant_images', 'maris', 'fortune_spoid_2.png'),
+    'fortune_spoid_3_gray': os.path.join(base_dir, 'merchant_images', 'maris', 'fortune_spoid_3_gray.png'),
+    'fortune_spoid_3': os.path.join(base_dir, 'merchant_images', 'maris', 'fortune_spoid_3.png'),
+    'fortune_spoid_3_blue': os.path.join(base_dir, 'merchant_images', 'maris', 'fortune_spoid_3_blue.png'),
+}
+
+# Initialize OCR readers
+reader_easyocr = easyocr.Reader(['en'])
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Path to tesseract executable
+
+def ocr_text_detect(image_np):
+    try:
+        # Use EasyOCR
+        easyocr_results = reader_easyocr.readtext(image_np)
+        for result in easyocr_results:
+            text = result[1].lower()
+            if 'leaves in' in text or 'e talk mari' in text:
+                return True
+
+        # Use Tesseract OCR
+        tesseract_results = pytesseract.image_to_string(image_np).lower()
+        if 'leaves in' in tesseract_results or 'e talk mari' in tesseract_results:
+            return True
+
+    except Exception as e:
+        print(f"Error in OCR text detection: {e}")
+    return False
+
+def image_match(image_path):
+    try:
+        print(f"Trying to detect image: {image_path}")
+        location = pyautogui.locateOnScreen(image_path)
+        if location:
+            print(f"Image found at: {location}")
+            return True
+        else:
+            print("Image not found.")
+            return False
+    except Exception as e:
+        print(f"Error in image_match: {e}")
+        return False
+
+def send_to_webhook(message):
+    try:
+        webhook_url = config.get('webhook_url')
+        user_id = config.get('user_id')
+        if webhook_url and user_id:
+            try:
+                # Attempt to send the image first
+                image_path = os.path.join(base_dir, 'merchant_images', 'mari_full.png')
+                with open(image_path, 'rb') as f:
+                    response = requests.post(
+                        webhook_url,
+                        files={'file': ('mari_full.png', f, 'image/png')},
+                        data={'content': f'MARI HAS BEEN FOUND!! <@{user_id}>'}
+                    )
+                if response.status_code == 204:
+                    print("Image and text message successfully sent to webhook.")
+                else:
+                    print(f"Failed to send image to webhook. Status code: {response.status_code}")
+            except Exception as e:
+                print(f"Error sending image to webhook: {e}")
+                # Fallback to sending just the text message
+                try:
+                    response = requests.post(
+                        webhook_url,
+                        json={'content': f'MARI HAS BEEN FOUND!! <@{user_id}>'}
+                    )
+                    if response.status_code == 204:
+                        print("Text message successfully sent to webhook.")
+                    else:
+                        print(f"Failed to send text message to webhook. Status code: {response.status_code}")
+                except Exception as e:
+                    print(f"Error sending text message to webhook: {e}")
+        else:
+            print("Webhook URL or User ID not found in the configuration.")
+    except Exception as e:
+        print(f"Error in send_to_webhook: {e}")
+
+def scroll_screen(scroll_amount=10, scroll_interval=10, scroll_duration=30):
+    try:
+        print("Starting scrolling.")
+        end_time = time.time() + scroll_duration
+        while time.time() < end_time:
+            # Scroll down
+            print("Scrolling down...")
+            pyautogui.scroll(-scroll_amount)
+            time.sleep(scroll_interval)
+            
+            # Scroll up
+            print("Scrolling up...")
+            pyautogui.scroll(scroll_amount)
+            time.sleep(scroll_interval)
+    except Exception as e:
+        print(f"Error in scroll_screen: {e}")
+
+def press_key_e(times=15):
+    try:
+        for _ in range(times):
+            ctypes.windll.user32.keybd_event(0x45, 0, 0, 0)  # Press 'E'
+            ctypes.windll.user32.keybd_event(0x45, 0, 2, 0)  # Release 'E'
+            time.sleep(0.1)
+    except Exception as e:
+        print(f"Error in press_key_e: {e}")
+
+def process_mari_item(item_to_buy, quantity):
+    try:
+        # Continuously check for Mari's presence
+        while True:
+            print("Checking for Mari...")
+            screenshot = pyautogui.screenshot()
+            screenshot_np = np.array(screenshot)  # Convert to NumPy array
+
+            if any(image_match(path) for path in mari_paths.values()) or ocr_text_detect(screenshot_np):
+                print("Mari detected.")
+                break
+            else:
+                print("Mari not detected. Waiting...")
+                time.sleep(5)  # Wait for 5 seconds before trying again
+
+        # Press 'E' key 15 times
+        print("Pressing 'E' 15 times.")
+        press_key_e()
+
+        # Start scrolling in and out
+        print("Starting scrolling.")
+        scroll_screen(scroll_amount=10, scroll_interval=10, scroll_duration=30)
+
+        # Continue with the rest of the processing after Mari is found
+        print("Mari detected, opening shop.")
+        if not image_match(os.path.join(base_dir, 'merchant_images', 'mari_full.png')):
+            print("Failed to find Mari's Shop. Exiting.")
+            return
+
+        print("Mari's Shop detected.")
+        item_path = item_paths.get(item_to_buy)
+        if item_path is None:
+            print(f"Item '{item_to_buy}' not found. Exiting.")
+            return
+
+        print(f"Looking for item: {item_to_buy}")
+        if image_match(item_path):
+            print(f"Item '{item_to_buy}' found.")
+            print("Clicking Purchase Amount Button.")
+            if not image_match(os.path.join(base_dir, 'merchant_images', 'purchase_amount.png')):
+                print("Failed to find Purchase Amount Button. Exiting.")
+                return
+
+            pyautogui.click()  # Click purchase amount button
+            time.sleep(0.5)
+            
+            # Click Purchase Button
+            if not image_match(os.path.join(base_dir, 'merchant_images', 'purchase_button.png')):
+                print("Failed to find Purchase Button. Exiting.")
+                return
+
+            pyautogui.click()  # Click purchase button
+            print(f"Item '{item_to_buy}' purchased successfully.")
+        else:
+            print(f"Item '{item_to_buy}' not found.")
+    except Exception as e:
+        print(f"Error in process_mari_item: {e}")
+
+def main():
+    try:
+        # Define items to buy and their quantities
+        items_to_buy = {
+            'fortune_spoid_1_blue': 1,
+            'void_coin': 2,
+            'lucky_penny': 3,
+        }
+
+        for item, quantity in items_to_buy.items():
+            process_mari_item(item, quantity)
+    except Exception as e:
+        print(f"Error in main: {e}")
+
+if __name__ == '__main__':
+    main()
