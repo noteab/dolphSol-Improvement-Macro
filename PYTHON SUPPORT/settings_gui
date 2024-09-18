@@ -1,0 +1,82 @@
+import tkinter as tk
+from tkinter import ttk
+import json
+import os
+
+# Load configuration
+config_path = 'config.json'
+if os.path.exists(config_path):
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+else:
+    config = {}
+
+# Function to save settings
+def save_settings():
+    # Save webhook URL
+    config['webhook_url'] = webhook_url_entry.get()
+    
+    # Save notification settings
+    config['notify_mari'] = 1 if notify_mari_var.get() else 0
+    config['notify_jester'] = 1 if notify_jester_var.get() else 0
+    
+    # Save User ID
+    config['user_id'] = user_id_entry.get()
+    
+    # Save auto-buy items
+    selected_items = [item for item, var in auto_buy_vars.items() if var.get()]
+    config['auto_buy_items'] = selected_items
+    
+    # Write to config file
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=4)
+    print("Settings saved.")
+
+# Create and configure the settings GUI
+settings_gui = tk.Tk()
+settings_gui.title("Settings")
+
+# Webhook URL
+ttk.Label(settings_gui, text="Webhook URL:").grid(column=0, row=0, padx=10, pady=10)
+webhook_url_entry = ttk.Entry(settings_gui, width=50)
+webhook_url_entry.grid(column=1, row=0, padx=10, pady=10)
+webhook_url_entry.insert(0, config.get('webhook_url', ''))
+
+# Notify Mari
+notify_mari_var = tk.BooleanVar(value=bool(config.get('notify_mari', 0)))
+ttk.Checkbutton(settings_gui, text="Notify Mari", variable=notify_mari_var).grid(column=0, row=1, padx=10, pady=10)
+
+# Notify Jester
+notify_jester_var = tk.BooleanVar(value=bool(config.get('notify_jester', 0)))
+ttk.Checkbutton(settings_gui, text="Notify Jester", variable=notify_jester_var).grid(column=1, row=1, padx=10, pady=10)
+
+# User ID
+ttk.Label(settings_gui, text="User ID for Ping:").grid(column=0, row=2, padx=10, pady=10)
+user_id_entry = ttk.Entry(settings_gui)
+user_id_entry.grid(column=1, row=2, padx=10, pady=10)
+user_id_entry.insert(0, config.get('user_id', ''))
+
+# Auto-Buy Items
+ttk.Label(settings_gui, text="Auto-Buy Items:").grid(column=0, row=3, padx=10, pady=10, columnspan=2)
+
+# Define items
+items = [
+    'Lucky Potion', 'Lucky Potion L', 'Lucky Potion XL',
+    'Speed Potion', 'Speed Potion L', 'Speed Potion XL',
+    'Mixed Potion', 'Fortune Spoid I', 'Fortune Spoid II',
+    'Fortune Spoid III', 'Gear A', 'Gear B',
+    'Rainbow Syrup', 'Lucky Penny', 'Void Coin'
+]
+
+# Create a dictionary to store item selection variables
+auto_buy_vars = {}
+for index, item in enumerate(items):
+    var = tk.BooleanVar(value=item in config.get('auto_buy_items', []))
+    auto_buy_vars[item] = var
+    ttk.Checkbutton(settings_gui, text=item, variable=var).grid(column=0, row=4 + index // 2, padx=10, pady=5, sticky='w', columnspan=2)
+
+# Save button
+ttk.Button(settings_gui, text="Save Settings", command=save_settings).grid(column=0, row=4 + len(items) // 2 + 1, columnspan=2, padx=10, pady=10)
+
+# Run the GUI
+settings_gui.mainloop()
