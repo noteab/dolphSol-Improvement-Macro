@@ -1005,14 +1005,16 @@ global Storage_YOffset_Scan := 0
 initialize() {
     initialized := 1
 
-    resetZoom()
+    reset()
+    Sleep, 500
 
     if (disableAlignment) {
         ; Re-enable for reconnects
         disableAlignment := false
     } else {
         ; reset()
-        ; alignCamera()
+        resetCameraAngle()
+        Sleep, 750
     }
 }
 
@@ -1033,7 +1035,7 @@ resetZoom(){
     ; Sleep, 200
 
     Sleep, 200
-    Loop 20 {
+    Loop 30 {
         Click, WheelUp
         Sleep, 50
     }
@@ -1046,6 +1048,7 @@ resetZoom(){
         Click, WheelDown
         Sleep, 50
     }
+
 }
 
 
@@ -1163,54 +1166,54 @@ rotateCameraMode(){
     retryCount := 0
 }
 
-; alignCamera(){
-;     startDim(1,"Aligning Camera, Please wait...")
+alignCamera(){
+    startDim(1,"Aligning Camera, Please wait...")
 
-;     WinActivate, % "ahk_id " GetRobloxHWND()
-;     Sleep, 500
+    WinActivate, % "ahk_id " GetRobloxHWND()
+    Sleep, 500
 
-;     closeChat()
-;     Sleep, 200
+    closeChat()
+    Sleep, 200
 
-;     reset()
-;     Sleep, 100
+    reset()
+    Sleep, 100
 
-;     rotateCameraMode() ; Follow
+    rotateCameraMode() ; Follow
 
-;     clickMenuButton(2)
-;     Sleep, 500
+    clickMenuButton(2)
+    Sleep, 500
     
-;     getRobloxPos(rX,rY,rW,rH)
-;     MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
-;     Sleep, 200
-;     MouseClick
-;     Sleep, 200
+    getRobloxPos(rX,rY,rW,rH)
+    MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
+    Sleep, 200
+    MouseClick
+    Sleep, 200
 
-;     rotateCameraMode() ; Default(Classic)
-;     resetCameraAngle() ; Fix angle before aligning direction
-;     Sleep, 100
+    rotateCameraMode() ; Default(Classic)
+    resetCameraAngle() ; Fix angle before aligning direction
+    Sleep, 100
 
-;     walkSend("d","Down")
-;     walkSleep(200)
-;     jump()
-;     walkSleep(400)
-;     walkSend("d","Up")
-;     walkSend("w","Down")
-;     walkSleep(500)
-;     jump()
-;     walkSleep(900)
-;     walkSend("w","Up")
+    walkSend("d","Down")
+    walkSleep(200)
+    jump()
+    walkSleep(400)
+    walkSend("d","Up")
+    walkSend("w","Down")
+    walkSleep(500)
+    jump()
+    walkSleep(900)
+    walkSend("w","Up")
 
-;     rotateCameraMode() ; Follow
-;     Sleep, 1500
-;     rotateCameraMode() ; Default(Classic)
-;     resetCameraAngle()
+    rotateCameraMode() ; Follow
+    Sleep, 1500
+    rotateCameraMode() ; Default(Classic)
+    resetCameraAngle()
 
-;     ; reset() ; Redundant, handleCrafting() will use align() if needed
-;     removeDim()
-;     reset()
-;     Sleep, 2000
-; }
+    ; reset() ; Redundant, handleCrafting() will use align() if needed
+    removeDim()
+    reset()
+    Sleep, 2000
+}
 
 align(){ ; align v2
     if (isSpawnCentered && forCollection){
@@ -3723,20 +3726,20 @@ Save_Merchant_Calibration() {
     GuiControlGet, FirstItemPosY_UpDown
 
     ; Convert to relative values based on current screen resolution
-    options["Merchant_slider_X"] := SliderX_UpDown / 1920 * screenWidth
-    options["Merchant_slider_Y"] := SliderY_UpDown / 1080 * screenHeight
-    options["Merchant_Purchase_Amount_X"] := PurchaseAmountX_UpDown / 1920 * screenWidth
-    options["Merchant_Purchase_Amount_Y"] := PurchaseAmountY_UpDown / 1080 * screenHeight
-    options["Merchant_Purchase_Button_X"] := PurchaseButtonX_UpDown / 1920 * screenWidth
-    options["Merchant_Purchase_Button_Y"] := PurchaseButtonY_UpDown / 1080 * screenHeight
-    options["Merchant_Open_Button_X"] := OpenButtonX_UpDown / 1920 * screenWidth
-    options["Merchant_Open_Button_Y"] := OpenButtonY_UpDown / 1080 * screenHeight
-    options["Merchant_Username_OCR_X"] := UsernameOCRX_UpDown / 1920 * screenWidth
-    options["Merchant_Username_OCR_Y"] := UsernameOCRY_UpDown / 1080 * screenHeight
-    options["Merchant_ItemName_OCR_X"] := ItemNameOCRX_UpDown / 1920 * screenWidth
-    options["Merchant_ItemName_OCR_Y"] := ItemNameOCRY_UpDown / 1080 * screenHeight
-    options["Merchant_FirstItem_Pos_X"] := FirstItemPosX_UpDown / 1920 * screenWidth
-    options["Merchant_FirstItem_Pos_Y"] := FirstItemPosY_UpDown / 1080 * screenHeight
+    options["Merchant_slider_X"] := Round(SliderX_UpDown / 1920 * screenWidth)
+    options["Merchant_slider_Y"] := Round(SliderY_UpDown / 1080 * screenHeight)
+    options["Merchant_Purchase_Amount_X"] := Round(PurchaseAmountX_UpDown / 1920 * screenWidth)
+    options["Merchant_Purchase_Amount_Y"] := Round(PurchaseAmountY_UpDown / 1080 * screenHeight)
+    options["Merchant_Purchase_Button_X"] := Round(PurchaseButtonX_UpDown / 1920 * screenWidth)
+    options["Merchant_Purchase_Button_Y"] := Round(PurchaseButtonY_UpDown / 1080 * screenHeight)
+    options["Merchant_Open_Button_X"] := Round(OpenButtonX_UpDown / 1920 * screenWidth)
+    options["Merchant_Open_Button_Y"] := Round(OpenButtonY_UpDown / 1080 * screenHeight)
+    options["Merchant_Username_OCR_X"] := Round(UsernameOCRX_UpDown / 1920 * screenWidth)
+    options["Merchant_Username_OCR_Y"] := Round(UsernameOCRY_UpDown / 1080 * screenHeight)
+    options["Merchant_ItemName_OCR_X"] := Round(ItemNameOCRX_UpDown / 1920 * screenWidth)
+    options["Merchant_ItemName_OCR_Y"] := Round(ItemNameOCRY_UpDown / 1080 * screenHeight)
+    options["Merchant_FirstItem_Pos_X"] := Round(FirstItemPosX_UpDown / 1920 * screenWidth)
+    options["Merchant_FirstItem_Pos_Y"] := Round(FirstItemPosY_UpDown / 1080 * screenHeight)
 
     saveOptions()
 }
@@ -4786,6 +4789,7 @@ return
 
     F9:: ShowMousePos()
     ;F11:: Merchant_Webhook_Main("Jester", options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], options["MerchantWebhook_Jester_UserID"], "Item screenshot")
+    F11:: resetZoom()
 #If
 
 #If running || reconnecting
