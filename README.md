@@ -9,13 +9,6 @@
   - Once complete, download the most recent version of dSIM through the most recent [GitHub Release](https://github.com/noteab/dolphSol-Improvement-Macro/releases/latest) (Download source code ZIP)
   - After downloading, extract the ZIP file to your desired directory
   - You can now run dolphSol through the Main.ahk file in the folder
-### TO ACCESS PYTHON FEATURES SUCH AS DISCORD BOT, AUTO MERCHANT AND MORE
-
-1. Download Python (latest version) (If you don't have it installed): https://www.python.org/downloads/ --> Also enable "add PATH to python" option
-2. RUN Installer_v2.py  IN INSTALLATION FOLDER IN THE PYTHON SUPPORT FOLDER
-3.  Download Tesseract (OCR used for biome detection, item check): (https://github.com/UB-Mannheim/tesseract/wiki)
---> Just find the keyword: "The latest installers can be downloaded here: tesseract-ocr-w64-setup-5.4.0.20240606.exe (64 bit)", at the front page so it easy to see
-4. To use macro, run main.ahk, to use python features (such as merchant teleporter item crafter etc.) open Python_Settings_GUI.pyw
 
 ## Features
 dolphSol has a couple of different features it is capable of. These include:
