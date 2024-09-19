@@ -34,7 +34,7 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 #Include *i ItemScheduler.ahk
 
-global version := "v1.3.2"
+global version := "v1.3.2-patch.2"
 global currentVersion := version
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
@@ -1004,8 +1004,6 @@ global Storage_YOffset_Scan := 0
 
 initialize() {
     initialized := 1
-
-    reset()
     Sleep, 500
 
     if (disableAlignment) {
@@ -1039,7 +1037,7 @@ resetZoom(){
         Click, WheelUp
         Sleep, 50
     }
-    
+
     Click, Right Down
     MouseMove, A_ScreenWidth // 2, A_ScreenHeight
     Click, Right Up
@@ -1166,54 +1164,54 @@ rotateCameraMode(){
     retryCount := 0
 }
 
-alignCamera(){
-    startDim(1,"Aligning Camera, Please wait...")
+; alignCamera(){
+;     startDim(1,"Aligning Camera, Please wait...")
 
-    WinActivate, % "ahk_id " GetRobloxHWND()
-    Sleep, 500
+;     WinActivate, % "ahk_id " GetRobloxHWND()
+;     Sleep, 500
 
-    closeChat()
-    Sleep, 200
+;     closeChat()
+;     Sleep, 200
 
-    reset()
-    Sleep, 100
+;     reset()
+;     Sleep, 100
 
-    rotateCameraMode() ; Follow
+;     rotateCameraMode() ; Follow
 
-    clickMenuButton(2)
-    Sleep, 500
+;     clickMenuButton(2)
+;     Sleep, 500
     
-    getRobloxPos(rX,rY,rW,rH)
-    MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
-    Sleep, 200
-    MouseClick
-    Sleep, 200
+;     getRobloxPos(rX,rY,rW,rH)
+;     MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
+;     Sleep, 200
+;     MouseClick
+;     Sleep, 200
 
-    rotateCameraMode() ; Default(Classic)
-    resetCameraAngle() ; Fix angle before aligning direction
-    Sleep, 100
+;     rotateCameraMode() ; Default(Classic)
+;     resetCameraAngle() ; Fix angle before aligning direction
+;     Sleep, 100
 
-    walkSend("d","Down")
-    walkSleep(200)
-    jump()
-    walkSleep(400)
-    walkSend("d","Up")
-    walkSend("w","Down")
-    walkSleep(500)
-    jump()
-    walkSleep(900)
-    walkSend("w","Up")
+;     walkSend("d","Down")
+;     walkSleep(200)
+;     jump()
+;     walkSleep(400)
+;     walkSend("d","Up")
+;     walkSend("w","Down")
+;     walkSleep(500)
+;     jump()
+;     walkSleep(900)
+;     walkSend("w","Up")
 
-    rotateCameraMode() ; Follow
-    Sleep, 1500
-    rotateCameraMode() ; Default(Classic)
-    resetCameraAngle()
+;     rotateCameraMode() ; Follow
+;     Sleep, 1500
+;     rotateCameraMode() ; Default(Classic)
+;     ; resetCameraAngle()
 
-    ; reset() ; Redundant, handleCrafting() will use align() if needed
-    removeDim()
-    reset()
-    Sleep, 2000
-}
+;     ; reset() ; Redundant, handleCrafting() will use align() if needed
+;     removeDim()
+;     reset()
+;     Sleep, 2000
+; }
 
 align(){ ; align v2
     if (isSpawnCentered && forCollection){
@@ -1892,7 +1890,6 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         updateStatus("Walking to Stella's Cave (Crafting)")
         walkToPotionCrafting()
         Sleep, % (StellaPortalDelay && StellaPortalDelay > 0) ? StellaPortalDelay : 0
-        ; resetCameraAngle()
         Sleep, 2000
         walkSend("d","Down")
         walkSleep(200)
@@ -2206,15 +2203,15 @@ useItem(itemName, useAmount := 1) {
             Sleep, 750
             Send, {E 3}
 
-            Sleep, 1400
-            Loop, 9 {
-                if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 36, "Mari")) {
+            Sleep, 1200
+            Loop, 12 {
+                if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 35, "Mari")) {
                     merchantName := "Mari"
                     merchantPing := options["MerchantWebhook_Mari_UserID"]
                     logMessage("[Merchant Detection]: Mari name found!", 1)
                 }
 
-                else if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 36, "Jester")) {
+                else if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 35, "Jester")) {
                     merchantName := "Jester"
                     merchantPing := options["MerchantWebhook_Jester_UserID"]
                     logMessage("[Merchant Detection]: Jester name found!", 1)
@@ -2239,7 +2236,7 @@ useItem(itemName, useAmount := 1) {
                 Sleep, 500
             }
 
-            Sleep, 400
+            Sleep, 1500
         } else {
             logMessage("Auto merchant disabled", 1)
         }
@@ -3261,7 +3258,6 @@ mainLoop(){
 
     if (options.DoingObby && (A_TickCount - lastObby) >= (obbyCooldown*1000)){
         ; align()
-        reset()
         resetCameraAngle()
         obbyRun()
 
@@ -3299,7 +3295,6 @@ mainLoop(){
     }
 
     if (options.CollectItems){
-        reset()
         resetCameraAngle()
         Sleep, 2000
         searchForItems()
@@ -3560,7 +3555,7 @@ CreateMainUI() {
     Gui Add, GroupBox, x16 y83 w328 h67 vRecordAuraGroup -Theme +0x50000007, Record Aura
     Gui Font, s9 norm
     Gui Add, CheckBox, vRecordAuraCheckBox x32 y100 w260 h22 +0x2 Section, % " Record Aura Rolls using Xbox Game Bar"
-    Gui Add, Button, gRecordAuraHelp vRecordAuraHelpButton x318 y92 w23 h23, ?
+    Gui Add, Button, gRecordAuraHelp vRecordAuraHelpButton x318 y93 w23 h23, ?
     Gui Add, Text, vRecordAuraMinimumHeader x25 y123 w110 h16 BackgroundTrans, % "Record Minimum:"
     Gui Add, Edit, vRecordAuraMinimumInput x135 y123 w200 h18, 100000
 
@@ -3701,7 +3696,7 @@ AutoMerchantReminder() {
     }
 
 }
-    
+
 Save_Merchant_Calibration() {
     Gui MerchantSettings:Default
     global options
@@ -3724,7 +3719,6 @@ Save_Merchant_Calibration() {
     GuiControlGet, ItemNameOCRY_UpDown
     GuiControlGet, FirstItemPosX_UpDown
     GuiControlGet, FirstItemPosY_UpDown
-
     ; Convert to relative values based on current screen resolution
     options["Merchant_slider_X"] := Round(SliderX_UpDown / 1920 * screenWidth)
     options["Merchant_slider_Y"] := Round(SliderY_UpDown / 1080 * screenHeight)
@@ -3744,26 +3738,10 @@ Save_Merchant_Calibration() {
     saveOptions()
 }
 
-; completeAutoEquipSelection(){
-;     if (!selectingAutoEquip){
-;         return
-;     }
-;     applyNewUIOptions()
-
-;     MouseGetPos, mouseX,mouseY
-;     uv := getAspectRatioUVFromPosition(mouseX,mouseY,storageAspectRatio)
-;     options.AutoEquipX := uv[1]
-;     options.AutoEquipY := uv[2]
-
-;     saveOptions()
-;     cancelAutoEquipSelection()
-
-;     MsgBox, 0,Auto Equip Selection,Success!
-; }
 
 Merchant_ItemHighlight() {
     global options
-
+    
     ; Get current screen resolution
     screenWidth := A_ScreenWidth
     screenHeight := A_ScreenHeight
@@ -3783,7 +3761,6 @@ Merchant_ItemHighlight() {
     GuiControlGet, ItemNameOCRY_UpDown
     GuiControlGet, FirstItemPosX_UpDown
     GuiControlGet, FirstItemPosY_UpDown
-    
     ; Scale positions based on the screen resolution
     sliderX := SliderX_UpDown / 1920 * screenWidth
     sliderY := SliderY_UpDown / 1080 * screenHeight
@@ -4733,11 +4710,11 @@ RollDetectionHelpClick:
 
 OCRHelpClick:
     MsgBox, 0, OCR, % "OCR allows the macro to respond to events instead of blindly pressing keys and moving the mouse. Currently requires Roblox to be ran at 1920x1080 resolution and 100% scale."
-	return
+    return
 
 Spot8HelpClick:
     MsgBox, 0, Spots Status, % "Status:`n`nSpot 1: Working`nSpot 2: Fixed`nSpot 3: Working`nSpot 4: Reworked`nSpot 5: Working`nSpot 6: Fixed`nSpot 7: Fixed`nSpot 8: New route, Unstable, Currently in testing phase.`n`n`nAdditional Notes: _justalin made spot 8 possible. Thanks to him the potion collecting rate should improve."
-    return
+	return
 
 UIHelpClick:
     Gui, New 
@@ -4788,8 +4765,8 @@ return
         return
 
     F9:: ShowMousePos()
-    ;F11:: Merchant_Webhook_Main("Jester", options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], options["MerchantWebhook_Jester_UserID"], "Item screenshot")
-    F11:: resetZoom()
+    F10:: Merchant_Webhook_Main("Jester", options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], options["MerchantWebhook_Jester_UserID"], "Item screenshot")
+    F12:: resetZoom()
 #If
 
 #If running || reconnecting
