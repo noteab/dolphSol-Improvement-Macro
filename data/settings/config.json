@@ -1,3 +1,13 @@
 {
-    "version": "2.0"
+    "webhook_url": "https://discord.com/api/webhooks/1266631727850328144/KEnXKla1CC656vf2oNNlEw6qvAwVqzJZA9UY-Re5y7b6mAr3XgW1rIZYTQglJGqpUuj4",
+    "user_id": "1209735284988579861",
+    "notify_mari": true,
+    "notify_jester": false,
+    "mari_item": "Some Item",
+    "quantity": 10,
+    "auto_buy_items": true,
+    "item_scheduler_item": "merchant_teleporter",
+    "item_scheduler_quantity": 1
 }
+
+
