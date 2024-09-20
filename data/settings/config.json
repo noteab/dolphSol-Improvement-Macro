@@ -6,7 +6,7 @@
     "mari_item": "Some Item",
     "quantity": 10,
     "auto_buy_items": true
-    "item_scheduler_item": default,
+    "item_scheduler_item": "merchant_teleporter",
     "item_scheduler_quantity": 1
 }
 
