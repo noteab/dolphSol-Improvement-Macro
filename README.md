@@ -10,6 +10,7 @@
   - After downloading, extract the ZIP file to your desired directory
   - You can now run dolphSol through the Main.ahk file in the folder
 
+
 ## Features
 dolphSol has a couple of different features it is capable of. These include:
  - Automatic Obby Completion, with an option to check if it is completed in case it has to be redone
