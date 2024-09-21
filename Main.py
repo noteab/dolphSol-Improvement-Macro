@@ -4,7 +4,7 @@ import sys
 import json
 
 # Define required packages
-REQUIRED_MODULES = ['ctk', 'easyocr']
+REQUIRED_MODULES = ['ctk', 'easyocr','py-cord']
 
 def install_module(module):
     """Install a Python module using pip."""
