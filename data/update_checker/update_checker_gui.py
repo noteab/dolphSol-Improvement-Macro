@@ -4,7 +4,7 @@ import webbrowser
 DEFAULT_FONT = "Segoe UI"
 DEFAULT_FONT_BOLD = "Segoe UI Semibold"
 
-class update_window(CTk):
+class UpdateWindow(CTk):
     def __init__(self, update, current_version, latest_version, is_beta):
         super().__init__()
         self.geometry("260x190")

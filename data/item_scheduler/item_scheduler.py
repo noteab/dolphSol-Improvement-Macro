@@ -2,7 +2,7 @@ import os
 import json
 
 # Path to the config file
-config_relative_path = os.path.join("dolphSol-Improvement-Macro-2.0-dev", "data", "settings", "config.json")
+config_relative_path = os.path.join("data", "settings", "config.json")
 
 # Load config settings
 def load_config():
