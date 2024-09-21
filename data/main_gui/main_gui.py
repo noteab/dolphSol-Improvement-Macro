@@ -41,7 +41,6 @@ class main_window(CTk):
         tab_control.add("Settings")
         tab_control.add("Extras")
         tab_control.add("Credits")
-        tab_control.set("Credits")
 
         for button in tab_control._segmented_button._buttons_dict.values():
             button.configure(width=max_width, height=35, corner_radius=7, font=CTkFont(default_font_bold, size=16, weight="bold"))
