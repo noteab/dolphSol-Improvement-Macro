@@ -63,11 +63,11 @@ class MainWindow(CTk):
 
 
         auto_equip_frame = CTkFrame(master=main_tab, width=100, height=30, fg_color=["gray81", "gray23"])
-        auto_equip_frame.grid(row=0, column=1)
+        auto_equip_frame.grid(row=0, column=1, stick="ne")
         auto_equip_title = CTkLabel(master=auto_equip_frame, text="Auto Equip", font=h1).grid(row=0)
         enable_auto_equip = CTkCheckBox(master=auto_equip_frame, text="Enable Auto Equip", font=text, variable=self.tk_var_list["enable_auto_equip"], onvalue="1", offvalue="0").grid(row=1)
         auto_equip_aura = CTkEntry(master=auto_equip_frame, placeholder_text="Aura").grid(row=1)
-        # auto_equip_aura_button = CTkButton(master=auto_equip_frame, text="Submit", command=)
+        auto_equip_aura_button = CTkButton(master=auto_equip_frame, text="Submit", command=self.update_auto_equip_aura).grid(row=1, column=1)
 
         # self.theme_var = IntVar(value=1 if self.config_data.get("dark_mode", False) else 2 if self.config_data.get("vibrant_mode", False) else 0)
         # customization_label = CTkLabel(master=settings_tab, text="Customization", font=h1)
@@ -91,7 +91,8 @@ class MainWindow(CTk):
     def stop(self):
         config.save_tk_list(self.tk_var_list)
 
-
+    def update_auto_equip_aura():
+        pass
     def update_theme(self):
         selected_theme = self.theme_var.get()
 
