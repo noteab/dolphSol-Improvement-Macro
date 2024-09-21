@@ -7,7 +7,7 @@ import ctypes
 sys.dont_write_bytecode = True
 
 # Define required packages
-REQUIRED_MODULES = ['customtkinter', 'easyocr']
+REQUIRED_MODULES = ['customtkinter', 'easyocr','py-cord']
 
 def install_module(module):
     """Install a Python module using pip."""
