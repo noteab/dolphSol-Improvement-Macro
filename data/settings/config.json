@@ -1,5 +1,7 @@
 {
-    "version": "2.0",
+    "latestversion": "2.0",
+    "latestbetaversion": "N/A",
+    "appearance": "dark",
     "webhook_url": "https://discord.com/api/webhooks/1266631727850328144/KEnXKla1CC656vf2oNNlEw6qvAwVqzJZA9UY-Re5y7b6mAr3XgW1rIZYTQglJGqpUuj4",
     "user_id": "1209735284988579861",
     "notify_mari": true,

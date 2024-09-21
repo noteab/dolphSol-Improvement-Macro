@@ -1,22 +1,29 @@
 import customtkinter
-from ctypes import windll, byref, sizeof, c_int
+class ToplevelWindow(customtkinter.CTkToplevel):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("400x300")
 
-root = customtkinter.CTk()
-root.update()
+        self.label = customtkinter.CTkLabel(self, text="ToplevelWindow")
+        self.label.pack(padx=20, pady=20)
 
-HWND = windll.user32.GetParent(root.winfo_id()) # the window we want to change
 
-"""
-DWMWA_ATTRIBUTES (for windows 11 title bar) 
-CAPTION COLOR (HEADER) = 35
-BORDER COLOR = 34
-TITLE COLOR = 36
-"""
+class App(customtkinter.CTk):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.geometry("500x400")
 
-DWMWA_ATTRIBUTE = 35
+        self.button_1 = customtkinter.CTkButton(self, text="open toplevel", command=self.open_toplevel)
+        self.button_1.pack(side="top", padx=20, pady=20)
 
-COLOR = 0x00FF0000 # color should be in hex order: 0x00bbggrr
+        self.toplevel_window = None
 
-windll.dwmapi.DwmSetWindowAttribute(HWND, DWMWA_ATTRIBUTE, byref(c_int(COLOR)), sizeof(c_int))
+    def open_toplevel(self):
+        if self.toplevel_window is None or not self.toplevel_window.winfo_exists():
+            self.toplevel_window = ToplevelWindow(self)  # create window if its None or destroyed
+        else:
+            self.toplevel_window.focus()  # if window exists focus it
 
-root.mainloop()
+
+app = App()
+app.mainloop()
