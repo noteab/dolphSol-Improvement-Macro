@@ -34,7 +34,7 @@ CoordMode, Mouse, Screen
 #Include *i jxon.ahk
 #Include *i ItemScheduler.ahk
 
-global version := "v1.3.2-patch.2"
+global version := "v1.3.2-patch.3"
 global currentVersion := version
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
@@ -1037,7 +1037,7 @@ resetZoom(){
         Click, WheelUp
         Sleep, 50
     }
-
+    
     Click, Right Down
     MouseMove, A_ScreenWidth // 2, A_ScreenHeight
     Click, Right Up
@@ -1046,7 +1046,6 @@ resetZoom(){
         Click, WheelDown
         Sleep, 50
     }
-
 }
 
 
@@ -1890,6 +1889,7 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         updateStatus("Walking to Stella's Cave (Crafting)")
         walkToPotionCrafting()
         Sleep, % (StellaPortalDelay && StellaPortalDelay > 0) ? StellaPortalDelay : 0
+        resetCameraAngle()
         Sleep, 2000
         walkSend("d","Down")
         walkSleep(200)
@@ -2203,15 +2203,15 @@ useItem(itemName, useAmount := 1) {
             Sleep, 750
             Send, {E 3}
 
-            Sleep, 1200
-            Loop, 12 {
-                if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 35, "Mari")) {
+            Sleep, 1400
+            Loop, 9 {
+                if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 36, "Mari")) {
                     merchantName := "Mari"
                     merchantPing := options["MerchantWebhook_Mari_UserID"]
                     logMessage("[Merchant Detection]: Mari name found!", 1)
                 }
 
-                else if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 35, "Jester")) {
+                else if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 36, "Jester")) {
                     merchantName := "Jester"
                     merchantPing := options["MerchantWebhook_Jester_UserID"]
                     logMessage("[Merchant Detection]: Jester name found!", 1)
@@ -2236,7 +2236,7 @@ useItem(itemName, useAmount := 1) {
                 Sleep, 500
             }
 
-            Sleep, 1500
+            Sleep, 400
         } else {
             logMessage("Auto merchant disabled", 1)
         }
@@ -2370,70 +2370,42 @@ Merchant_Webhook_Send(url, objParam) {
     }
 }
 
-
 Merchant_Handler(merchantName, merchant_ping) {
     logMessage("Starting " merchantName " merchant handler", 1)
     updateStatus("Processing " merchantName " Autobuy...")
-    screenWidth := A_ScreenWidth
-    screenHeight := A_ScreenHeight
+    getRobloxPos(pX, pY, width, height)
 
-    ; load config item from mari/jester
+    ; Load merchant config for the specific merchant (Mari or Jester)
     LoadMerchantOptions(merchantName)
-
-    ; relative positions to absolute positions
-    openButtonX := options["Merchant_Open_Button_X"] / 1920 * screenWidth
-    openButtonY := options["Merchant_Open_Button_Y"] / 1080 * screenHeight
-    sliderX := options["Merchant_slider_X"] / 1920 * screenWidth
-    sliderY := options["Merchant_slider_Y"] / 1080 * screenHeight
-    purchaseAmountX := options["Merchant_Purchase_Amount_X"] / 1920 * screenWidth
-    purchaseAmountY := options["Merchant_Purchase_Amount_Y"] / 1080 * screenHeight
-    purchaseButtonX := options["Merchant_Purchase_Button_X"] / 1920 * screenWidth
-    purchaseButtonY := options["Merchant_Purchase_Button_Y"] / 1080 * screenHeight
-    itemOCRX := options["Merchant_ItemName_OCR_X"] / 1920 * screenWidth
-    itemOCRY := options["Merchant_ItemName_OCR_Y"] / 1080 * screenHeight
-    firstItemPosX := options["Merchant_FirstItem_Pos_X"] / 1920 * screenWidth
-    firstItemPosY := options["Merchant_FirstItem_Pos_Y"] / 1080 * screenHeight
-
-    resetZoom()
-
-    Sleep, 250
-
-    ; Press open button
+    
+    ; Press open button:
     Loop, 4 {
-        ClickMouse(openButtonX, openButtonY)
-        Sleep, 80
+        ClickMouse(options["Merchant_Open_Button_X"], options["Merchant_Open_Button_Y"])
+        Sleep, 100
     }
+    
+    Merchant_Webhook_Main(merchantName, options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"],, "Item screenshot")
 
-    ; Move to slider position and scroll up
-    MouseMove, sliderX, sliderY
+    ; Reset the merchant item slider to the top (scroll up)
+    MouseMove, options["Merchant_slider_X"], options["Merchant_slider_Y"]
     Sleep, 100
 
     Loop, 17 {
         MouseClick, WheelUp
-        Sleep, 30
+        Sleep, 60
     }
 
-    Loop, 2 {
-        MouseClick, WheelDown
-        Sleep, 30
-    }
+    press("o", 260)
 
-    Merchant_Webhook_Main(merchantName, options["MerchantWebhookLink"], , , "Item screenshot")
-    Sleep, 450
-
-    Loop, 18 {
-        MouseClick, WheelUp
-        Sleep, 30
-    }
-
-    Sleep, 130
+    Sleep, 150
 
     ; Load the merchant entries from the config
     if (MerchantEntries.MaxIndex() > 0) {
         logMessage("Items loaded for purchase: " MerchantEntries.MaxIndex(), 1)
 
+        ; store config item names for checking
         merchantItemNames := []
-        purchasedItems := []
+        purchasedItems := [] 
 
         ; Add all MerchantEntries items to the list
         for i, entry in MerchantEntries {
@@ -2446,7 +2418,7 @@ Merchant_Handler(merchantName, merchant_ping) {
         ; Loop merchant slots
         itemCount := 0
         totalItemsToPurchase := merchantItemNames.MaxIndex()  ; total number of items to purchase
-        itemsPurchased := 0
+        itemsPurchased := 0 
 
         Loop, 24 {
             if (itemsPurchased >= totalItemsToPurchase) {
@@ -2455,19 +2427,20 @@ Merchant_Handler(merchantName, merchant_ping) {
             }
 
             if (itemCount >= 4) {
+                ;logMessage("Scrolling down to reveal more items", 1)
                 MouseClick, WheelDown, , , 3
-                Sleep, 450
+                Sleep, 650
                 itemCount := 0
             }
 
-            ; Calculate X and Y position for each slot
-            itemYPos := firstItemPosY
-            itemXPos := firstItemPosX + (itemCount * 180 * screenWidth / 1920)  ; Scale by relative width
+            ; X and Y position for each slot
+            itemYPos := options["Merchant_FirstItem_Pos_Y"] ; Y position from options
+            itemXPos := options["Merchant_FirstItem_Pos_X"] + (itemCount * 180)  ; X offset
 
             ; Click the item at the calculated position
             logMessage("Clicking item slot " A_Index " at position X:" itemXPos " Y:" itemYPos, 1)
             Click, %itemXPos%, %itemYPos%
-            Sleep, 550
+            Sleep, 600
 
             ; OCR detection of items in the merchant shop (scans current slot)
             Loop, % merchantItemNames.MaxIndex() {
@@ -2481,17 +2454,17 @@ Merchant_Handler(merchantName, merchant_ping) {
                 }
 
                 ; Run OCR detection on the current item slot
-                if (containsText(itemOCRX, itemOCRY, 323, 29, itemNameTrimmed)) {
+                if (containsText(options["Merchant_ItemName_OCR_X"], options["Merchant_ItemName_OCR_Y"], 323, 29, itemNameTrimmed)) {
                     logMessage("Matching item found: " itemNameTrimmed, 1)
 
-                    ; Purchase quantity
+                    ; purchase quantity
                     itemAmount := MerchantEntries[A_Index].Amount
-                    ClickMouse(purchaseAmountX, purchaseAmountY)
-                    Send, %itemAmount%
+                    ClickMouse(options["Merchant_Purchase_Amount_X"], options["Merchant_Purchase_Amount_Y"])
+                    Send, %itemAmount%  ; Dynamically send the amount to be purchased
                     Sleep, 150
 
-                    ; Purchase button
-                    ClickMouse(purchaseButtonX, purchaseButtonY)
+                    ; purchase button
+                    ClickMouse(options["Merchant_Purchase_Button_X"], options["Merchant_Purchase_Button_Y"])
                     Sleep, 4950
 
                     logMessage("Purchase completed for " itemNameTrimmed, 1)
@@ -2516,7 +2489,6 @@ Merchant_Handler(merchantName, merchant_ping) {
     } else {
         logMessage("No items loaded for " merchantName " from config.ini", 1)
     }
-
     ; Update merchant cooldown even if you don't want to buy any items
     UpdateMerchantCooldown(merchantName)
 }
@@ -3696,7 +3668,7 @@ AutoMerchantReminder() {
     }
 
 }
-
+    
 Save_Merchant_Calibration() {
     Gui MerchantSettings:Default
     global options
@@ -3719,29 +3691,46 @@ Save_Merchant_Calibration() {
     GuiControlGet, ItemNameOCRY_UpDown
     GuiControlGet, FirstItemPosX_UpDown
     GuiControlGet, FirstItemPosY_UpDown
-    ; Convert to relative values based on current screen resolution
-    options["Merchant_slider_X"] := Round(SliderX_UpDown / 1920 * screenWidth)
-    options["Merchant_slider_Y"] := Round(SliderY_UpDown / 1080 * screenHeight)
-    options["Merchant_Purchase_Amount_X"] := Round(PurchaseAmountX_UpDown / 1920 * screenWidth)
-    options["Merchant_Purchase_Amount_Y"] := Round(PurchaseAmountY_UpDown / 1080 * screenHeight)
-    options["Merchant_Purchase_Button_X"] := Round(PurchaseButtonX_UpDown / 1920 * screenWidth)
-    options["Merchant_Purchase_Button_Y"] := Round(PurchaseButtonY_UpDown / 1080 * screenHeight)
-    options["Merchant_Open_Button_X"] := Round(OpenButtonX_UpDown / 1920 * screenWidth)
-    options["Merchant_Open_Button_Y"] := Round(OpenButtonY_UpDown / 1080 * screenHeight)
-    options["Merchant_Username_OCR_X"] := Round(UsernameOCRX_UpDown / 1920 * screenWidth)
-    options["Merchant_Username_OCR_Y"] := Round(UsernameOCRY_UpDown / 1080 * screenHeight)
-    options["Merchant_ItemName_OCR_X"] := Round(ItemNameOCRX_UpDown / 1920 * screenWidth)
-    options["Merchant_ItemName_OCR_Y"] := Round(ItemNameOCRY_UpDown / 1080 * screenHeight)
-    options["Merchant_FirstItem_Pos_X"] := Round(FirstItemPosX_UpDown / 1920 * screenWidth)
-    options["Merchant_FirstItem_Pos_Y"] := Round(FirstItemPosY_UpDown / 1080 * screenHeight)
 
+    options["Merchant_slider_X"] := SliderX_UpDown
+    options["Merchant_slider_Y"] := SliderY_UpDown
+    options["Merchant_Purchase_Amount_X"] := PurchaseAmountX_UpDown
+    options["Merchant_Purchase_Amount_Y"] := PurchaseAmountY_UpDown
+    options["Merchant_Purchase_Button_X"] := PurchaseButtonX_UpDown
+    options["Merchant_Purchase_Button_Y"] := PurchaseButtonY_UpDown
+    options["Merchant_Open_Button_X"] := OpenButtonX_UpDown
+    options["Merchant_Open_Button_Y"] := OpenButtonY_UpDown
+    options["Merchant_Username_OCR_X"] := UsernameOCRX_UpDown
+    options["Merchant_Username_OCR_Y"] := UsernameOCRY_UpDown
+    options["Merchant_ItemName_OCR_X"] := ItemNameOCRX_UpDown
+    options["Merchant_ItemName_OCR_Y"] := ItemNameOCRY_UpDown
+    options["Merchant_FirstItem_Pos_X"] := FirstItemPosX_UpDown
+    options["Merchant_FirstItem_Pos_Y"] := FirstItemPosY_UpDown
+
+    ; Convert to relative values based on current screen resolution
     saveOptions()
 }
 
+; completeAutoEquipSelection(){
+;     if (!selectingAutoEquip){
+;         return
+;     }
+;     applyNewUIOptions()
+
+;     MouseGetPos, mouseX,mouseY
+;     uv := getAspectRatioUVFromPosition(mouseX,mouseY,storageAspectRatio)
+;     options.AutoEquipX := uv[1]
+;     options.AutoEquipY := uv[2]
+
+;     saveOptions()
+;     cancelAutoEquipSelection()
+
+;     MsgBox, 0,Auto Equip Selection,Success!
+; }
 
 Merchant_ItemHighlight() {
     global options
-    
+
     ; Get current screen resolution
     screenWidth := A_ScreenWidth
     screenHeight := A_ScreenHeight
@@ -4710,11 +4699,11 @@ RollDetectionHelpClick:
 
 OCRHelpClick:
     MsgBox, 0, OCR, % "OCR allows the macro to respond to events instead of blindly pressing keys and moving the mouse. Currently requires Roblox to be ran at 1920x1080 resolution and 100% scale."
-    return
+	return
 
 Spot8HelpClick:
     MsgBox, 0, Spots Status, % "Status:`n`nSpot 1: Working`nSpot 2: Fixed`nSpot 3: Working`nSpot 4: Reworked`nSpot 5: Working`nSpot 6: Fixed`nSpot 7: Fixed`nSpot 8: New route, Unstable, Currently in testing phase.`n`n`nAdditional Notes: _justalin made spot 8 possible. Thanks to him the potion collecting rate should improve."
-	return
+    return
 
 UIHelpClick:
     Gui, New 
@@ -4765,8 +4754,6 @@ return
         return
 
     F9:: ShowMousePos()
-    F10:: Merchant_Webhook_Main("Jester", options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], options["MerchantWebhook_Jester_UserID"], "Item screenshot")
-    F12:: resetZoom()
 #If
 
 #If running || reconnecting
