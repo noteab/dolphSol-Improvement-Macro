@@ -6,6 +6,7 @@ import ctypes
 import pathlib
 
 sys.dont_write_bytecode = True
+sys.path.append(pathlib.Path(__file__).parent.resolve())
 
 # Define required packages
 REQUIRED_MODULES = ['customtkinter', 'easyocr','py-cord']
@@ -67,6 +68,7 @@ def main():
     set_path()
     run_update_checker()
     create_main_gui()
+
 
 
 if __name__ == "__main__":
