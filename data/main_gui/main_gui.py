@@ -63,17 +63,17 @@ class MainWindow(CTk):
         check_for_obby_buff_check_box = CTkCheckBox(master=obby_frame, text="Check for Obby Buff Effect", font=text, variable=self.tk_var_list["check_for_obby_buff"], onvalue="1", offvalue="0").grid(row=3, column=1, padx=5, pady=5, stick="w")
 
         auto_equip_frame = CTkFrame(master=main_tab, width=200, height=30, fg_color=["gray81", "gray23"])
-        auto_equip_frame.grid(row=0, column=1, stick="ne", padx=(6, 0))
+        auto_equip_frame.grid(row=0, column=1, stick="ne", padx=(5, 0))
         auto_equip_title = CTkLabel(master=auto_equip_frame, text="Auto Equip", font=h1).grid(row=0, pady=(0, 3), columnspan=2)
 
         enable_auto_equip = CTkCheckBox(master=auto_equip_frame, text="Enable Auto Equip", font=text, variable=self.tk_var_list["enable_auto_equip"], onvalue="1", offvalue="0").grid(row=1, pady=(1, 6), sticky="w", padx=(5, 4))
-        self.auto_equip_aura = CTkEntry(master=auto_equip_frame, placeholder_text="Aura", width=239)
+        self.auto_equip_aura = CTkEntry(master=auto_equip_frame, placeholder_text="Aura", width=240)
         self.auto_equip_aura.grid(row=2, padx=(5, 0), sticky="n", pady=(0,6))
         auto_equip_aura_button = CTkButton(master=auto_equip_frame, text="Submit", command=self.update_auto_equip_aura, width=50).grid(row=2, column=1, padx=(3, 6), pady=(0,6), sticky="e")
 
 
         item_collection_frame = CTkFrame(master=main_tab, fg_color=["gray81", "gray23"])
-        item_collection_frame.grid(row=1, pady=(9, 0), sticky="we", columnspan=2, column=0)
+        item_collection_frame.grid(row=1, pady=(7, 0), sticky="we", columnspan=2, column=0)
         
         item_collection_title = CTkLabel(master=item_collection_frame, text="Collect Items", font=h1).grid(row=0, padx=5, columnspan=2)
 
@@ -82,7 +82,7 @@ class MainWindow(CTk):
         
         spot_collection_frame = CTkFrame(master=item_collection_frame, fg_color=["gray65", "gray28"])
         collect_item_spots_title = CTkLabel(master=spot_collection_frame, text="Collect Item Spots", font=h2).grid(row=0, padx=5, column=0, columnspan=8)
-        spot_collection_frame.grid(row=1, sticky="we", column=1, padx=(30, 7), pady=(5, 7), rowspan=2, ipady=5)
+        spot_collection_frame.grid(row=1, sticky="we", column=1, padx=(30, 8), pady=(5, 7), rowspan=2, ipady=5)
 
         CTkCheckBox(master=spot_collection_frame, text='1', width=45, variable=self.tk_var_list['collect_spot_1'], onvalue='1', offvalue='0').grid(row=1, column=0, sticky='e', padx=5)
         for i in range(1, 8):
