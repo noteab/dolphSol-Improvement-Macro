@@ -12,8 +12,8 @@ class MainWindow(CTk):
     def __init__(self):
         super().__init__()
         self.config_data = config.read()
-        self.title(f"MACRO NAME v{CURRENT_VERSION}")
-        self.geometry("600x300x200x200")
+        self.title(f"Radiance Macro v{CURRENT_VERSION}")
+        self.geometry("600x315x200x200")
         self.resizable(False, False)
         self.grid_columnconfigure(0, weight=1)
         self.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -23,7 +23,7 @@ class MainWindow(CTk):
 
         set_default_color_theme("blue")
 
-        self.tab_control = CTkTabview(master=self, fg_color=["gray86", "gray17"], height=250)
+        self.tab_control = CTkTabview(master=self, fg_color=["gray86", "gray17"], height=265)
         
         main_tab = self.tab_control.add("Main")
         crafting_tab = self.tab_control.add("Crafting")
@@ -40,7 +40,7 @@ class MainWindow(CTk):
             button.configure(width=MAX_WIDTH, height=35, corner_radius=10, font=CTkFont(DEFAULT_FONT_BOLD, size=16, weight="bold"))
     
         system_button_frame = CTkFrame(master=self)
-        system_button_frame.grid(row=1, pady=(5, 8), padx=6, sticky="w")
+        system_button_frame.grid(row=1, pady=(5, 8), padx=6, sticky="s")
         start_button = CTkButton(master=system_button_frame, text="Start (F1)", command=self.start, height=30, width=100, corner_radius=4).grid(row=0, column=0, padx=4, pady=4)
 
         pause_button = CTkButton(master=system_button_frame, text="Pause (F2)", command=self.pause, height=30, width=100, corner_radius=4).grid(row=0, column=1, padx=4, pady=4)
@@ -53,21 +53,40 @@ class MainWindow(CTk):
 
         # FONTS
         h1 = CTkFont(DEFAULT_FONT_BOLD, size=20, weight="bold")
+        h2 = CTkFont(DEFAULT_FONT_BOLD, size=15, weight="bold")
         text = CTkFont(DEFAULT_FONT, size=12, weight="normal")
 
-        obby_frame = CTkFrame(master=main_tab, width=100, height=30, fg_color=["gray81", "gray23"])
-        obby_frame.grid(row=0, column=0)
+        obby_frame = CTkFrame(master=main_tab, fg_color=["gray81", "gray23"])
+        obby_frame.grid(row=0, column=0, sticky="n")
         obby_title_label = CTkLabel(master=obby_frame, text="Obby", font=h1).grid(row=0, column=1)
         do_obby_checkbox = CTkCheckBox(master=obby_frame, text="Do Obby (30% Luck Boost Every 2 Mins)", font=text, variable=self.tk_var_list["do_obby"], onvalue="1", offvalue="0").grid(row=2, column=1, padx=5, pady=5, stick="w")
         check_for_obby_buff_check_box = CTkCheckBox(master=obby_frame, text="Check for Obby Buff Effect", font=text, variable=self.tk_var_list["check_for_obby_buff"], onvalue="1", offvalue="0").grid(row=3, column=1, padx=5, pady=5, stick="w")
 
+        auto_equip_frame = CTkFrame(master=main_tab, width=200, height=30, fg_color=["gray81", "gray23"])
+        auto_equip_frame.grid(row=0, column=1, stick="ne", padx=(6, 0))
+        auto_equip_title = CTkLabel(master=auto_equip_frame, text="Auto Equip", font=h1).grid(row=0, pady=(0, 3), columnspan=2)
 
-        auto_equip_frame = CTkFrame(master=main_tab, width=100, height=30, fg_color=["gray81", "gray23"])
-        auto_equip_frame.grid(row=0, column=1, stick="ne")
-        auto_equip_title = CTkLabel(master=auto_equip_frame, text="Auto Equip", font=h1).grid(row=0)
-        enable_auto_equip = CTkCheckBox(master=auto_equip_frame, text="Enable Auto Equip", font=text, variable=self.tk_var_list["enable_auto_equip"], onvalue="1", offvalue="0").grid(row=1)
-        auto_equip_aura = CTkEntry(master=auto_equip_frame, placeholder_text="Aura").grid(row=1)
-        auto_equip_aura_button = CTkButton(master=auto_equip_frame, text="Submit", command=self.update_auto_equip_aura).grid(row=1, column=1)
+        enable_auto_equip = CTkCheckBox(master=auto_equip_frame, text="Enable Auto Equip", font=text, variable=self.tk_var_list["enable_auto_equip"], onvalue="1", offvalue="0").grid(row=1, pady=(1, 6), sticky="w", padx=(5, 4))
+        self.auto_equip_aura = CTkEntry(master=auto_equip_frame, placeholder_text="Aura", width=239)
+        self.auto_equip_aura.grid(row=2, padx=(5, 0), sticky="n", pady=(0,6))
+        auto_equip_aura_button = CTkButton(master=auto_equip_frame, text="Submit", command=self.update_auto_equip_aura, width=50).grid(row=2, column=1, padx=(3, 6), pady=(0,6), sticky="e")
+
+
+        item_collection_frame = CTkFrame(master=main_tab, fg_color=["gray81", "gray23"])
+        item_collection_frame.grid(row=1, pady=(9, 0), sticky="we", columnspan=2, column=0)
+        
+        item_collection_title = CTkLabel(master=item_collection_frame, text="Collect Items", font=h1).grid(row=0, padx=5, columnspan=2)
+
+        enable_collect_items = CTkCheckBox(master=item_collection_frame, text="Enable Item Collection", font=text, variable=self.tk_var_list["collect_items"], onvalue="1", offvalue="0").grid(row=1, sticky="w", padx=5, pady=5)
+        fps_30_patch = CTkCheckBox(master=item_collection_frame, text="30 FPS Path", font=text, variable=self.tk_var_list["30_fps_path"], onvalue="1", offvalue="0").grid(row=2, sticky="w", padx=5, pady=5)
+        
+        spot_collection_frame = CTkFrame(master=item_collection_frame, fg_color=["gray65", "gray28"])
+        collect_item_spots_title = CTkLabel(master=spot_collection_frame, text="Collect Item Spots", font=h2).grid(row=0, padx=5, column=0, columnspan=8)
+        spot_collection_frame.grid(row=1, sticky="we", column=1, padx=(30, 7), pady=(5, 7), rowspan=2, ipady=5)
+
+        CTkCheckBox(master=spot_collection_frame, text='1', width=45, variable=self.tk_var_list['collect_spot_1'], onvalue='1', offvalue='0').grid(row=1, column=0, sticky='e', padx=5)
+        for i in range(1, 8):
+            exec(f"CTkCheckBox(master=spot_collection_frame, text='{i + 1}', width=45, variable=self.tk_var_list['collect_spot_{i + 1}'], onvalue='1', offvalue='0').grid(row=1, column={i}, sticky='e')")
 
         self.theme_var = IntVar(value=1 if self.config_data.get("dark_mode", False) else 2 if self.config_data.get("vibrant_mode", False) else 0)
         customization_label = CTkLabel(master=settings_tab, text="Customization", font=h1)
@@ -91,8 +110,11 @@ class MainWindow(CTk):
     def stop(self):
         config.save_tk_list(self.tk_var_list)
 
-    def update_auto_equip_aura():
-        pass
+    def update_auto_equip_aura(self):
+        self.config_data["auto_equip_aura"] = self.auto_equip_aura.get()
+        config.save(self.config_data)
+
+
     def update_theme(self):
         selected_theme = self.theme_var.get()
 

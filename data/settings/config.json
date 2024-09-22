@@ -15,5 +15,16 @@
     "vibrant_mode": "0",
     "do_obby": "0",
     "check_for_obby_buff": "0",
-    "enable_auto_equip": "0"
+    "enable_auto_equip": "1",
+    "auto_equip_aura": "",
+    "collect_items": "1",
+    "30_fps_path": "0",
+    "collect_spot_1": "1",
+    "collect_spot_2": "1",
+    "collect_spot_3": "1",
+    "collect_spot_4": "0",
+    "collect_spot_5": "1",
+    "collect_spot_6": "0",
+    "collect_spot_7": "0",
+    "collect_spot_8": "0"
 }
