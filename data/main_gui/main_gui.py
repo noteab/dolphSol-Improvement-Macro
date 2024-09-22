@@ -69,15 +69,15 @@ class MainWindow(CTk):
         auto_equip_aura = CTkEntry(master=auto_equip_frame, placeholder_text="Aura").grid(row=1)
         auto_equip_aura_button = CTkButton(master=auto_equip_frame, text="Submit", command=self.update_auto_equip_aura).grid(row=1, column=1)
 
-        # self.theme_var = IntVar(value=1 if self.config_data.get("dark_mode", False) else 2 if self.config_data.get("vibrant_mode", False) else 0)
-        # customization_label = CTkLabel(master=settings_tab, text="Customization", font=h1)
-        # customization_label.grid()
+        self.theme_var = IntVar(value=1 if self.config_data.get("dark_mode", False) else 2 if self.config_data.get("vibrant_mode", False) else 0)
+        customization_label = CTkLabel(master=settings_tab, text="Customization", font=h1)
+        customization_label.grid()
 
-        # dark_mode_radio = CTkRadioButton(master=settings_tab, text="Dark Mode", variable=self.theme_var, value=1, font=text, command=self.update_theme)
-        # dark_mode_radio.grid()
+        dark_mode_radio = CTkRadioButton(master=settings_tab, text="Dark Mode", variable=self.theme_var, value=1, font=text, command=self.update_theme)
+        dark_mode_radio.grid()
 
-        # vibrant_mode_radio = CTkRadioButton(master=settings_tab, text="Vibrant Mode", variable=self.theme_var, value=2, command=self.update_theme)
-        # vibrant_mode_radio.grid()
+        vibrant_mode_radio = CTkRadioButton(master=settings_tab, text="Vibrant Mode", variable=self.theme_var, value=2, command=self.update_theme)
+        vibrant_mode_radio.grid()
 
 
     def on_close(self):

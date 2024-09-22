@@ -3,10 +3,8 @@ import subprocess
 import sys
 import json
 import ctypes
-from pathlib import Path
-path = Path(os.path.realpath(sys.executable))
+import pathlib
 
-os.chdir(path.parent.absolute())
 sys.dont_write_bytecode = True
 
 # Define required packages
@@ -39,20 +37,24 @@ def run_update_checker():
     # except ImportError:
     #     ctypes.windll.user32.MessageBoxW(0, "UPDATE CHECKER NOT FOUND", "Error", 0)
     update_checker.check_for_updates()
+    
 
 def create_main_gui():
     """Run the main GUI script."""
     try:
-        from .data.main_gui import main_gui
+        from data.main_gui import main_gui
     except ImportError:
         ctypes.windll.user32.MessageBoxW(0, "MAIN GUI NOT FOUND", "Error", 0)
 
-    # try:
-    from data.lib import config
-    # except ImportError:
-    #     ctypes.windll.user32.MessageBoxW(0, "CONFIG FILE NOT FOUND", "Error", 0)
-
     main_gui.MainWindow().mainloop()
+
+def set_path():
+    try: 
+        from data.lib import config
+    except ImportError:
+        ctypes.windll.user32.MessageBoxW(0, "CONFIG FILE NOT FOUND", "Error", 0)
+    config.set_path(pathlib.Path(__file__).parent.resolve())
+
 
 def main():
     # check_and_install_modules()
@@ -62,6 +64,7 @@ def main():
     #     # Create a file to indicate the installation has occurred
     #     with open('data/installer_status.json', 'w') as f:
     #         json.dump({"installed": True}, f)
+    set_path()
     run_update_checker()
     create_main_gui()
 

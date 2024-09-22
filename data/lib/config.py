@@ -5,14 +5,14 @@ import json
 
 
 ONLINE_CONFIG_URL = "https://raw.githubusercontent.com/noteab/dolphSol-Improvement-Macro/refs/heads/2.0-dev/data/settings/config.json"
-CONFIG_PATH = "data/settings/config.json"
+config_path = ""
 
 def get_current_version():
     return read()["version"]
 
 def read(key=""):
     try:
-        with open("data/settings/config.json") as config_file:
+        with open(config_path) as config_file:
             config_data = json.load(config_file)
             if len(config_data) == 0:
                 ctypes.windll.user32.MessageBoxW(0, "CONFIG DATA NOT FOUND", "Error", 0)
@@ -21,7 +21,7 @@ def read(key=""):
                 return config_data[key]
             return config_data
     except:
-        ctypes.windll.user32.MessageBoxW(0, "CONFIG FILE NOT FOUND", "Error", 0)
+        ctypes.windll.user32.MessageBoxW(0, "CONFIG FILE NOT FOUND!", "Error", 0)
 
 def read_remote():
     try:
@@ -34,7 +34,7 @@ def read_remote():
         ctypes.windll.user32.MessageBoxW(0, "ONLINE URL NOT FOUND. CANNOT RUN UPDATE CHECKER", "Error", 0)
 
 def save(config_data):
-    with open(CONFIG_PATH, 'w') as config_file:
+    with open(config_path, 'w') as config_file:
         json.dump(config_data, config_file, indent=4)
 
 def generate_tk_list():
@@ -49,3 +49,7 @@ def save_tk_list(tk_var_list):
     for key in tk_var_list:
         config_data[key] = tk_var_list[key].get()
     save(config_data)
+
+def set_path(path):
+    global config_path
+    config_path = f"{path}/data/settings/config.json"
