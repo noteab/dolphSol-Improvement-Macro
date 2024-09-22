@@ -1889,7 +1889,6 @@ handleCrafting(craftLocation := 0, retryCount := 0){
         updateStatus("Walking to Stella's Cave (Crafting)")
         walkToPotionCrafting()
         Sleep, % (StellaPortalDelay && StellaPortalDelay > 0) ? StellaPortalDelay : 0
-        resetCameraAngle()
         Sleep, 2000
         walkSend("d","Down")
         walkSleep(200)
