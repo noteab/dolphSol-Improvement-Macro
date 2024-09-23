@@ -2394,7 +2394,7 @@ Merchant_Handler(merchantName, merchant_ping) {
         Sleep, 60
     }
 
-    press("o", 260)
+    ; press("o", 260)
 
     Sleep, 150
 
