@@ -26,5 +26,7 @@
     "collect_spot_5": "0",
     "collect_spot_6": "1",
     "collect_spot_7": "0",
-    "collect_spot_8": "0"
+    "collect_spot_8": "0",
+    "automatic_item_crafting": "0",
+    "automatic_potion_craftin": "0",
 }

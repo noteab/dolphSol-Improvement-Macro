@@ -12,7 +12,7 @@ class MainWindow(CTk):
     def __init__(self):
         super().__init__()
         self.config_data = config.read()
-        self.title(f"Radiance Macro v{CURRENT_VERSION}")
+        self.title(f"R[REDACTED] Macro v{CURRENT_VERSION}")
         self.geometry("600x315x200x200")
         self.resizable(False, False)
         self.grid_columnconfigure(0, weight=1)
@@ -63,17 +63,17 @@ class MainWindow(CTk):
         check_for_obby_buff_check_box = CTkCheckBox(master=obby_frame, text="Check for Obby Buff Effect", font=text, variable=self.tk_var_list["check_for_obby_buff"], onvalue="1", offvalue="0").grid(row=3, column=1, padx=5, pady=5, stick="w")
 
         auto_equip_frame = CTkFrame(master=main_tab, width=200, height=30, fg_color=["gray81", "gray23"])
-        auto_equip_frame.grid(row=0, column=1, stick="ne", padx=(5, 0))
+        auto_equip_frame.grid(row=0, column=1, stick="ne", padx=(0, 0))
         auto_equip_title = CTkLabel(master=auto_equip_frame, text="Auto Equip", font=h1).grid(row=0, pady=(0, 3), columnspan=2)
 
         enable_auto_equip = CTkCheckBox(master=auto_equip_frame, text="Enable Auto Equip", font=text, variable=self.tk_var_list["enable_auto_equip"], onvalue="1", offvalue="0").grid(row=1, pady=(1, 6), sticky="w", padx=(5, 4))
         self.auto_equip_aura = CTkEntry(master=auto_equip_frame, placeholder_text="Aura", width=240)
         self.auto_equip_aura.grid(row=2, padx=(5, 0), sticky="n", pady=(0,6))
-        auto_equip_aura_button = CTkButton(master=auto_equip_frame, text="Submit", command=self.update_auto_equip_aura, width=50).grid(row=2, column=1, padx=(3, 6), pady=(0,6), sticky="e")
+        auto_equip_aura_button = CTkButton(master=auto_equip_frame, text="Submit", command=self.update_auto_equip_aura, width=50).grid(row=2, column=1, padx=(4, 6), pady=(0,6), sticky="e")
 
 
         item_collection_frame = CTkFrame(master=main_tab, fg_color=["gray81", "gray23"])
-        item_collection_frame.grid(row=1, pady=(7, 0), sticky="we", columnspan=2, column=0)
+        item_collection_frame.grid(row=1, pady=(7, 0), sticky="we", columnspan=2, column=0, padx=(2, 0))
         
         item_collection_title = CTkLabel(master=item_collection_frame, text="Collect Items", font=h1).grid(row=0, padx=5, columnspan=2)
 
@@ -92,6 +92,19 @@ class MainWindow(CTk):
         customization_label = CTkLabel(master=settings_tab, text="Customization", font=h1)
         customization_label.grid()
 
+
+        item_crafting_frame = CTkFrame(master=crafting_tab, fg_color=["gray81", "gray23"])
+        item_crafting_frame.grid(row=0, column=0, padx=(2, 0))
+        item_crafting_title = CTkLabel(master=item_crafting_frame, text="Automatic Item Crafting", font=h1).grid(row=0, padx=5)
+        enable_item_crafting_checkbox = CTkCheckBox(master=item_crafting_frame, text="Enable Automatic Item Crafting", font=text, variable=self.tk_var_list["automatic_item_crafting"], onvalue='1', offvalue='0').grid(row=1, padx=5, pady=5, sticky="w")
+        item_crafting_settings_button = CTkButton(master=item_crafting_frame, text="Automatic Item Crafting Settings", command=self.open_automatic_item_crafting_settings, width=250, font=text).grid(padx=5, pady=5)
+
+        potion_crafting_frame = CTkFrame(master=crafting_tab, fg_color=["gray81", "gray23"])
+        potion_crafting_frame.grid(row=0, column=1, pad=(7, 5))
+        potion_crafting_title = CTkLabel(master=potion_crafting_frame, text="Automatic Potion Crafting", font=h1).grid(row=0, padx=5)
+        enable_potion_crafting_checkbox = CTkCheckBox(master=potion_crafting_frame, text="Enable Automatic Potion Crafting", font=text).grid(row=2, padx=5, pady=5)
+        potion_crafting_settings_button = CTkButton(master=potion_crafting_frame, text="Automatic Potion Crafting Settings", command=self.open_automatic_potion_crafting_settings)
+
         dark_mode_radio = CTkRadioButton(master=settings_tab, text="Dark Mode", variable=self.theme_var, value=1, font=text, command=self.update_theme)
         dark_mode_radio.grid()
 
@@ -104,11 +117,19 @@ class MainWindow(CTk):
         self.destroy()
 
     def start(self):
-        config.save_tk_list(self.tk_var_list)
+        config.save_tk_list(self, self.tk_var_list)
     def pause(self):
-        config.save_tk_list(self.tk_var_list)
+        config.save_tk_list(self, self.tk_var_list)
     def stop(self):
-        config.save_tk_list(self.tk_var_list)
+        config.save_tk_list(self, self.tk_var_list)
+
+    def open_automatic_potion_crafting_settings(self):
+        from data.potion_crafting import potion_crafting_gui
+        # Run potion_crafting_gui
+
+    def open_automatic_item_crafting_settings(self):
+        from data.item_crafting import item_crafting_gui
+        # Run item_crafting_gui
 
     def update_auto_equip_aura(self):
         self.config_data["auto_equip_aura"] = self.auto_equip_aura.get()
