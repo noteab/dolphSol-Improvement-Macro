@@ -21,7 +21,7 @@ def read(key=""):
                 return config_data[key]
             return config_data
     except:
-        ctypes.windll.user32.MessageBoxW(0, "CONFIG FILE NOT FOUND!", "Error", 0)
+        ctypes.windll.user32.MessageBoxW(0, "CONFIG DATA ERROR", "Error", 0)
 
 def read_remote():
     try:
