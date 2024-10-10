@@ -12,7 +12,7 @@ class MainWindow(CTk):
     def __init__(self):
         super().__init__()
         self.config_data = config.read()
-        self.title(f"Radiance Macro v{CURRENT_VERSION}")
+        self.title(f"[REDACTED] Macro v{CURRENT_VERSION}")
         self.geometry("630x315x200x200")
         # self.resizable(False, False)
         self.grid_columnconfigure(0, weight=1)
@@ -34,8 +34,6 @@ class MainWindow(CTk):
         extras_tab = self.tab_control.add("Extras")
         credits_tab = self.tab_control.add("Credits")
 
-        
-        
         self.tab_control.set("Credits")
 
         self.tab_control.grid(padx=10)
@@ -61,19 +59,23 @@ class MainWindow(CTk):
         text = CTkFont(DEFAULT_FONT, size=12, weight="normal")
 
         obby_frame = CTkFrame(master=main_tab, fg_color=["gray81", "gray23"])
-        obby_frame.grid(row=0, column=0, sticky="nwe", padx=(1, 1))
+        obby_frame.grid(row=0, column=0, sticky="n", padx=(1, 1))
         obby_title_label = CTkLabel(master=obby_frame, text="Obby", font=h1).grid(row=0, column=1)
         do_obby_checkbox = CTkCheckBox(master=obby_frame, text="Do Obby (30% Luck Boost Every 2 Mins)", font=text, variable=self.tk_var_list["do_obby"], onvalue="1", offvalue="0").grid(row=2, column=1, padx=5, pady=5, stick="w")
         check_for_obby_buff_check_box = CTkCheckBox(master=obby_frame, text="Check for Obby Buff Effect", font=text, variable=self.tk_var_list["check_for_obby_buff"], onvalue="1", offvalue="0").grid(row=3, column=1, padx=5, pady=5, stick="w")
 
         auto_equip_frame = CTkFrame(master=main_tab, width=200, height=30, fg_color=["gray81", "gray23"])
-        auto_equip_frame.grid(row=0, column=1, stick="ne", padx=(5, 0))
+        auto_equip_frame.grid(row=0, column=1, stick="n", padx=(5, 0))
         auto_equip_title = CTkLabel(master=auto_equip_frame, text="Auto Equip", font=h1).grid(row=0, pady=(0, 3), columnspan=2)
 
         enable_auto_equip = CTkCheckBox(master=auto_equip_frame, text="Enable Auto Equip", font=text, variable=self.tk_var_list["enable_auto_equip"], onvalue="1", offvalue="0").grid(row=1, pady=(1, 6), sticky="w", padx=(5, 4))
-        self.auto_equip_aura = CTkEntry(master=auto_equip_frame, placeholder_text="Aura", width=272)
-        self.auto_equip_aura.grid(row=2, padx=(5, 0), sticky="e")
-        auto_equip_aura_button = CTkButton(master=auto_equip_frame, text="Submit", command=self.update_auto_equip_aura, width=50).grid(row=2, column=1, padx=(4, 6), pady=(0,6), sticky="e")
+        self.auto_equip_aura = CTkEntry(master=auto_equip_frame, placeholder_text="Aura", width=271)
+        if not self.config_data["auto_equip_aura"] == "":
+            self.auto_equip_aura.insert(0, self.config_data["auto_equip_aura"])
+            
+        
+        self.auto_equip_aura.grid(row=2, column=0, padx=(5, 0), sticky="e", pady=(0, 5))
+        auto_equip_aura_button = CTkButton(master=auto_equip_frame, text="Submit", command=self.update_auto_equip_aura, width=50).grid(row=2, column=1, padx=(3, 5), pady=(0, 5), sticky="e")
 
 
         item_collection_frame = CTkFrame(master=main_tab, fg_color=["gray81", "gray23"])
@@ -132,25 +134,47 @@ class MainWindow(CTk):
         community_frame = CTkFrame(master=discord_tab, fg_color=["gray81", "gray23"])
         community_frame.grid(row=1, columnspan=2, pady=(6, 0), padx=(1, 0), sticky="n")
         community_title = CTkLabel(master=community_frame, text="Community", font=h1, width=586).grid(row=0, padx=5)
-        coming_soon = CTkLabel(master=community_frame, text="Website Coming Soon", font=text, width=586).grid(row=1, padx=5, pady=(3, 5))
+        coming_soon = CTkLabel(master=community_frame, text="Website Coming Soon", font=text, width=586).grid(row=1, padx=5, pady=(3, 3))
 
         jester_frame = CTkFrame(master=merchant_tab, fg_color=["gray81", "gray23"])
         jester_frame.grid(row=0, column=0, sticky="n", padx=(1, 0))
         jester_title = CTkLabel(master=jester_frame, text="Jester Autobuy", font=h1).grid(row=0, padx=5)
         enable_jester_autobuy = CTkCheckBox(master=jester_frame, text="Enable Jester Autobuy", font=text, variable=self.tk_var_list['jester_autobuy'], onvalue="1", offvalue="0").grid(row=1, pady=5, padx=5, sticky="w")
-        jester_item_settings = CTkButton(master=jester_frame, text="Jester Item Settings", font=text, command=self.open_jester_autobuy_settings, width=286).grid(row=3, padx=5, pady=(0, 5))
+        jester_item_settings = CTkButton(master=jester_frame, text="Jester Item Settings", font=text, command=self.open_jester_autobuy_settings, width=286).grid(row=3, padx=5, pady=5)
         
         mari_frame = CTkFrame(master=merchant_tab, fg_color=["gray81", "gray23"])
         mari_frame.grid(row=0, column=1, sticky="n", padx=(6, 0))
         mari_title = CTkLabel(master=mari_frame, text="Mari Autobuy", font=h1).grid(row=0, padx=5)
         enable_mari_autobuy = CTkCheckBox(master=mari_frame, text="Enable Mari Autobuy", font=text, variable=self.tk_var_list['mari_autobuy'], onvalue="1", offvalue="0").grid(row=1, pady=5, padx=5, sticky="w")
-        mari_autobuy_settings = CTkButton(master=mari_frame, text="Mari Item Settings", font=text, command=self.open_mari_autobuy_settings, width=286).grid(row=3, padx=5, pady=(0, 5))
+        mari_autobuy_settings = CTkButton(master=mari_frame, text="Mari Item Settings", font=text, command=self.open_mari_autobuy_settings, width=286).grid(row=3, padx=5, pady=5)
 
         jester_exchange_frame = CTkFrame(master=merchant_tab, fg_color=["gray81", "gray23"])
         jester_exchange_frame.grid(row=1, columnspan=2, sticky="w", pady=(5, 0), padx=(1, 0))
         jester_exchance_title = CTkLabel(master=jester_exchange_frame, text="Jester Exchange", font=h1).grid(row=0, padx=5)
+        enable_jester_exchange = CTkCheckBox(master=jester_exchange_frame, text="Enable Jester Exchange", font=text, width=586, variable=self.tk_var_list["jester_exchange"], onvalue="1", offvalue="0").grid(row=1, padx=5, pady=5, sticky="w")
+        jester_exchange_items = CTkButton(master=jester_exchange_frame, text="Jester Exchange Items", font=text, width=586).grid(row=2, padx=5, pady=5)
 
-        vibrant_mode_radio = CTkRadioButton(master=settings_tab, text="Vibrant Mode", variable=self.theme_var, value=2, command=self.update_theme).grid(row=2)
+        credits_frame = CTkFrame(master=credits_tab, fg_color=["gray81", "gray23"])
+        credits_frame.grid(row=0, column=0, sticky="n", padx=(1, 0))
+        credits_title = CTkLabel(master=credits_frame, text="[REDACTED] Team", font=h1).grid(row=0, padx=5, sticky="we", columnspan=2)
+        
+        message_text = """Thanks for using our macro! 
+This took a long time to build and test. 
+Here are some of the people responsible
+for this beautiful creation.
+        """
+
+        credits_text = """Co-Owners:
+    noteab | steve | Curious Pengu
+
+Developers: 
+    innocenthuman | bored man | Allan | TheEndyy
+
+Graphical Designer: 
+    CATE
+        """
+        message_label = CTkLabel(master=credits_frame, text=message_text, font=text, justify="left").grid(row=1, column=1, padx=10, pady=(0, 5), sticky="w")
+        credits_label = CTkLabel(master=credits_frame, text=credits_text, font=text, justify="left").grid(row=1, padx=10, pady=(0, 5), sticky="w")
 
 
     def on_close(self):
@@ -165,10 +189,10 @@ class MainWindow(CTk):
         config.save_tk_list(self.tk_var_list)
 
     def open_jester_autobuy_settings(self):
-        from merchant import jester_autobuy_gui
+        from data.merchant import jester_autobuy_gui
 
     def open_mari_autobuy_settings(self):
-        from merchant import mari_autobuy_gui
+        from data.merchant import mari_autobuy_gui
 
     def open_discord_bot_settings(self):
         from data.discord_bot import discord_bot_gui
@@ -198,8 +222,13 @@ class MainWindow(CTk):
         # Run item_crafting_gui
 
     def update_auto_equip_aura(self):
-        self.config_data["auto_equip_aura"] = self.auto_equip_aura.get()
-        config.save(self.config_data)
+        if self.tk_var_list["enable_auto_equip"].get() == "1":
+            self.config_data["auto_equip_aura"] = self.auto_equip_aura.get()
+            config.save(self.config_data)
+            self.tk_var_list = config.generate_tk_list()
+        else:
+            print("ERROR")
+            # TODO ERROR BOX
 
 
     def update_theme(self):
@@ -221,6 +250,3 @@ class MainWindow(CTk):
         config.save(self.config_data)
 
         self.restart_app()  # Restart the app to apply the changes
-    
-    
-

@@ -4,6 +4,7 @@ import sys
 import json
 import ctypes
 import pathlib
+import threading
 
 sys.dont_write_bytecode = True
 sys.path.append(pathlib.Path(__file__).parent.resolve())
@@ -40,14 +41,19 @@ def run_update_checker():
     update_checker.check_for_updates()
     
 
-def create_main_gui():
+def create_main_gui(gui):
     """Run the main GUI script."""
-    try:
-        from data.main_gui import main_gui
-    except ImportError:
-        ctypes.windll.user32.MessageBoxW(0, "MAIN GUI NOT FOUND", "Error", 0)
+    gui.mainloop()
 
-    main_gui.MainWindow().mainloop()
+# def load_tabs(gui):
+    
+    # gui.tab_control.set("Main")
+    # gui.tab_control.set("Crafting")
+    # gui.tab_control.set("Discord")
+    # gui.tab_control.set("Merchant")
+    # gui.tab_control.set("Settings")
+    # gui.tab_control.set("Extras")
+    # gui.tab_control.set("Credits")
 
 def set_path():
     try: 
@@ -67,7 +73,17 @@ def main():
     #         json.dump({"installed": True}, f)
     set_path()
     run_update_checker()
-    create_main_gui()
+
+    try:
+        from data.main_gui import main_gui
+    except ImportError:
+        ctypes.windll.user32.MessageBoxW(0, "MAIN GUI NOT FOUND", "Error", 0)
+
+    gui = main_gui.MainWindow()
+
+    # create_main_gui_thread = threading.Thread(target=create_main_gui, ar)
+    create_main_gui(gui)
+    # load_tabs_thread.start()
 
 
 

@@ -15,8 +15,8 @@
     "vibrant_mode": "0",
     "do_obby": "0",
     "check_for_obby_buff": "0",
-    "enable_auto_equip": "1",
-    "auto_equip_aura": "",
+    "enable_auto_equip": "0",
+    "auto_equip_aura": "Quartz",
     "collect_items": "1",
     "30_fps_path": "0",
     "collect_spot_1": "1",
@@ -36,5 +36,6 @@
     "post_jester": "0",
     "post_mari": "0",
     "jester_autobuy": "0",
-    "mari_autobuy": "0"
+    "mari_autobuy": "0",
+    "jester_exchange": "0"
 }
