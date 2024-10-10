@@ -33,7 +33,7 @@ logMessage("status.ahk opened")
 global webhookEnabled := 0
 global webhookURL := ""
 global discordID := ""
-global discordGlitchID := "" ; can be a role or a user. role is prefixed with "&"
+global discordGlitchID := ""
 global sendMinimum := 10000
 global pingMinimum := 100000
 global recordEnabled := 0
@@ -45,12 +45,14 @@ global rareDisplaying := 0
 global currentBiome := "Normal"
 global currentBiomeTimer := 0
 global currentBiomeDisplayed := 0
+global PrivateServerId = ""
+global PrivateServerPre = "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode="
 
 global biomeData := {"Normal":{color: 0xdddddd}
 ,"Windy":{color: 0x9ae5ff, duration: 120, display: 0, ping: 0}
 ,"Rainy":{color: 0x027cbd, duration: 120, display: 0, ping: 0}
 ,"Snowy":{color: 0xDceff9, duration: 120, display: 0, ping: 0}
-,"SandStorm":{color: 0x8F7057, duration: 600, display: 0, ping: 0}
+,"Sandstorm":{color: 0x8F7057, duration: 600, display: 1, ping: 0}
 ,"Hell":{color: 0xff4719, duration: 660, display: 1, ping: 0}
 ,"Starfall":{color: 0x011ab7, duration: 600, display: 0, ping: 0}
 ,"Corruption":{color: 0x6d32a8, duration: 660, display: 0, ping: 0}
@@ -75,6 +77,7 @@ if (!ErrorLevel){
     RegExMatch(retrieved, "(?<=WebhookAuraRollImages=)(.*)", auraImages)
     RegExMatch(retrieved, "(?<=RecordAuraMinimum=)(.*)", recordMinimum)
     RegExMatch(retrieved, "(?<=RecordAura=)(.*)", recordEnabled)
+    RegExMatch(retrieved, "(?<=PrivateServerId=)(.*)", PrivateServerId)
 } else {
     logMessage("An error occurred while reading config data. Discord messages will not be sent.")
     return
@@ -502,6 +505,73 @@ webhookPost(data := 0){
     WebRequest.WaitForResponse()
 }
 
+Merchant_Webhook_Main(Merchant_Name, webhook_url, ps_link := "", ping_user_id := "", embedField := "") {
+    getRobloxPos(rX, rY, w, h)
+    ssMap := Gdip_BitmapFromScreen(rX "|" rY "|" w "|" h)
+    Gdip_SaveBitmapToFile(ssMap, merchant_ssPath)
+    Gdip_DisposeBitmap(ssMap)
+
+    ;message content (only ping if ping_user_id is provided)
+    if (ping_user_id != "") {
+        messageContent := "<@" ping_user_id ">"
+    } else {
+        messageContent := ""
+    }
+
+    if (ps_link) {
+        messageContent .= " " ps_link
+    }
+
+    ; Format the merchant name properly
+    StringUpper, Merchant_Name, Merchant_Name, T
+
+    embedContent := Merchant_Name " has been detected on your screen."
+    embedTitle := "**" Merchant_Name " Detected!**"
+    embedColor := (Merchant_Name = "Mari") ? "255" : "8388736"  ; Blue for Mari, Purple for others
+    embedThumbnail := (Merchant_Name = "Mari") 
+        ? "https://static.wikia.nocookie.net/sol-rng/images/3/37/MARI_HIGH_QUALITYY.png/revision/latest?cb=20240704045119"
+        : "https://static.wikia.nocookie.net/sol-rng/images/d/db/Headshot_of_Jester.png/revision/latest?cb=20240630142936"
+
+    ; Construct the payload for the webhook
+    payload_json := "{""content"": """ messageContent """," 
+                  . """embeds"": [{"
+                  . """title"": """ embedTitle """," 
+                  . """description"": """ embedContent """," 
+                  . """color"": " embedColor "," 
+                  . """thumbnail"": {""url"": """ embedThumbnail """}," 
+                  . """image"": {""url"": ""attachment://hewo_merchant.jpg""}," 
+                  . """fields"": [{""name"": ""**" embedField "**"",""value"": """"}],"
+                  . """footer"": {""text"": ""Auto Merchant Detection""}"
+                  . "}]}"
+
+    ; Loop all webhook URLs and send the notification in parallel
+    ; for i, url in webhook_urls {} 
+    try {
+        objParam := {payload_json: payload_json}
+        objParam["file0"] := [merchant_ssPath]
+        Merchant_Webhook_Send(webhook_url, objParam)  ; Send the webhook
+
+    } catch e {
+        logMessage("Error sending webhook to " webhook_url ": " e, 1)
+    }
+}
+
+Merchant_Webhook_Send(url, objParam) {
+    try {
+        CreateFormData(postdata, hdr_ContentType, objParam)
+
+        WebRequest := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+        WebRequest.Open("POST", url, true)
+        WebRequest.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko")
+        WebRequest.SetRequestHeader("Content-Type", hdr_ContentType)
+        WebRequest.Send(postdata)
+        WebRequest.WaitForResponse()
+    
+    } catch e {
+        logMessage("[Webhook_Send] Error sending data: " e, 1)
+    }
+}
+
 global similarCharacters := {"1":"l"
     ,"n":"m"
     ,"m":"n"
@@ -580,8 +650,8 @@ determineBiome(){
     pBM := Gdip_BitmapFromScreen(x "|" y "|" w "|" h)
 
     effect := Gdip_CreateEffect(3,"2|0|0|0|0" . "|" . "0|1.5|0|0|0" . "|" . "0|0|1|0|0" . "|" . "0|0|0|1|0" . "|" . "0|0|0.2|0|1",0)
-    effect2 := Gdip_CreateEffect(5,-100,250)
-    effect3 := Gdip_CreateEffect(2,10,50)
+    effect2 := Gdip_CreateEffect(5, -80,250)
+    effect3 := Gdip_CreateEffect(2,5,30)
     Gdip_BitmapApplyEffect(pBM,effect)
     Gdip_BitmapApplyEffect(pBM,effect2)
     Gdip_BitmapApplyEffect(pBM,effect3)
@@ -616,6 +686,7 @@ determineBiome(){
 
     return identifiedBiome
 }
+
 
 getAuraInfo(starColor := 0, cornerColor := 0, is100k := 0, is1m := 0){
     tData := staticData.stars[starColor]
@@ -906,7 +977,7 @@ secondTick() {
         return
     }
 
-    if (detectedBiome == "Normal") {
+    if (detectedBiome == !currentBiome) {
         logMessage("[secondTick] Biome Ended: " currentBiome)
         currentBiome := detectedBiome
         SendToMain(currentBiome)
@@ -914,7 +985,13 @@ secondTick() {
         currentBiome := detectedBiome
         logMessage("[secondTick] Detected biome: " currentBiome)
         SendToMain(currentBiome)
-
+        
+        if(detectedBiome == "Glitched") {
+            Loop 1 {
+                FormatTime, fTime, , HH:mm:ss
+                webhookPost({embedContent: "[" fTime "]: (PLEASE IGNORE IF IT WAS FALSE DETECTION!!) Biome Started - " currentBiome " Private Server Link: " PrivateServerPre PrivateServerId, files:[ssPath], embedImage:"attachment://ss.jpg", embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
+            }
+        }
 
         targetData := biomeData[currentBiome]
         if (targetData.display || targetData.ping) {

@@ -33,8 +33,9 @@ CoordMode, Mouse, Screen
 #Include *i Gdip_ImageSearch.ahk
 #Include *i jxon.ahk
 #Include *i ItemScheduler.ahk
+#Include *i MerchantWebhook.ahk
 
-global version := "v1.3.2-patch.6"
+global version := "v1.4.1 (10/10)"
 global currentVersion := version
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
@@ -63,6 +64,7 @@ global biomes := []
 global lastMerchantTime := {}
 global ItemSchedulerEntries := []  ; Initialize the array for item usage entries
 global MerchantEntries := [] ; Merchant Item Holder
+global Jester_Exchange_ItemEntries := [] ; Jester item exchange entries
 global Merchant_Webhooks := []
 global StellaPortalDelay := 0 ; Extra wait time (ms) after entering portal before moving to cauldron - 1000ms = 1s
 global currentBiome := ""
@@ -93,6 +95,7 @@ logMessage("") ; empty line for separation
 logMessage("Macro opened")
 
 configPath := mainDir . "settings\config.ini"
+merchantConfigPath := mainDir . "settings\merchant_config.ini"
 global ssPath := "ss.jpg"
 global pathDir := mainDir . "paths\"
 global merchant_ssPath := "hewo_merchant.jpg"
@@ -148,6 +151,45 @@ global reverseRarityIndex := reverseIndices(rarityIndex)
 
 ; defaults
 global sData := {}
+
+global merchantOptions := {"MerchantWebhookAlias": ""
+    ,"MerchantWebhookLink": ""
+    ,"MerchantWebhook_Mari_UserID": ""
+    ,"MerchantWebhook_Jester_UserID": ""
+    ,"MerchantWebhook_PS_Link": ""}
+
+global JesterItemsArray := ["Oblivion Potion"
+    ,"Heavenly Potion I"
+    ,"Heavenly Potion II"
+    ,"Rune of Everything"
+    ,"Rune of Nothing"
+    ,"Rune Of Corruption"
+    ,"Rune Of Hell"
+    ,"Rune of Galaxy"
+    ,"Rune of Rainstorm"
+    ,"Rune of Frost"
+    ,"Rune of Windy"
+    ,"Strange Potion I"
+    ,"Strange Potion II"
+    ,"Stella's Candle"
+    ,"Merchant Tracker"
+    ,"Random Potion Sack"]
+
+global MariItemsArray := ["Void Coin"
+    ,"Lucky Penny"
+    ,"Fortune Spoid I"
+    ,"Fortune Spoid II"
+    ,"Fortune Spoid III"
+    ,"Mixed Potion"
+    ,"Lucky Potion"
+    ,"Lucky Potion L"
+    ,"Lucky Potion XL"
+    ,"Speed Potion"
+    ,"Speed Potion L"
+    ,"Speed Potion XL"
+    ,"Gear A"
+    ,"Gear B"]
+
 global options := {"DoingObby":1
     ,"AzertyLayout":0
     ,"ArcanePath":0
@@ -198,15 +240,11 @@ global options := {"DoingObby":1
     ,"ClaimDailyQuests":0       ; Stewart
     ,"SearchSpecialAuras":0     ; Stewart
     ,"Shifter":0
-
+    ,"IsNikoPath":1
 
     ; Merchant config options (Noteab)
     ,"AutoMerchantEnabled":0
-    ,"MerchantWebhookAlias":""
-    ,"MerchantWebhookLink":""
-    ,"MerchantWebhook_Mari_UserID":""
-    ,"MerchantWebhook_Jester_UserID":""
-    ,"MerchantWebhook_PS_Link":""
+    ,"JesterExchangeEnabled":0
     ,"Merchant_slider_X":711
     ,"Merchant_slider_Y":734
 
@@ -228,6 +266,14 @@ global options := {"DoingObby":1
     ,"Merchant_FirstItem_Pos_X":611
     ,"Merchant_FirstItem_Pos_Y":722
 
+    ,"Jester_Exchange_Button_X":828
+    ,"Jester_Exchange_Button_Y":881
+
+    ,"Jester_Item_Search_Bar_X":686
+    ,"Jester_Item_Search_Bar_Y":787
+    ,"Jester_First_Item_Exchange_Slot_X":556
+    ,"Jester_First_Item_Exchange_Slot_Y":726
+
     ,"Mari_ItemSlot1":0
     ,"Mari_ItemSlot2":0
     ,"Mari_ItemSlot3":0
@@ -240,6 +286,18 @@ global options := {"DoingObby":1
     ,"Jester_Amount_1":0
     ,"Jester_Amount_2":0
     ,"Jester_Amount_3":0
+
+    ; EXCHANGE ITEM SECION
+    ,"Jester_Exchange_ItemSlot1":0
+    ,"Jester_Exchange_ItemSlot2":0
+    ,"Jester_Exchange_ItemSlot3":0
+    ,"Jester_Exchange_ItemSlot4":0
+    ,"Jester_Exchange_ItemSlot5":0
+    ,"Jester_Exchange_ItemSlot6":0
+    ,"Jester_Exchange_ItemSlot7":0
+    ,"Jester_Exchange_ItemSlot8":0
+    ,"Jester_Custom_Exchange_Amounts":"50, 25, 5"
+
     ; Merchant config options
     
     ; Crafting
@@ -270,23 +328,12 @@ global options := {"DoingObby":1
 global privateServerPre := "https://www.roblox.com/games/15532962292/Sols-RNG?privateServerLinkCode="
 
 ; Must be called in correct order
+Load_Merchant_WebhookSettings()
 loadData() ; Load config data
 ;updateStaticData() ; Get latest data for update check, aura names, etc.
 
-announcement := "NEW DISCORD SERVER. GO TO GITHUB MAIN PAGE AND READ README"
-if (announcement != "" && (getUnixTime() - options.LastAnnouncement >= 24*60*60*1000)) { ; 24hrs
-    MsgBox, 0, Macro Announcement, % announcement
-    options.LastAnnouncement := getUnixTime()
-}
-
 ; Disable OCR mode if resolution isn't supported
 ; Now enabling the mode will notify of requirements
-if (options.OCREnabled) {
-    getRobloxPos(pX, pY, pW, pH)
-    if not (pW = 1920 && pH = 1080 && A_ScreenDPI = 96) {
-        options.OCREnabled := 0
-    }
-}
 
 if (options.ItemCraftingEnabled) {
     if (options.ItemCraftingEnabled = 1) {
@@ -496,6 +543,7 @@ updateStaticData() {
 }
 
 ; data loading
+
 loadData(){
     global
     logMessage("[loadData] Loading config data")
@@ -583,6 +631,29 @@ loadData(){
 
     LoadItemSchedulerOptions()
 }
+
+Load_Merchant_WebhookSettings() {
+    global merchantOptions, merchantConfigPath
+
+    savedRetrieve := getINIData(merchantConfigPath)
+    if (!savedRetrieve) {
+        logMessage("[Load_Merchant_WebhookSettings] Unable to retrieve merchant config data, resetting to defaults.")
+        savedRetrieve := {}
+    }
+    
+    merchantOptions.MerchantWebhookAlias := savedRetrieve.HasKey("MerchantWebhookAlias") ? savedRetrieve["MerchantWebhookAlias"] : ""
+    merchantOptions.MerchantWebhookLink := savedRetrieve.HasKey("MerchantWebhookLink") ? savedRetrieve["MerchantWebhookLink"] : ""
+    merchantOptions.MerchantWebhook_Mari_UserID := savedRetrieve.HasKey("MerchantWebhook_Mari_UserID") ? savedRetrieve["MerchantWebhook_Mari_UserID"] : ""
+    merchantOptions.MerchantWebhook_Jester_UserID := savedRetrieve.HasKey("MerchantWebhook_Jester_UserID") ? savedRetrieve["MerchantWebhook_Jester_UserID"] : ""
+    IniRead, psLink, %merchantConfigPath%, Options, MerchantWebhook_PS_Link
+
+    if (psLink != "")
+    {
+        merchantOptions.MerchantWebhook_PS_Link := psLink
+    }
+    
+}
+
 
 saveOptions(){
     global configPath,configHeader
@@ -1002,6 +1073,7 @@ global isFirstScan := 0
 global Storage_YPos_Scan := 0
 global Storage_YOffset_Scan := 0
 
+
 initialize() {
     initialized := 1
     Sleep, 500
@@ -1010,12 +1082,15 @@ initialize() {
         ; Re-enable for reconnects
         disableAlignment := false
     } else {
-        ; reset()
-        resetCameraAngle()
-        Sleep, 750
+        if (options.IsNikoPath = 1) {
+            resetCameraAngle()
+            Sleep, 750
+        } else {
+            alignCamera()
+            Sleep, 750
+        }
     }
 }
-
 
 resetZoom(){
     Loop 2 {
@@ -1033,34 +1108,30 @@ resetZoom(){
     ; Sleep, 200
 
     Sleep, 200
-    Loop 30 {
+    Loop 40 {
         Click, WheelUp
         Sleep, 50
     }
-    
-    Click, Right Down
-    MouseMove, A_ScreenWidth // 2, A_ScreenHeight
-    Click, Right Up
 
     Loop 10 {
         Click, WheelDown
         Sleep, 50
     }
-}
 
+}
 
 resetCameraAngle(){
     ; tysm @unconstitutional :3
     reset()
+    Sleep, 650
     clickMenuButton(2)
 
-    Sleep, 200
-
+    Sleep, 550
     getRobloxPos(rX,rY,rW,rH)
     MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
-    Sleep, 200
+    Sleep, 850
     MouseClick
-    Sleep, 200
+    Sleep, 850
 
     MouseClickDrag, R, rX + rW*0.15, rY + 44 + rH*0.05, rX + rW*0.15, rY + 444 + rH*0.05
 
@@ -1163,54 +1234,89 @@ rotateCameraMode(){
     retryCount := 0
 }
 
-; alignCamera(){
-;     startDim(1,"Aligning Camera, Please wait...")
+alignCamera(){
+    startDim(1,"Aligning Camera, Please wait...")
 
-;     WinActivate, % "ahk_id " GetRobloxHWND()
-;     Sleep, 500
+    WinActivate, % "ahk_id " GetRobloxHWND()
+    Sleep, 500
 
-;     closeChat()
-;     Sleep, 200
+    closeChat()
+    Sleep, 200
 
-;     reset()
-;     Sleep, 100
+    reset()
+    Sleep, 100
 
-;     rotateCameraMode() ; Follow
+    rotateCameraMode() ; Follow
 
-;     clickMenuButton(2)
-;     Sleep, 500
+    clickMenuButton(2)
+    Sleep, 500
+
     
-;     getRobloxPos(rX,rY,rW,rH)
-;     MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
-;     Sleep, 200
-;     MouseClick
-;     Sleep, 200
+    getRobloxPos(rX,rY,rW,rH)
+    MouseMove, % rX + rW*0.15, % rY + 44 + rH*0.05 + options.BackOffset
+    Sleep, 200
+    MouseClick
+    Sleep, 200
 
-;     rotateCameraMode() ; Default(Classic)
-;     resetCameraAngle() ; Fix angle before aligning direction
-;     Sleep, 100
+    rotateCameraMode() ; Default(Classic)
+    Sleep, 100
+    
+    Loop 35 {
+        Click, WheelUp
+        Sleep, 50
+    }
+    
+    Loop 10 {
+        Click, WheelDown
+        Sleep, 50
+    }
+    
+    Sleep, 350
 
-;     walkSend("d","Down")
-;     walkSleep(200)
-;     jump()
-;     walkSleep(400)
-;     walkSend("d","Up")
-;     walkSend("w","Down")
-;     walkSleep(500)
-;     jump()
-;     walkSleep(900)
-;     walkSend("w","Up")
+    walkSend("d","Down")
+    walkSleep(200)
+    jump()
+    walkSleep(400)
+    walkSend("d","Up")
+    walkSend("w","Down")
+    walkSleep(500)
+    jump()
+    walkSleep(800)
+    jump()
+    walkSleep(500)
 
-;     rotateCameraMode() ; Follow
-;     Sleep, 1500
-;     rotateCameraMode() ; Default(Classic)
-;     ; resetCameraAngle()
+    ; go to jake house
+    walkSend("w","Up")
+    walkSend("d","Down")
+    walkSleep(300) 
+    jump()
+    walkSleep(780)
+    walkSend("d","Up")
+    walkSend("s","Down")
+    walkSleep(460)
+    walkSend("d","Down")
+    walkSend("s","Up")
+    walkSleep(920)
+    walkSend("d","Up")
+    walkSend("w","Down")
+    walkSleep(1550)
+    walkSend("w","Up")
 
-;     ; reset() ; Redundant, handleCrafting() will use align() if needed
-;     removeDim()
-;     reset()
-;     Sleep, 2000
-; }
+    Sleep, 200
+
+
+    rotateCameraMode() ; Follow
+    Sleep, 1800
+    rotateCameraMode() ; Default(Classic)
+    Sleep, 850
+    
+    MouseClickDrag, R, rX + rW*0.15, rY + 44 + rH*0.05, rX + rW*0.15, rY + 444 + rH*0.05
+
+    Sleep, 700
+    removeDim()
+    reset()
+    Sleep, 2000
+}
 
 align(){ ; align v2
     if (isSpawnCentered && forCollection){
@@ -1302,26 +1408,6 @@ runPath(pathName,voidPoints,noCenter = 0){
                     }
                 }
             }
-
-            blackCorners := 0
-            for i,point in scanPoints {
-                PixelGetColor, pColor, % point[1], % point[2], RGB
-                blackCorners += compareColors(pColor,0x000000) < 8
-            }
-            PixelGetColor, pColor, % rX+width*0.5, % rY+height*0.5, RGB
-            centerBlack := compareColors(pColor,0x000000) < 8
-            if (blackCorners = 3 && centerBlack){
-                if (!voidCooldown){
-                    voidCooldown := 5
-                    expectedVoids -= 1
-                    if (expectedVoids < 0){
-                        stopped := 1
-                        break
-                    }
-                }
-            }
-            Sleep, 225
-            voidCooldown := Max(0,voidCooldown-1)
         }
         ; elapsedTime := (A_TickCount - pathRuntime)//1000
         ; logMessage("[runPath] " pathName " completed in " elapsedTime " seconds")
@@ -1374,48 +1460,95 @@ walkToJakesShop(){
 
 walkToPotionCrafting(){
     sleep, 2000
-    walkSend("s","Down")
-    walkSend("d","Down")
-    walkSleep(3800)
-    walkSend("d","Up")
-    walkSleep(675)
-    walkSend("s","Up")
-    walkSend("d","Down")
-    walkSleep(777)
-    jump()
-    walkSend("s","Down")
-    walkSleep(200)
-    walkSend("s","Up")
-    walkSend("d","Down")
-    walkSleep(800)
-    walkSend("w","Down")
-    walkSleep(235)
-    walkSend("w","Up")
-    walkSleep(1225)
-    jump()
-    walkSleep(350)
-    walkSend("d","Up")
-    walkSend("d","Down")
-    walkSleep(2500)
-    press("w",500)
-    walkSend("d","Up")
-    walkSend("w","Down")
-    walkSleep(100)
-    jump()
-    walkSleep(800)
-    walkSend("d","Down")
-    walkSleep(400)
-    jump()
-    walkSleep(200)
-    walkSend("w","Up")
-    walkSleep(500)
-    jump()
-    walkSleep(740)
-    walkSend("d","up")
-    walkSleep(200)
-    walkSend("w","down")
-    walkSleep(3050)
-    walkSend("w","up")
+    if (options.IsNikoPath = 1) {
+        walkSend("s","Down")
+        walkSend("d","Down")
+        walkSleep(3800)
+        walkSend("d","Up")
+        walkSleep(675)
+        walkSend("s","Up")
+        walkSend("d","Down")
+        walkSleep(777)
+        jump()
+        walkSend("s","Down")
+        walkSleep(200)
+        walkSend("s","Up")
+        walkSend("d","Down")
+        walkSleep(800)
+        walkSend("w","Down")
+        walkSleep(235)
+        walkSend("w","Up")
+        walkSleep(1225)
+        jump()
+        walkSleep(350)
+        walkSend("d","Up")
+        walkSend("d","Down")
+        walkSleep(2500)
+        press("w",500)
+        walkSend("d","Up")
+        walkSend("w","Down")
+        walkSleep(100)
+        jump()
+        walkSleep(800)
+        walkSend("d","Down")
+        walkSleep(400)
+        jump()
+        walkSleep(200)
+        walkSend("w","Up")
+        walkSleep(500)
+        jump()
+        walkSleep(740)
+        walkSend("d","up")
+        walkSleep(200)
+        walkSend("w","down")
+        walkSleep(3050)
+        walkSend("w","up")
+
+    } else {
+        walkSend("w","Down")
+        walkSend("a","Down")
+        walkSleep(3800)
+        walkSend("a","Up")
+        walkSleep(675)
+        walkSend("w","Up")
+        walkSend("a","Down")
+        walkSleep(777)
+        jump()
+        walkSend("w","Down")
+        walkSleep(200)
+        walkSend("w","Up")
+        walkSend("a","Down")
+        walkSleep(800)
+        walkSend("s","Down")
+        walkSleep(235)
+        walkSend("s","Up")
+        walkSleep(1225)
+        jump()
+        walkSleep(350)
+        walkSend("a","Up")
+        walkSend("a","Down")
+        walkSleep(2500)
+        press("s",500)
+        walkSend("a","Up")
+        walkSend("s","Down")
+        walkSleep(100)
+        jump()
+        walkSleep(800)
+        walkSend("a","Down")
+        walkSleep(400)
+        jump()
+        walkSleep(200)
+        walkSend("s","Up")
+        walkSleep(500)
+        jump()
+        walkSleep(740)
+        walkSend("a","up")
+        walkSleep(200)
+        walkSend("s","down")
+        walkSleep(3050)
+        walkSend("s","up")
+    }
+    
     Sleep, 200
 }
 
@@ -1447,11 +1580,16 @@ checkInvOpen(){
 
 mouseActions(){
     updateStatus("Performing Mouse Actions")
+    getRobloxPos(rX, rY, width, height)
+    
+    MaxBank_X := Round(rX + (0.499 * width)) ; 958 / 1920 = 0.499
+    MaxBank_Y := Round(rY + (0.737 * height)) ; 796 / 1080 = 0.737
 
     ; close jake shop if popup
     openP := getPositionFromAspectRatioUV(0.718,0.689,599/1015)
     openP2 := getPositionFromAspectRatioUV(0.718,0.689,1135/1015)
     ClickMouse(openP[1], openP2[2])
+    ClickMouse(MaxBank_X, MaxBank_Y)
 
     if (options.ExtraRoblox){ ; for afking my 3rd alt lol
         MouseMove, 2150, 700
@@ -2094,11 +2232,34 @@ ClaimQuests() {
 ; Simplify frequent code
 ClickMouse(posX, posY) {
     MouseMove, % posX, % posY
-    Sleep, 500
+    Sleep, 100
     MouseClick
-    Sleep, 200
+    Sleep, 100
 
     ; Highlight(posX-5, posY-5, 10, 10, 5000) ; Highlight for 5 seconds
+}
+
+Hold_LeftClick(posX, posY, holdTime := 3300) {
+    MouseMove, %posX%, %posY%
+    Sleep, 250
+
+    if !GetKeyState("LButton", "P")
+    {
+        Click Down
+    }
+
+    totalSleepTime := 0
+    interval := 50
+    while (totalSleepTime < holdTime) {
+        Sleep, %interval%
+        totalSleepTime += interval
+        if !GetKeyState("LButton", "P") 
+        {
+            Click Down
+        }
+    }
+
+    Click Up
 }
 
 EquipAura(auraName := "") {
@@ -2123,7 +2284,7 @@ EquipAura(auraName := "") {
     }
     ClickMouse(posBtn[1], posBtn[2])
     SendInput, % auraName
-    Sleep, 500
+    Sleep, 200
 
     ; Search Result
     if (options.SearchSpecialAuras) {
@@ -2132,7 +2293,7 @@ EquipAura(auraName := "") {
         posBtn := getPositionFromAspectRatioUV(StorageSearchResultUV[1], StorageSearchResultUV[2], storageAspectRatio)
     }
     ClickMouse(posBtn[1], posBtn[2])
-    Sleep, 500
+    Sleep, 200
 
     ; Equip
     posBtn := getPositionFromAspectRatioUV(StorageEquipUV[1], storageEquipUV[2], storageAspectRatio)
@@ -2155,7 +2316,8 @@ useItem(itemName, useAmount := 1) {
     updateStatus("Using items")
     logMessage("Using item: " itemName, 1)
     merchantPing := 0
-
+    WinGetPos, winX, winY, currentWinWidth, currentWinHeight, ahk_exe RobloxPlayerBeta.exe
+    
     ; Testing log
     ; logMessage("Merchant OCR X: " options["Merchant_Username_OCR_X"])
     ; logMessage("mari ping userid: " merchantPing)
@@ -2201,18 +2363,21 @@ useItem(itemName, useAmount := 1) {
             logMessage("Pressing E for Merchant", 1)
             Sleep, 750
             Send, {E 3}
+            
 
             Sleep, 1400
-            Loop, 9 {
-                if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 36, "Mari")) {
+            Loop, 5 {
+                Highlight(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, 350)
+
+                if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "Mari") || containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "Marl") || containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "Mar1") || containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "MarI") || containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "Mar!")) {
                     merchantName := "Mari"
-                    merchantPing := options["MerchantWebhook_Mari_UserID"]
+                    merchantPing := merchantOptions["MerchantWebhook_Mari_UserID"]
                     logMessage("[Merchant Detection]: Mari name found!", 1)
                 }
 
-                else if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 36, "Jester")) {
+                else if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "Jester")) {
                     merchantName := "Jester"
-                    merchantPing := options["MerchantWebhook_Jester_UserID"]
+                    merchantPing := merchantOptions["MerchantWebhook_Jester_UserID"]
                     logMessage("[Merchant Detection]: Jester name found!", 1)
                 }
 
@@ -2223,19 +2388,60 @@ useItem(itemName, useAmount := 1) {
                     }
 
                     updateStatus("Merchant found! Pausing the macro...")
-                    Merchant_Webhook_Main(merchantName, options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], merchantPing, "Merchant Face Screenshot")
-                    Sleep, 4950
+                    Merchant_Webhook_Main(merchantName, merchantOptions["MerchantWebhookLink"], merchantOptions["MerchantWebhook_PS_Link"], merchantPing, "Merchant Face Screenshot")
+                    
+                    Hold_LeftX := winX + (1200.0 * (currentWinWidth / 1920.0))
+                    Hold_LeftY := winY + (747.0 * (currentWinHeight / 1080.0)) + 2.75
+                    Hold_LeftClick(Hold_LeftX, Hold_LeftY, 2450)
 
-                    ; Call Merchant_Handler function
+                    Sleep, 300
+
+                    ; Merchant Handler function
                     Merchant_Handler(merchantName, merchantPing)
+                    ClickMouse(900, 100)
                     resetZoom()
+
+                    Sleep, 450
+
+                    if (merchantName = "Jester" && options.JesterExchangeEnabled = 1) {
+                        logMessage("[item scheduler] Starting Jester Exchange...", 1)
+                        clickMenuButton(3)
+                        waitForInvVisible()
+                        clickMenuButton(3)
+                        Sleep, 450
+                        Send, {E 3}
+                        Hold_LeftClick(Hold_LeftX, Hold_LeftY, 1500)
+                        jesterFound := false
+
+                        Loop, 3 {
+                            if (containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "Jester") 
+                                || containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "Jes1er")
+                                || containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "Jes!er")
+                                || containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "Jeste!") 
+                                || containsText(options["Merchant_Username_OCR_X"], options["Merchant_Username_OCR_Y"], 200, 42, "Jest3r")) {
+                                jesterFound := true
+                                break
+                            }
+                            Sleep, 350
+                        }
+
+                        if (jesterFound) {
+                            Jester_Exchange_Handler()
+                        } 
+                    }
+
                     break
                 }
 
                 Sleep, 500
             }
 
+            Loop, 3 {
+                ClickMouse(1500, 300)
+            }
+
             Sleep, 400
+
         } else {
             logMessage("Auto merchant disabled", 1)
         }
@@ -2274,32 +2480,62 @@ LoadMerchantOptions(merchantName) {
     }
 
     MerchantEntries := []
-    
+
     for i, v in MerchantItems {
         if ((merchantName = "Mari" && InStr(i, "Mari_ItemSlot")) || (merchantName = "Jester" && InStr(i, "Jester_ItemSlot"))) {
-            ; skip the amount keys, check item slots here
-            if !InStr(i, "Amount") {
-                slotNumber := StrReplace(i, merchantName . "_ItemSlot")
+            values := StrSplit(v, ",")
 
-                ; if item slot exists
-                if (v != "None" && v != "") {
-                    amountKey := merchantName . "_Amount_" . slotNumber
-                    amount := MerchantItems[amountKey]
-                    if (!amount) {
-                        amount := 1
-                    }
-                    entry := {MerchantName: merchantName, ItemName: v, Amount: amount}
-                    MerchantEntries.Push(entry)
+            if (values[2] = "True") {
+                amount := (values[3] != "") ? values[3] : 1
+
+                if (merchantName = "Mari") {
+                    itemlist := MariItemsArray
+                } else {
+                    itemlist := JesterItemsArray
                 }
+
+                itemIndex := FindFirstNumber(i)
+                item := itemlist[itemIndex]
+
+                entry := {MerchantName: merchantName, ItemName: item, Amount: amount}
+                MerchantEntries.Push(entry)
+            }
+        }
+    }
+}
+
+
+FindFirstNumber(str) {
+    RegExMatch(str, "\d+", number) ; Match the first sequence of digits
+    return number
+}
+
+
+LoadJesterExchangeOptions() {
+    global configPath, Jester_Exchange_ItemEntries
+    Jester_Exchange_ItemEntries := []
+    
+    savedOptions := getINIData(configPath)
+    if (!savedOptions) {
+        logMessage("[LoadJesterExchangeOptions] Unable to read Jester Exchange settings from config.ini")
+        return
+    }
+
+    for i, v in savedOptions {
+        if (InStr(i, "Jester_Exchange_ItemSlot")) {
+            slotNumber := StrReplace(i, "Jester_Exchange_ItemSlot")
+
+            if (v != "None" && v != "") {
+                entry := {SlotNumber: slotNumber, ItemName: v}
+                Jester_Exchange_ItemEntries.Push(entry)
             }
         }
     }
 
-    for i, entry in MerchantEntries {
-        logMessage("[Merchant] " merchantName " Item Slot Loaded: " entry.ItemName " with Amount: " entry.Amount, 1)
+    for i, entry in Jester_Exchange_ItemEntries {
+        logMessage("[Jester Exchange] Item Slot " entry.SlotNumber " Loaded: " entry.ItemName, 1)
     }
 }
-
 
 
 Merchant_Webhook_Main(Merchant_Name, webhook_url, ps_link := "", ping_user_id := "", embedField := "") {
@@ -2372,53 +2608,72 @@ Merchant_Webhook_Send(url, objParam) {
 Merchant_Handler(merchantName, merchant_ping) {
     logMessage("Starting " merchantName " merchant handler", 1)
     updateStatus("Processing " merchantName " Autobuy...")
-    getRobloxPos(pX, pY, width, height)
+    getRobloxPos(rX, rY, rH, rW)
 
-    ; Load merchant config for the specific merchant (Mari or Jester)
+    WinGetPos, winX, winY, currentWinWidth, currentWinHeight, ahk_exe RobloxPlayerBeta.exe
+    MaxBank_X := Round(winX + (958 * (currentWinWidth / 1920)))
+    MaxBank_Y := Round(winY + (796 * (currentWinHeight / 1080)) + 1.56)
+
+    ; Load merchant config for the merchant (Mari or Jester)
     LoadMerchantOptions(merchantName)
-    
-    ; Press open button:
+
+    ; Press open button to access the merchant
     Loop, 4 {
         ClickMouse(options["Merchant_Open_Button_X"], options["Merchant_Open_Button_Y"])
-        Sleep, 100
+        Sleep, 80
     }
-    
-    Merchant_Webhook_Main(merchantName, options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"],, "Item screenshot")
 
-    ; Reset the merchant item slider to the top (scroll up)
+    resetZoom()
+
+    Sleep, 850
+    MouseClickDrag, R, rX + rW*0.15, rY + 44 + rH*0.05, rX + rW*0.15, rY + 444 + rH*0.05
+    Sleep, 550
+
+    ClickMouse(MaxBank_X, MaxBank_Y)
+    Sleep, 250
+
+    ; Move to slider position and scroll up
     MouseMove, options["Merchant_slider_X"], options["Merchant_slider_Y"]
-    Sleep, 100
+    Sleep, 250
 
     Loop, 17 {
         MouseClick, WheelUp
-        Sleep, 60
+        Sleep, 30
     }
 
-    ; press("o", 260)
+    Loop, 2 {
+        MouseClick, WheelDown
+        Sleep, 30
+    }
+
+    Merchant_Webhook_Main(merchantName, merchantOptions["MerchantWebhookLink"], , , "Item screenshot")
+    Sleep, 450
+
+    Loop, 18 {
+        MouseClick, WheelUp
+        Sleep, 30
+    }
 
     Sleep, 150
 
-    ; Load the merchant entries from the config
     if (MerchantEntries.MaxIndex() > 0) {
         logMessage("Items loaded for purchase: " MerchantEntries.MaxIndex(), 1)
-
-        ; store config item names for checking
         merchantItemNames := []
-        purchasedItems := [] 
+        purchasedItems := []
 
-        ; Add all MerchantEntries items to the list
         for i, entry in MerchantEntries {
-            if (entry.MerchantName != "" && entry.ItemName != "None") {
-                logMessage("Adding config item to list: " entry.ItemName, 1)
+            if (entry.ItemName != "" && entry.ItemName != "None") {
+                logMessage("Adding merchant item to list: " entry.ItemName, 1)
                 merchantItemNames.Push(entry.ItemName)
             }
         }
 
-        ; Loop merchant slots
+        ; Initialize counters
         itemCount := 0
-        totalItemsToPurchase := merchantItemNames.MaxIndex()  ; total number of items to purchase
-        itemsPurchased := 0 
+        totalItemsToPurchase := merchantItemNames.MaxIndex()
+        itemsPurchased := 0
 
+        ; Loop through merchant slots (adjust number if there are more slots)
         Loop, 24 {
             if (itemsPurchased >= totalItemsToPurchase) {
                 logMessage("All items have been successfully purchased. Exiting loop.", 1)
@@ -2426,71 +2681,155 @@ Merchant_Handler(merchantName, merchant_ping) {
             }
 
             if (itemCount >= 4) {
-                ;logMessage("Scrolling down to reveal more items", 1)
                 MouseClick, WheelDown, , , 3
                 Sleep, 650
                 itemCount := 0
             }
 
-            ; X and Y position for each slot
-            itemYPos := options["Merchant_FirstItem_Pos_Y"] ; Y position from options
-            itemXPos := options["Merchant_FirstItem_Pos_X"] + (itemCount * 180)  ; X offset
+            itemYPos := options["Merchant_FirstItem_Pos_Y"]
+            itemXPos := options["Merchant_FirstItem_Pos_X"] + (itemCount * 180.2)
 
-            ; Click the item at the calculated position
             logMessage("Clicking item slot " A_Index " at position X:" itemXPos " Y:" itemYPos, 1)
             Click, %itemXPos%, %itemYPos%
             Sleep, 600
 
-            ; OCR detection of items in the merchant shop (scans current slot)
             Loop, % merchantItemNames.MaxIndex() {
                 itemName := merchantItemNames[A_Index]
                 StringLower, itemNameLower, itemName
                 itemNameTrimmed := Trim(itemNameLower)
 
+                ; Skip items that have already been purchased
                 if (purchasedItems.HasValue(itemNameTrimmed)) {
                     logMessage("Item " itemNameTrimmed " has already been purchased. Skipping...", 1)
                     continue
                 }
 
-                ; Run OCR detection on the current item slot
-                if (containsText(options["Merchant_ItemName_OCR_X"], options["Merchant_ItemName_OCR_Y"], 323, 29, itemNameTrimmed)) {
+                ; OCR detection to match the item
+                if (containsText(options["Merchant_ItemName_OCR_X"], options["Merchant_ItemName_OCR_Y"], 323, 30, itemNameTrimmed)) {
                     logMessage("Matching item found: " itemNameTrimmed, 1)
 
-                    ; purchase quantity
                     itemAmount := MerchantEntries[A_Index].Amount
                     ClickMouse(options["Merchant_Purchase_Amount_X"], options["Merchant_Purchase_Amount_Y"])
-                    Send, %itemAmount%  ; Dynamically send the amount to be purchased
+                    Send, %itemAmount%
                     Sleep, 150
 
-                    ; purchase button
                     ClickMouse(options["Merchant_Purchase_Button_X"], options["Merchant_Purchase_Button_Y"])
                     Sleep, 4950
 
                     logMessage("Purchase completed for " itemNameTrimmed, 1)
 
-                    ; Add the item to the purchasedItems list and increment the counter
+                    ; Add the purchased item to the list and increment counters
                     purchasedItems.Push(itemNameTrimmed)
                     itemsPurchased++
-
-                    ; Remove purchased item from merchantItemNames to avoid rechecking
                     merchantItemNames.RemoveAt(A_Index)
                     break
                 }
             }
 
-            ; Increment item count after each slot
             itemCount++
         }
 
         ; Update merchant cooldown after successful purchases
         UpdateMerchantCooldown(merchantName)
-
     } else {
         logMessage("No items loaded for " merchantName " from config.ini", 1)
     }
-    ; Update merchant cooldown even if you don't want to buy any items
+
+    ; Yeah annd we still update merchant cooldown even if you don't want to buy any items (womp)
     UpdateMerchantCooldown(merchantName)
 }
+
+Jester_Exchange_Handler() {
+    LoadJesterExchangeOptions()
+    logMessage("Starting Jester exchange...", 1)
+    updateStatus("Processing Jester Exchange...")
+    getRobloxPos(rX, rY, rH, rW)
+
+    WinGetPos, winX, winY, currentWinWidth, currentWinHeight, ahk_exe RobloxPlayerBeta.exe ;getRobloxPos got error somehow so i use this as alternative thing 
+    ItemNotEnough_closeButtonX := winX + (960.0 * (currentWinWidth / 1920.0))
+    ItemNotEnough_closeButtonY := winY + (652.0 * (currentWinHeight / 1080.0)) + 3.82
+    Hold_LeftX := winX + (1200.0 * (currentWinWidth / 1920.0))
+    Hold_LeftY := winY + (747.0 * (currentWinHeight / 1080.0))
+    
+    ; Click the Jester exchange open button
+    Loop, 4 {
+        ClickMouse(options["Jester_Exchange_Button_X"], options["Jester_Exchange_Button_Y"])
+        Sleep, 80
+    }
+    
+    Hold_LeftClick(Hold_LeftX, Hold_LeftY, 2500)
+    
+    Sleep, 850
+    MouseClickDrag, R, rX + rW*0.15, rY + 44 + rH*0.05, rX + rW*0.15, rY + 444 + rH*0.05
+    Sleep, 550
+
+    customAmountsInput := options["Jester_Custom_Exchange_Amounts"]
+    if (customAmountsInput) {
+        customAmounts := StrSplit(customAmountsInput, ",")
+    } else {
+        customAmounts := [50, 25, 5] ; Default exchange values if you dont give any goofy amount
+    }
+
+    ; Randomize the order of the Jester exchange items
+    if (Jester_Exchange_ItemEntries.MaxIndex() > 0) {
+        Jester_Exchange_ItemEntries := Jester_ItemShuffle(Jester_Exchange_ItemEntries)
+        logMessage("Items randomized for exchange: " Jester_Exchange_ItemEntries.MaxIndex(), 1)
+
+        exchangedItems := []
+        itemConversionCount := 0
+
+        for i, entry in Jester_Exchange_ItemEntries {
+            if (itemConversionCount >= 2) {
+                break
+            }
+
+            itemName := entry.ItemName
+            logMessage("[Jester Exchange Skibidi] Searching and selecting item: " itemName, 1)
+            ClickMouse(ItemNotEnough_closeButtonX, ItemNotEnough_closeButtonY)
+            Sleep, 250
+            ClickMouse(options["Jester_Item_Search_Bar_X"], options["Jester_Item_Search_Bar_Y"])
+            Sleep, 200
+            Send, %itemName%
+            Sleep, 200
+            ClickMouse(options["Jester_First_Item_Exchange_Slot_X"], options["Jester_First_Item_Exchange_Slot_Y"])
+            Sleep, 250
+
+            for amountIndex, amount in customAmounts {
+                ClickMouse(ItemNotEnough_closeButtonX, ItemNotEnough_closeButtonY)
+                Sleep, 100
+                ClickMouse(options["Merchant_Purchase_Amount_X"], options["Merchant_Purchase_Amount_Y"])
+                Sleep, 250
+                Send, %amount%
+                Sleep, 350
+                ClickMouse(options["Merchant_Purchase_Button_X"], options["Merchant_Purchase_Button_Y"])
+                Sleep, 750
+                Hold_LeftClick(Hold_LeftX, Hold_LeftY, 2550)
+            }
+
+            exchangedItems.Push(itemName)
+            itemConversionCount++
+            Sleep, 200
+        }
+
+        logMessage("Jester Exchange completed for two items.", 1)
+    } else {
+        logMessage("No items loaded for Jester Item Exchange.", 1)
+    }
+}
+
+Jester_ItemShuffle(arr) {
+    Random, rSeed, 1, 999999
+    Random, , %rSeed%
+    shuffled := []
+
+    while (arr.MaxIndex()) {
+        Random, idx, 1, arr.MaxIndex()
+        shuffled.Push(arr.RemoveAt(idx))
+    }
+
+    return shuffled
+}
+
 
 checkBottomLeft(){
     getRobloxPos(rX,rY,width,height)
@@ -2654,8 +2993,10 @@ ClickPlay() {
     }
     
     ; Click Play
-    ClickMouse(pX + (width*0.5), pY + (height*0.85))
-    Sleep, 10000
+    Loop, 10 {
+        ClickMouse(pX + (width*0.5), pY + (height*0.85))
+        Sleep, 750
+    }
 
     ; Skip existing aura prompt
     ClickMouse(pX + (width*0.6), pY + (height*0.85))
@@ -2666,8 +3007,8 @@ ClickPlay() {
 
     ; Enable Merchant Tracker - Introduced Era 8.5 Update
     ; No harm if user doesn't own
-    Sleep, 2000
-    useItem("Merchant Tracker")
+    ; Sleep, 2000
+    ; useItem("Merchant Tracker")
 }
 
 ; Clear RAM by restarting Roblox
@@ -2976,11 +3317,11 @@ attemptReconnect(failed := 0){
     Loop 5 {
         Sleep, % (A_Index-1)*10000
         try {
-            if (options.PrivateServerId && A_Index < 4){
+            if (options.PrivateServerId && A_Index < 3){
                 Run % """roblox://placeID=15532962292&linkCode=" options.PrivateServerId """"
-            } ;else {
-                ; Run % """roblox://placeID=15532962292""" ; Public lobby bad!
-            ; }
+             } else {
+                Run % """roblox://placeID=15532962292""" ; fallback to skibidi public
+            }
         } catch e {
             logMessage("[attemptReconnect] Unable to open Private Server. Error: " e.message)
             continue
@@ -3048,7 +3389,7 @@ checkDisconnect(wasChecked := 0){
     getRobloxPos(windowX, windowY, windowWidth, windowHeight)
 
     ; if (options.OCREnabled) {
-    if (containsText(890, 425, 135, 25, "Disconnected")) { ; 1025, 450
+    if (containsText(845, 407, 235, 75, "Disconnected")) { ; 1025, 450
         logMessage("[checkDisconnect] 'Disconnected' popup found with OCR")
         updateStatus("Roblox Disconnected")
         options.Disconnects += 1
@@ -3173,6 +3514,7 @@ mainLoop(){
     ; Equip preferred aura
     if (options.AutoEquipEnabled) {
         EquipAura(options.AutoEquipAura)
+        enableAutoRoll()
     }
     
     if (!initialized){
@@ -3229,7 +3571,13 @@ mainLoop(){
 
     if (options.DoingObby && (A_TickCount - lastObby) >= (obbyCooldown*1000)){
         ; align()
-        resetCameraAngle()
+
+        if (options.IsNikoPath == 1) {
+            resetCameraAngle()
+        }
+
+        reset()
+        Sleep, 700
         obbyRun()
 
         ; MouseGetPos, mouseX, mouseY
@@ -3265,10 +3613,22 @@ mainLoop(){
         }
     }
 
-    if (options.CollectItems){
-        resetCameraAngle()
-        Sleep, 2000
-        searchForItems()
+    ; if (options.CollectItems){
+    ;     resetCameraAngle()
+    ;     Sleep, 2000
+    ;     searchForItems()
+    ; }
+
+    if (options.CollectItems) {
+        if (options.IsNikoPath = 1) {
+            resetCameraAngle()
+            Sleep, 1500
+            searchForItems()
+        } else {
+            reset()
+            Sleep, 1500
+            searchForItems()
+        }
     }
 
     /*
@@ -3319,8 +3679,14 @@ CreateMainUI() {
     Gui Font, s10 w600
     Gui Add, GroupBox, x16 y110 w467 h100 vCollectOptionGroup -Theme +0x50000007, Item Collecting
     Gui Font, s9 norm
-    Gui Add, CheckBox, vCollectCheckBox x32 y129 w261 h26 +0x2, % " Collect Items Around the Map"
+    Gui Add, CheckBox, vCollectCheckBox x32 y129 w190 h26 +0x2 +BackgroundTrans, % " Collect Items Around the Map"
     Gui Add, Button, gCollectHelpClick vCollectHelpButton x457 y120 w23 h23, ?
+    Gui Add, Text, vCollectPathText x233 y133 w100 h26, % " Collect Path:"
+
+    Gui Add, Radio, AltSubmit gNiko_OR_DefaultPath vCollectPathRadio1 x315 y131 w60 h20, Niko
+    Gui Add, Radio, AltSubmit gNiko_OR_DefaultPath vCollectPathRadio2 x375 y131 w60 h20, Default
+    GuiControl,, CollectPathRadio1, % (options["IsNikoPath"] = 1) ? 1 : 0
+    GuiControl,, CollectPathRadio2, % (options["IsNikoPath"] = 2) ? 1 : 0
 
     Gui Add, GroupBox, x26 y155 w447 h48 vCollectSpotsHolder -Theme +0x50000007, Collect From Spots
     Gui Add, CheckBox, vCollectSpot1CheckBox x42 y174 w30 h26 +0x2 -Tabstop, % " 1"
@@ -3384,18 +3750,25 @@ CreateMainUI() {
     Gui Add, Text, vStatsDisplay x22 y58 w118 h146, runtime: 123`ndisconnects: 1000
 
     Gui Font, s10 w600
-    Gui Add, GroupBox, x151 y40 w235 h170 vWebhookGroup -Theme +0x50000007, Discord Webhook
+    Gui Add, GroupBox, x151 y40 w235 h200 vWebhookGroup -Theme +0x50000007, Discord Webhook
+
     Gui Font, s7.5 norm
     Gui Add, CheckBox, vWebhookCheckBox x166 y63 w120 h16 +0x2 gEnableWebhookToggle, % " Enable Webhook"
     Gui Add, Text, x161 y85 w100 h20 vWebhookInputHeader BackgroundTrans, Webhook URL:
     Gui Add, Edit, x166 y103 w169 h18 vWebhookInput,% ""
     Gui Add, Button, gWebhookHelpClick vWebhookHelpButton x360 y50 w23 h23, ?
+
     Gui Add, CheckBox, vWebhookImportantOnlyCheckBox x166 y126 w140 h16 +0x2, % " Important events only"
     Gui Add, Text, vWebhookUserIDHeader x161 y145 w150 h14 BackgroundTrans, % "Discord User ID (Pings):"
     Gui Add, Edit, x166 y162 w169 h16 vWebhookUserIDInput,% ""
+
+    ; New field for "Discord User/Role ID Glitch Biome Ping"
+    Gui Add, Text, vWebhookGlitchIDHeader x161 y180 w250 h14 BackgroundTrans, % "Discord User/Role ID Glitch Biome Ping:"
+    Gui Add, Edit, x166 y195 w169 h16 vWebhookGlitchIDInput,% ""
+
     Gui Font, s7.4 norm
-    Gui Add, CheckBox, vWebhookInventoryScreenshots x161 y182 w130 h26 +0x2, % "Inventory Screenshots (mins)"
-    Gui Add, Edit, x294 y186 w50 h18
+    Gui Add, CheckBox, vWebhookInventoryScreenshots x166 y218 w130 h15 +0x2, % "Inventory Screenshots (mins)"
+    Gui Add, Edit, x299 y218 w50 h18
     Gui Add, UpDown, vInvScreenshotinterval Range1-1440
 
     Gui Font, s10 w600
@@ -3425,7 +3798,7 @@ CreateMainUI() {
     Gui Add, CheckBox, vVIPCheckBox x32 y58 w150 h22 +0x2, % " VIP Gamepass Owned"
     Gui Add, CheckBox, vAzertyCheckBox x32 y78 w200 h22 +0x2, % " AZERTY Keyboard Layout"
     Gui Add, CheckBox, vClaimDailyQuestsCheckBox x32 y98 w200 h22 +0x2, % " Auto Claim Daily Quests (30 min)"
-    Gui Add, CheckBox, gShifterCheckBoxClick vShifterCheckBox x32 y118 w200 h22 +0x2, % " Abyssal Hunter Shifter Mode"
+    Gui Add, CheckBox, gShifterCheckBoxClick vShifterCheckBox x32 y118 w220 h22 +0x2 +Disabled, % " Abyssal Shifter Mode (Not work atm)"
     Gui Add, Text, x32 y141 w200 h22, % "Collection Back Button Y Offset:" ; increase by 30 to move down
     Gui Add, Edit, x206 y140 w50 h18
     Gui Add, UpDown, vBackOffsetUpDown Range-500-500, 0
@@ -3531,54 +3904,34 @@ CreateMainUI() {
     Gui Add, Edit, vRecordAuraMinimumInput x135 y123 w200 h18, 100000
 
     ; Window Title
-    Gui Show, % "w545 h284 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Improvement Macro " version
+    Gui Show, % "w545 h294 x" clamp(options.WindowX,10,A_ScreenWidth-100) " y" clamp(options.WindowY,10,A_ScreenHeight-100), % "dolphSol Improvement Macro " version
     
     ; Merchant tab (Mari and Jester!!)
     Gui, Tab, 7
     Gui Font, s9 norm
 
     ; Enable/Disable Auto-Merchant
-    Gui, Add, CheckBox, vAutoMerchantBooleanBox gAutoMerchantReminder x25 y43 w150, Enable Auto Merchant
-    Gui Add, Button, gMerchantSettings vMerchantSettingsClick x25 y205 w140 h25, Merchant Settings
-    Gui Add, Button, gMerchant_WebhooksGui vWebhookMerchantSettingsClick x350 y205 w140 h25, Merchant Webhooks
-
-    MariSlotOptions := "None||Void Coin|Lucky Penny|Fortune Spoid I|Fortune Spoid II|Fortune Spoid III|Mixed Potion|Lucky Potion|Lucky Potion L|Lucky Potion XL|Speed Potion|Speed Potion L|Speed Potion XL"
-    JesterSlotOptions := "None||Oblivion Potion|Heavenly Potion I|Heavenly Potion II|Rune of Everthing|Rune Of Corruption|Rune Of Hell|Rune of Galaxy|Strange Potion I|Strange Potion II|Stella Candle|Merchant Tracker|Random Potion Sack"
+    Gui, Add, CheckBox, vAutoMerchantBooleanBox gAutoMerchantReminder x25 y115 w145 BackgroundTrans, Enable Auto Merchant
+    Gui Add, Button, gAutoMerchantHelp vAutoMerchantHelpTrigger x170 y112 w23 h23, ?
     
+    Gui Add, Button, gMerchantSettings vMerchantSettingsClick x25 y145 w140 h25, Merchant Calibrations
+    Gui Add, Button, gMerchant_WebhooksGui vWebhookMerchantSettingsClick x25 y180 w140 h25, Merchant Webhooks
+
     ; Mari's GroupBox and Item Selection
     Gui Font, s10 w600
-    Gui, Add, GroupBox, x16 y65 w255 h130 vMariGroup -Theme +0x50000007, Mari
+    Gui, Add, GroupBox, x16 y35 w255 h65 vMariGroup -Theme +0x50000007, Mari
     Gui Font, s9 norm
-    Gui Add, Text, vMariAmountTitle x215 y76 w110 h16 BackgroundTrans, % "Amount:"
-    Gui Add, Text, x25 y98 w100 h16 vMariItemOption1Header BackgroundTrans, Item Slot 1:
-    Gui Add, DropDownList, x95 y95 w120 h10 vMariSlot1DropDown R9, % MariSlotOptions
-    Gui Add, Edit, x225 y95 w30 h20 vMariSlot1Amount, % options["Mari_ItemSlot1_Amount"]
-
-    Gui Add, Text, x25 y128 w100 h16 vMariItemOption2Header BackgroundTrans, Item Slot 2:
-    Gui Add, DropDownList, x95 y125 w120 h10 vMariSlot2DropDown R9, % MariSlotOptions
-    Gui Add, Edit, x225 y125 w30 h20 vMariSlot2Amount, % options["Mari_ItemSlot2_Amount"]
-
-    Gui Add, Text, x25 y158 w100 h16 vMariItemOption3Header BackgroundTrans, Item Slot 3:
-    Gui Add, DropDownList, x95 y155 w120 h10 vMariSlot3DropDown R9, % MariSlotOptions
-    Gui Add, Edit, x225 y155 w30 h20 vMariSlot3Amount, % options["Mari_ItemSlot3_Amount"]
+    Gui Add, Button, gMariMerchantSettings vMariMerchantSettingsClick x25 y59 w140 h25, Mari Item Settings
 
     ; Jester's GroupBox and Item Selection
     Gui Font, s10 w600
-    Gui, Add, GroupBox, x285 y65 w255 h130 vJesterGroup -Theme +0x50000007, Jester
+    Gui, Add, GroupBox, x285 y35 w255 h105 vJesterGroup -Theme +0x50000007, Jester
     Gui Font, s9 norm
-    Gui Add, Text, vJesterAmountTitle x486 y76 w110 h16 BackgroundTrans, % "Amount:"
-    Gui Add, Text, x295 y98 w100 h16 vJesterItemOption1Header BackgroundTrans, Item Slot 1:
-    Gui Add, DropDownList, x365 y95 w120 h10 vJesterSlot1DropDown R9, % JesterSlotOptions
-    Gui Add, Edit, x495 y95 w30 h20 vJesterSlot1Amount, % options["Jester_ItemSlot1_Amount"]
-
-    Gui Add, Text, x295 y128 w100 h16 vJesterItemOption2Header BackgroundTrans, Item Slot 2:
-    Gui Add, DropDownList, x365 y125 w120 h10 vJesterSlot2DropDown R9, % JesterSlotOptions
-    Gui Add, Edit, x495 y125 w30 h20 vJesterSlot2Amount, % options["Jester_ItemSlot2_Amount"]
-
-    Gui Add, Text, x295 y158 w100 h16 vJesterItemOption3Header BackgroundTrans, Item Slot 3:
-    Gui Add, DropDownList, x365 y155 w120 h10 vJesterSlot3DropDown R9, % JesterSlotOptions
-    Gui Add, Edit, x495 y155 w30 h20 vJesterSlot3Amount, % options["Jester_ItemSlot3_Amount"]
-
+    Gui Add, Button, gJesterMerchantSettings vJesterMerchantSettingsClick x294 y59 w140 h25, Jester Item Settings
+    Gui Add, Button, gJester_Exchange_GUI vJesterExchangeClick x294 y100 w140 h25 BackgroundTrans, Item Exchange (Jester)
+    Gui, Add, CheckBox, vJesterExchangeBooleanBox x483 y105 w30 BackgroundTrans
+    Gui Add, Text, vJesterExchangeBooleanReminder x440 y105 w110 h16 BackgroundTrans, Enable:
+    
 
     ; status bar
     Gui statusBar:New, +AlwaysOnTop -Caption
@@ -3589,85 +3942,292 @@ CreateMainUI() {
 }
 CreateMainUI()
 
+
+; // MERCHANT SECTION \\ ;
+
+global JesterExchangeOptions := "None||Curruptaine||Eternal Flame||Piece of Star||Rainy Bottle||NULL||Wind Essence||Icicle"
+
+Jester_Exchange_GUI() {
+    global
+    Gui, JesterGUI:New, +AlwaysOnTop +LabelJesterUI
+    Gui Font, s10 w600
+
+    Gui Font, s9 norm
+    Gui Add, Text, x25 y8 w100 h16 BackgroundTrans, Exchange Item:
+
+    Gui Add, Text, x25 y38 w100 h16 BackgroundTrans, Item 1:
+    Gui Add, DropDownList, x65 y35 w120 h20 vJesterItem1DropDown R9, % JesterExchangeOptions
+    GuiControl, Choose, JesterItem1DropDown, % (options["Jester_Exchange_ItemSlot1"] ? options["Jester_Exchange_ItemSlot1"] : "None")
+
+    Gui Add, Text, x25 y68 w100 h16 BackgroundTrans, Item 2:
+    Gui Add, DropDownList, x65 y65 w120 h20 vJesterItem2DropDown R9, % JesterExchangeOptions
+    GuiControl, Choose, JesterItem2DropDown, % (options["Jester_Exchange_ItemSlot2"] ? options["Jester_Exchange_ItemSlot2"] : "None")
+
+    Gui Add, Text, x25 y98 w100 h16 BackgroundTrans, Item 3:
+    Gui Add, DropDownList, x65 y95 w120 h20 vJesterItem3DropDown R9, % JesterExchangeOptions
+    GuiControl, Choose, JesterItem3DropDown, % (options["Jester_Exchange_ItemSlot3"] ? options["Jester_Exchange_ItemSlot3"] : "None")
+
+    Gui Add, Text, x25 y128 w100 h16 BackgroundTrans, Item 4:
+    Gui Add, DropDownList, x65 y125 w120 h20 vJesterItem4DropDown R9, % JesterExchangeOptions
+    GuiControl, Choose, JesterItem4DropDown, % (options["Jester_Exchange_ItemSlot4"] ? options["Jester_Exchange_ItemSlot4"] : "None")
+
+    Gui Add, Text, x25 y158 w100 h16 BackgroundTrans, Item 5:
+    Gui Add, DropDownList, x65 y155 w120 h20 vJesterItem5DropDown R9, % JesterExchangeOptions
+    GuiControl, Choose, JesterItem5DropDown, % (options["Jester_Exchange_ItemSlot5"] ? options["Jester_Exchange_ItemSlot5"] : "None")
+
+    Gui Add, Text, x25 y188 w100 h16 BackgroundTrans, Item 6:
+    Gui Add, DropDownList, x65 y185 w120 h20 vJesterItem6DropDown R9, % JesterExchangeOptions
+    GuiControl, Choose, JesterItem6DropDown, % (options["Jester_Exchange_ItemSlot6"] ? options["Jester_Exchange_ItemSlot6"] : "None")
+
+    Gui Add, Text, x25 y218 w100 h16 BackgroundTrans, Item 7:
+    Gui Add, DropDownList, x65 y215 w120 h20 vJesterItem7DropDown R9, % JesterExchangeOptions
+    GuiControl, Choose, JesterItem7DropDown, % (options["Jester_Exchange_ItemSlot7"] ? options["Jester_Exchange_ItemSlot7"] : "None")
+
+    Gui Add, Text, x25 y248 w100 h16 BackgroundTrans, Item 8:
+    Gui Add, DropDownList, x65 y245 w120 h20 vJesterItem8DropDown R9, % JesterExchangeOptions
+    GuiControl, Choose, JesterItem8DropDown, % (options["Jester_Exchange_ItemSlot8"] ? options["Jester_Exchange_ItemSlot8"] : "None")
+
+
+    ; Jester Exchange Button
+    Gui, Add, Text, x200 y38 w250, Jester Pink Exchange Button (X, Y):
+    Gui, Add, Edit, x200 y58 w50 vJesterExchangeButtonX, % options["Jester_Exchange_Button_X"]
+    Gui, Add, UpDown, vJesterExchangeButtonX_UpDown Range0-7000, % options["Jester_Exchange_Button_X"]
+    Gui, Add, Edit, x260 y58 w50 vJesterExchangeButtonY, % options["Jester_Exchange_Button_Y"]
+    Gui, Add, UpDown, vJesterExchangeButtonY_UpDown Range0-7000, % options["Jester_Exchange_Button_Y"]
+    Gui, Add, Button, x320 y58 w80 h20 gJester_ExchangeSelectPosition vSelectButton8, Select Pos
+
+    ; Jester Item Search Bar
+    Gui, Add, Text, x200 y88 w250, Jester Item Search Bar (X, Y):
+    Gui, Add, Edit, x200 y108 w50 vJesterItemSearchBarX, % options["Jester_Item_Search_Bar_X"]
+    Gui, Add, UpDown, vJesterItemSearchBarX_UpDown Range0-7000, % options["Jester_Item_Search_Bar_X"]
+    Gui, Add, Edit, x260 y108 w50 vJesterItemSearchBarY, % options["Jester_Item_Search_Bar_Y"]
+    Gui, Add, UpDown, vJesterItemSearchBarY_UpDown Range0-7000, % options["Jester_Item_Search_Bar_Y"]
+    Gui, Add, Button, x320 y108 w80 h20 gJester_ExchangeSelectPosition vSelectButton9, Select Pos
+
+    ; Jester First Exchange Item Slot
+    Gui, Add, Text, x200 y138 w250, Jester First Exchange Item Slot (X, Y):
+    Gui, Add, Edit, x200 y158 w50 vJesterFirstExchangeSlotX, % options["Jester_First_Item_Exchange_Slot_X"]
+    Gui, Add, UpDown, vFirstItemExchangeSlotX_UpDown Range0-7000, % options["Jester_First_Item_Exchange_Slot_X"]
+    Gui, Add, Edit, x260 y158 w50 vJesterFirstExchangeSlotY, % options["Jester_First_Item_Exchange_Slot_Y"]
+    Gui, Add, UpDown, vFirstItemExchangeSlotY_UpDown Range0-7000, % options["Jester_First_Item_Exchange_Slot_Y"]
+    Gui, Add, Button, x320 y158 w80 h20 gJester_ExchangeSelectPosition vSelectButton10, Select Pos
+
+    ; custom exchange amounts
+    Gui, Add, Text, x200 y188 w250, Exchange step amount (Example: 120,40,15,5...):
+    Gui, Add, Edit, x200 y208 w150 vCustomAmounts, % options["Jester_Custom_Exchange_Amounts"]
+
+
+    Gui, Add, Button, x200 y250 w200 h25 gJester_ExchangeItemHighlight, Highlight Jester Click
+    Gui, Add, Button, x200 y280 w200 h25 gJester_Exchange_Save_Calibration, Save Calibration
+    
+    Gui Show, w450 h340, Jester Item Exchange
+}
+
 MerchantSettings() {
     global
-
-    ; Create a new GUI for Merchant Settings
     Gui, MerchantSettings:New, +AlwaysOnTop +LabelMerchantGui
     Gui Color, 0xDADADA
     Gui Font, s9 norm
-    
-    ; Title
     Gui, Add, Text, x16 y10 w300 h30, More merchant features coming soon weee!
     Gui, Add, Text, x16 y25 w300 h30, (Press F9 to show mouse x,y position)
 
-    ; Calibration for Merchant Slider
+    ; Merchant Slider
     Gui, Add, Text, x16 y50 w250, Merchant Slider Position (X, Y):
     Gui, Add, Edit, x16 y70 w50 vMerchantSliderX, % options["Merchant_slider_X"]
     Gui, Add, UpDown, vSliderX_UpDown Range0-4000, % options["Merchant_slider_X"]
     Gui, Add, Edit, x70 y70 w50 vMerchantSliderY, % options["Merchant_slider_Y"]
     Gui, Add, UpDown, vSliderY_UpDown Range0-4000, % options["Merchant_slider_Y"]
+    Gui, Add, Button, x130 y70 w80 h20 gSelectPosition vSelectButton1, Select Pos
 
-    ; Calibration for Purchase Amount Button
+    ; Purchase Amount Button
     Gui, Add, Text, x16 y100 w250, Purchase Amount Button (X, Y):
     Gui, Add, Edit, x16 y120 w50 vMerchantPurchaseAmountX, % options["Merchant_Purchase_Amount_X"]
     Gui, Add, UpDown, vPurchaseAmountX_UpDown Range0-4000, % options["Merchant_Purchase_Amount_X"]
     Gui, Add, Edit, x70 y120 w50 vMerchantPurchaseAmountY, % options["Merchant_Purchase_Amount_Y"]
     Gui, Add, UpDown, vPurchaseAmountY_UpDown Range0-4000, % options["Merchant_Purchase_Amount_Y"]
+    Gui, Add, Button, x130 y120 w80 h20 gSelectPosition vSelectButton2, Select Pos
 
-    ; Calibration for Purchase Button
+    ; Purchase Button
     Gui, Add, Text, x16 y150 w250, Purchase Button (X, Y):
     Gui, Add, Edit, x16 y170 w50 vMerchantPurchaseButtonX, % options["Merchant_Purchase_Button_X"]
-    Gui, Add, UpDown, vPurchaseButtonX_UpDown Range0-4000, % options["Merchant_Purchase_Button_X"]
+    Gui, Add, UpDown, vPurchaseButtonX_UpDown Range0-7000, % options["Merchant_Purchase_Button_X"]
     Gui, Add, Edit, x70 y170 w50 vMerchantPurchaseButtonY, % options["Merchant_Purchase_Button_Y"]
-    Gui, Add, UpDown, vPurchaseButtonY_UpDown Range0-4000, % options["Merchant_Purchase_Button_Y"]
+    Gui, Add, UpDown, vPurchaseButtonY_UpDown Range0-7000, % options["Merchant_Purchase_Button_Y"]
+    Gui, Add, Button, x130 y170 w80 h20 gSelectPosition vSelectButton3, Select Pos
 
-    ; Calibration for Merchant Open Button
+    ; Merchant Open Button
     Gui, Add, Text, x16 y200 w250, Merchant Open Button (X, Y):
     Gui, Add, Edit, x16 y220 w50 vMerchantOpenButtonX, % options["Merchant_Open_Button_X"]
-    Gui, Add, UpDown, vOpenButtonX_UpDown Range0-4000, % options["Merchant_Open_Button_X"]
+    Gui, Add, UpDown, vOpenButtonX_UpDown Range0-7000, % options["Merchant_Open_Button_X"]
     Gui, Add, Edit, x70 y220 w50 vMerchantOpenButtonY, % options["Merchant_Open_Button_Y"]
-    Gui, Add, UpDown, vOpenButtonY_UpDown Range0-4000, % options["Merchant_Open_Button_Y"]
+    Gui, Add, UpDown, vOpenButtonY_UpDown Range0-7000, % options["Merchant_Open_Button_Y"]
+    Gui, Add, Button, x130 y220 w80 h20 gSelectPosition vSelectButton4, Select Pos
 
-    ; Calibration for Username OCR Position
+    ; Username OCR Position
     Gui, Add, Text, x16 y250 w250, Merchant Name OCR Position (X, Y):
     Gui, Add, Edit, x16 y270 w50 vMerchantUsernameOCRX, % options["Merchant_Username_OCR_X"]
-    Gui, Add, UpDown, vUsernameOCRX_UpDown Range0-4000, % options["Merchant_Username_OCR_X"]
+    Gui, Add, UpDown, vUsernameOCRX_UpDown Range0-7000, % options["Merchant_Username_OCR_X"]
     Gui, Add, Edit, x70 y270 w50 vMerchantUsernameOCRY, % options["Merchant_Username_OCR_Y"]
-    Gui, Add, UpDown, vUsernameOCRY_UpDown Range0-4000, % options["Merchant_Username_OCR_Y"]
+    Gui, Add, UpDown, vUsernameOCRY_UpDown Range0-7000, % options["Merchant_Username_OCR_Y"]
+    Gui, Add, Button, x130 y270 w80 h20 gSelectPosition vSelectButton5, Select Pos
 
-    ; Calibration for Item Name OCR Position
+    ; Item Name OCR Position
     Gui, Add, Text, x16 y300 w250, Item Name OCR Position (X, Y):
     Gui, Add, Edit, x16 y320 w50 vMerchantItemNameOCRX, % options["Merchant_ItemName_OCR_X"]
-    Gui, Add, UpDown, vItemNameOCRX_UpDown Range0-4000, % options["Merchant_ItemName_OCR_X"]
+    Gui, Add, UpDown, vItemNameOCRX_UpDown Range0-7000, % options["Merchant_ItemName_OCR_X"]
     Gui, Add, Edit, x70 y320 w50 vMerchantItemNameOCRY, % options["Merchant_ItemName_OCR_Y"]
-    Gui, Add, UpDown, vItemNameOCRY_UpDown Range0-4000, % options["Merchant_ItemName_OCR_Y"]
+    Gui, Add, UpDown, vItemNameOCRY_UpDown Range0-7000, % options["Merchant_ItemName_OCR_Y"]
+    Gui, Add, Button, x130 y320 w80 h20 gSelectPosition vSelectButton6, Select Pos
 
-    ; Calibration for First Item Slot Position
+    ; First Item Slot Position
     Gui, Add, Text, x16 y350 w250, First Item Slot Position (X, Y):
     Gui, Add, Edit, x16 y370 w50 vMerchantFirstItemPosX, % options["Merchant_FirstItem_Pos_X"]
-    Gui, Add, UpDown, vFirstItemPosX_UpDown Range0-4000, % options["Merchant_FirstItem_Pos_X"]
+    Gui, Add, UpDown, vFirstItemPosX_UpDown Range0-7000, % options["Merchant_FirstItem_Pos_X"]
     Gui, Add, Edit, x70 y370 w50 vMerchantFirstItemPosY, % options["Merchant_FirstItem_Pos_Y"]
-    Gui, Add, UpDown, vFirstItemPosY_UpDown Range0-4000, % options["Merchant_FirstItem_Pos_Y"]
+    Gui, Add, UpDown, vFirstItemPosY_UpDown Range0-7000, % options["Merchant_FirstItem_Pos_Y"]
+    Gui, Add, Button, x130 y370 w80 h20 gSelectPosition vSelectButton7, Select Pos
+
+    ; Help text and button moved above
+    Gui, Add, Text, vMerchantCalibrationHelpPls x16 y400 w250 h25 BackgroundTrans, Got trouble at calibration? Click this help button
+    Gui, Add, Button, gMerchantCalibrationHelp vMerchantCalibrationHelpTrigger x245 y396 w23 h23, ?
 
     ; Highlight merchant click region button
-    Gui, Add, Button, x50 y410 w200 h25 gMerchant_ItemHighlight, Highlight Merchant Click
+    Gui, Add, Button, x50 y440 w200 h25 gMerchant_ItemHighlight, Highlight Merchant Click
+    Gui, Add, Button, x50 y470 w200 h25 gSave_Merchant_Calibration, Save Calibration
 
-    ; Save Calibration button
-    Gui, Add, Button, x50 y450 w200 h25 gSave_Merchant_Calibration, Save Calibration
+    Gui, Show, , Merchant Calibration
+    Gui MerchantSettings:Default
+}
 
-    Gui, Show, , Merchant Settings
+MariMerchantSettings() {
+    global
+    Gui, MariMerchantSettings:New, +AlwaysOnTop
+    Gui Color, 0xDADADA
+
+    Gui Font, s9 norm
+    Gui Add, Text, x10 y10 w100 h15 BackgroundTrans, % "Item Name"
+    Gui Add, Text, x145 y10 w50 h15 BackgroundTrans, % "Amount:"
+
+    for i, itemName in MariItemsArray {
+        v := options["Mari_ItemSlot" . i]
+        values := SplitNumbers(v)
+
+        checkBoxState := (values[2] = "True") ? 1 : 0
+        amount := values[3]
+
+        if (!amount || amount = "") {
+            amount := 1
+        }
+
+        yValue := i * 30
+        Gui Add, CheckBox, vMariSlot%i%Item x10 y%yValue%, %itemName%
+        GuiControl, , MariSlot%i%Item, % checkBoxState
+        Gui Add, Edit, vMariSlot%i%Amount x150 y%yValue% w30 h20, %amount%
+    }
+
+    yValue := (MariItemsArray.MaxIndex() + 1) * 30
+    Gui Add, Button, gMariMerchantSettingsSave x10 y%yValue% w170 h25, Save Selections
+
+    Gui, Show, , Mari Items
+}
+
+
+
+MariMerchantSettingsSave() {
+    Gui, MariMerchantSettings:Default
+    global options
+
+    for i, itemName in MariItemsArray {
+        itemControl := "MariSlot" . i . "Item"
+        amountControl := "MariSlot" . i . "Amount"
+
+        GuiControlGet, MariSlotItem, , %itemControl% ; checkbox
+        GuiControlGet, MariSlotAmount, , %amountControl%
+
+        ; config formatto: ItemName, True/False (checkbox thing), Amount
+        checkBoxState := (MariSlotItem = 1) ? "True" : "False"
+        options["Mari_ItemSlot" . i] := itemName . "," . checkBoxState . "," . MariSlotAmount
+    }
+
+    saveOptions()
+}
+
+
+JesterMerchantSettings() {
+    global
+    Gui, JesterMerchantSettings:New, +AlwaysOnTop
+    Gui Color, 0xDADADA
+
+    Gui Font, s9 norm
+    Gui Add, Text, x10 y10 w100 h15 BackgroundTrans, % "Item Name"
+    Gui Add, Text, x145 y10 w50 h15 BackgroundTrans, % "Amount:"
+
+    for i, itemName in JesterItemsArray {
+        v := options["Jester_ItemSlot" . i]
+        values := SplitNumbers(v)
+
+        checkBoxState := (values[2] = "True") ? 1 : 0
+        amount := values[3]
+
+        if (!amount || amount = "") {
+            amount := 1
+        }
+
+        yValue := i * 30
+        Gui Add, CheckBox, vJesterSlot%i%Item x10 y%yValue%, %itemName%
+        GuiControl, , JesterSlot%i%Item, % checkBoxState
+        Gui Add, Edit, vJesterSlot%i%Amount x150 y%yValue% w30 h20, %amount%
+    }
+
+    yValue := (JesterItemsArray.MaxIndex() + 1) * 30
+    Gui Add, Button, gJesterMerchantSettingsSave x10 y%yValue% w170 h25, Save Selections
+
+    Gui, Show, , Jester Items
+}
+
+
+JesterMerchantSettingsSave() {
+    Gui, JesterMerchantSettings:Default
+    global options
+
+    for i, itemName in JesterItemsArray {
+        itemControl := "JesterSlot" . i . "Item"
+        amountControl := "JesterSlot" . i . "Amount"
+
+        GuiControlGet, JesterSlotItem, , %itemControl% ; checkbox
+        GuiControlGet, JesterSlotAmount, , %amountControl%
+
+        ; Format: ItemName,True/False,Amount
+        checkBoxState := (JesterSlotItem = 1) ? "True" : "False"
+        options["Jester_ItemSlot" . i] := itemName . "," . checkBoxState . "," . JesterSlotAmount
+    }
+
+    saveOptions()
+}
+
+SplitNumbers(inputString) {
+    StringSplit, numbers, inputString, `,
+
+    result := []
+
+    Loop, % numbers0
+    {
+        num := numbers%A_Index%
+        result.Push(num)
+    }
+
+    return result
 }
 
 AutoMerchantReminder() {
-    Gui, Submit, NoHide
-
-    if (options.AutoMerchantEnabled = 0 || options.AutoMerchantEnabled = 1) {
-        MsgBox, % "Please turn off Shift Lock before starting auto merchant feature! So your mouse wont be get locked to center and cannot press merchant open button!"
+    Gui mainUI:Default
+    GuiControlGet, isChecked,, AutoMerchantBooleanBox
+    if (isChecked){
+        MsgBox, 0, Auto Merchant Reminder, % "Please turn off Shift Lock before starting auto merchant feature! So your mouse wont be get locked to center and cannot press merchant open button!"
     }
-
+    return
 }
-    
+
 Save_Merchant_Calibration() {
     Gui MerchantSettings:Default
     global options
@@ -3675,7 +4235,6 @@ Save_Merchant_Calibration() {
     screenWidth := A_ScreenWidth
     screenHeight := A_ScreenHeight
 
-    ; Get values from GUI
     GuiControlGet, SliderX_UpDown
     GuiControlGet, SliderY_UpDown
     GuiControlGet, PurchaseAmountX_UpDown
@@ -3690,6 +4249,12 @@ Save_Merchant_Calibration() {
     GuiControlGet, ItemNameOCRY_UpDown
     GuiControlGet, FirstItemPosX_UpDown
     GuiControlGet, FirstItemPosY_UpDown
+    GuiControlGet, JesterExchangeButtonX_UpDown
+    GuiControlGet, JesterExchangeButtonY_UpDown
+    GuiControlGet, JesterItemSearchBarX_UpDown
+    GuiControlGet, JesterItemSearchBarY_UpDown
+    GuiControlGet, FirstItemExchangeSlotX_UpDown
+    GuiControlGet, FirstItemExchangeSlotY_UpDown
 
     options["Merchant_slider_X"] := SliderX_UpDown
     options["Merchant_slider_Y"] := SliderY_UpDown
@@ -3706,26 +4271,151 @@ Save_Merchant_Calibration() {
     options["Merchant_FirstItem_Pos_X"] := FirstItemPosX_UpDown
     options["Merchant_FirstItem_Pos_Y"] := FirstItemPosY_UpDown
 
-    ; Convert to relative values based on current screen resolution
     saveOptions()
 }
 
-; completeAutoEquipSelection(){
-;     if (!selectingAutoEquip){
-;         return
-;     }
-;     applyNewUIOptions()
+Jester_Exchange_Save_Calibration() {
+    Gui JesterGUI:Default
+    global options
+    
+    GuiControlGet, JesterExchangeButtonX_UpDown
+    GuiControlGet, JesterExchangeButtonY_UpDown
+    GuiControlGet, JesterItemSearchBarX_UpDown
+    GuiControlGet, JesterItemSearchBarY_UpDown
+    GuiControlGet, FirstItemExchangeSlotX_UpDown
+    GuiControlGet, FirstItemExchangeSlotY_UpDown
 
-;     MouseGetPos, mouseX,mouseY
-;     uv := getAspectRatioUVFromPosition(mouseX,mouseY,storageAspectRatio)
-;     options.AutoEquipX := uv[1]
-;     options.AutoEquipY := uv[2]
+    options["Jester_Exchange_Button_X"] := JesterExchangeButtonX_UpDown
+    options["Jester_Exchange_Button_Y"] := JesterExchangeButtonY_UpDown
+    options["Jester_Item_Search_Bar_X"] := JesterItemSearchBarX_UpDown
+    options["Jester_Item_Search_Bar_Y"] := JesterItemSearchBarY_UpDown
+    options["Jester_First_Item_Exchange_Slot_X"] := FirstItemExchangeSlotX_UpDown
+    options["Jester_First_Item_Exchange_Slot_Y"] := FirstItemExchangeSlotY_UpDown
 
-;     saveOptions()
-;     cancelAutoEquipSelection()
+    saveOptions()
+}
 
-;     MsgBox, 0,Auto Equip Selection,Success!
-; }
+SelectPosition() {
+    global options
+    Gui, MerchantSettings:Submit, NoHide
+    startDim(1, "Click to select merchant position")
+    
+    KeyWait, LButton, D
+    MouseGetPos, mouseX, mouseY
+    removeDim()
+
+    Control := A_GuiControl
+
+    if (Control = "SelectButton1") {
+        GuiControl,MerchantSettings:, MerchantSliderX, %mouseX%
+        GuiControl,MerchantSettings:, SliderX_UpDown, %mouseX%
+        GuiControl,MerchantSettings:, MerchantSliderY, %mouseY%
+        GuiControl,MerchantSettings:, SliderY_UpDown, %mouseY%
+        options["Merchant_slider_X"] := mouseX
+        options["Merchant_slider_Y"] := mouseY
+        Highlight(mouseX, mouseY, 10, 10, 6500)
+    }
+    else if (Control = "SelectButton2") {
+        GuiControl,MerchantSettings:, MerchantPurchaseAmountX, %mouseX%
+        GuiControl,MerchantSettings:, PurchaseAmountX_UpDown, %mouseX%
+        GuiControl,MerchantSettings:, MerchantPurchaseAmountY, %mouseY%
+        GuiControl,MerchantSettings:, PurchaseAmountY_UpDown, %mouseY%
+        options["Merchant_Purchase_Amount_X"] := mouseX
+        options["Merchant_Purchase_Amount_Y"] := mouseY
+        Highlight(mouseX-5, mouseY-5, 10, 10, 6500, "lime")
+    }
+    else if (Control = "SelectButton3") {
+        GuiControl,MerchantSettings:, MerchantPurchaseButtonX, %mouseX%
+        GuiControl,MerchantSettings:, PurchaseButtonX_UpDown, %mouseX%
+        GuiControl,MerchantSettings:, MerchantPurchaseButtonY, %mouseY%
+        GuiControl,MerchantSettings:, PurchaseButtonY_UpDown, %mouseY%
+        options["Merchant_Purchase_Button_X"] := mouseX
+        options["Merchant_Purchase_Button_Y"] := mouseY
+        Highlight(mouseX-5, mouseY-5, 10, 10, 6500, "lime")
+    }
+    else if (Control = "SelectButton4") {
+        GuiControl,MerchantSettings:, MerchantOpenButtonX, %mouseX%
+        GuiControl,MerchantSettings:, OpenButtonX_UpDown, %mouseX%
+        GuiControl,MerchantSettings:, MerchantOpenButtonY, %mouseY%
+        GuiControl,MerchantSettings:, OpenButtonY_UpDown, %mouseY%
+        options["Merchant_Open_Button_X"] := mouseX
+        options["Merchant_Open_Button_Y"] := mouseY
+        Highlight(mouseX, mouseY, 10, 10, 6500)
+    }
+    else if (Control = "SelectButton5") {
+        GuiControl,MerchantSettings:, MerchantUsernameOCRX, %mouseX%
+        GuiControl,MerchantSettings:, UsernameOCRX_UpDown, %mouseX%
+        GuiControl,MerchantSettings:, MerchantUsernameOCRY, %mouseY%
+        GuiControl,MerchantSettings:, UsernameOCRY_UpDown, %mouseY%
+        options["Merchant_Username_OCR_X"] := mouseX
+        options["Merchant_Username_OCR_Y"] := mouseY
+        Highlight(mouseX, mouseY, 200, 42, 6500, "blue")
+    }
+    else if (Control = "SelectButton6") {
+        GuiControl,MerchantSettings:, MerchantItemNameOCRX, %mouseX%
+        GuiControl,MerchantSettings:, ItemNameOCRX_UpDown, %mouseX%
+        GuiControl,MerchantSettings:, MerchantItemNameOCRY, %mouseY%
+        GuiControl,MerchantSettings:, ItemNameOCRY_UpDown, %mouseY%
+        options["Merchant_ItemName_OCR_X"] := mouseX 
+        options["Merchant_ItemName_OCR_Y"] := mouseY
+        Highlight(mouseX, mouseY, 323, 30, 6500)
+    }
+    else if (Control = "SelectButton7") {
+        GuiControl,MerchantSettings:, MerchantFirstItemPosX, %mouseX%
+        GuiControl,MerchantSettings:, FirstItemPosX_UpDown, %mouseX%
+        GuiControl,MerchantSettings:, MerchantFirstItemPosY, %mouseY%
+        GuiControl,MerchantSettings:, FirstItemPosY_UpDown, %mouseY%
+        options["Merchant_FirstItem_Pos_X"] := mouseX
+        options["Merchant_FirstItem_Pos_Y"] := mouseY
+        Highlight(mouseX-5, mouseY-5, 10, 10, 6500, "Yellow")
+        Highlight(mouseX+180, mouseY-5, 10, 10, 6500, "Yellow")
+    }
+}
+
+Jester_ExchangeSelectPosition() {
+    global options
+    Gui, JesterGUI:Submit, NoHide
+    startDim(1, "Click to select merchant position")
+    
+    KeyWait, LButton, D
+    MouseGetPos, mouseX, mouseY
+    removeDim()
+
+    Control := A_GuiControl
+
+    if (Control = "SelectButton8") {
+        GuiControl,JesterGUI:, JesterExchangeButtonX, %mouseX%
+        GuiControl,JesterGUI:, JesterExchangeButtonX_UpDown, %mouseX%
+        GuiControl,JesterGUI:, JesterExchangeButtonY, %mouseY%
+        GuiControl,JesterGUI:, JesterExchangeButtonY_UpDown, %mouseY%
+        options["Jester_Exchange_Button_X"] := mouseX
+        options["Jester_Exchange_Button_Y"] := mouseY
+        Highlight(mouseX, mouseY, 10, 10, 6500, "Aqua")
+        Highlight(mouseX, mouseY, 10, 10, 6500, "Aqua")
+    }
+
+    else if (Control = "SelectButton9") {
+        GuiControl,JesterGUI:, JesterItemSearchBarX, %mouseX%
+        GuiControl,JesterGUI:, JesterItemSearchBarX_UpDown, %mouseX%
+        GuiControl,JesterGUI:, JesterItemSearchBarY, %mouseY%
+        GuiControl,JesterGUI:, JesterItemSearchBarY_UpDown, %mouseY%
+        options["Jester_Item_Search_Bar_X"] := mouseX
+        options["Jester_Item_Search_Bar_Y"] := mouseY
+        Highlight(mouseX, mouseY, 10, 10, 6500, "Fuchsia")
+        Highlight(mouseX, mouseY, 10, 10, 6500, "Fuchsia")
+    }
+
+    else if (Control = "SelectButton10") {
+        GuiControl,JesterGUI:, JesterFirstExchangeSlotX, %mouseX%
+        GuiControl,JesterGUI:, FirstItemExchangeSlotX_UpDown, %mouseX%
+        GuiControl,JesterGUI:, JesterFirstExchangeSlotY, %mouseY%
+        GuiControl,JesterGUI:, FirstItemExchangeSlotY_UpDown, %mouseY%
+        options["Jester_First_Item_Exchange_Slot_X"] := mouseX
+        options["Jester_First_Item_Exchange_Slot_Y"] := mouseY
+        Highlight(mouseX, mouseY, 10, 10, 6500, "Lime")
+        Highlight(mouseX, mouseY, 10, 10, 6500, "Lime")
+    }
+}
 
 Merchant_ItemHighlight() {
     global options
@@ -3749,125 +4439,157 @@ Merchant_ItemHighlight() {
     GuiControlGet, ItemNameOCRY_UpDown
     GuiControlGet, FirstItemPosX_UpDown
     GuiControlGet, FirstItemPosY_UpDown
-    ; Scale positions based on the screen resolution
-    sliderX := SliderX_UpDown / 1920 * screenWidth
-    sliderY := SliderY_UpDown / 1080 * screenHeight
-    purchaseAmountX := PurchaseAmountX_UpDown / 1920 * screenWidth
-    purchaseAmountY := PurchaseAmountY_UpDown / 1080 * screenHeight
-    purchaseButtonX := PurchaseButtonX_UpDown / 1920 * screenWidth
-    purchaseButtonY := PurchaseButtonY_UpDown / 1080 * screenHeight
-    openButtonX := OpenButtonX_UpDown / 1920 * screenWidth
-    openButtonY := OpenButtonY_UpDown / 1080 * screenHeight
-    usernameOCRX := UsernameOCRX_UpDown / 1920 * screenWidth
-    usernameOCRY := UsernameOCRY_UpDown / 1080 * screenHeight
-    itemOCRX := ItemNameOCRX_UpDown / 1920 * screenWidth
-    itemOCRY := ItemNameOCRY_UpDown / 1080 * screenHeight
-    firstItemX := FirstItemPosX_UpDown / 1920 * screenWidth
-    firstItemY := FirstItemPosY_UpDown / 1080 * screenHeight
 
-    ; Calculate second item slot
-    secondItemX := firstItemX + (185 * screenWidth / 1920)
+    ; Jester exchange thingie
+    GuiControlGet, JesterExchangeButtonX_UpDown
+    GuiControlGet, JesterExchangeButtonY_UpDown
+    GuiControlGet, JesterItemSearchBarX_UpDown
+    GuiControlGet, JesterItemSearchBarY_UpDown
+    GuiControlGet, FirstItemExchangeSlotX_UpDown
+    GuiControlGet, FirstItemExchangeSlotY_UpDown
 
-    ; Draw highlights
-    Highlight(sliderX-5, sliderY-5, 10, 10, 8500) ; merchant slider box
-    Highlight(purchaseAmountX-5, purchaseAmountY-5, 10, 10, 8500, "green") ; purchase amount pos
-    Highlight(purchaseButtonX-5, purchaseButtonY-5, 10, 10, 8500, "green") ; purchase button pos
-    Highlight(openButtonX, openButtonY, 10, 10, 8500) ; merchant open button
-    Highlight(usernameOCRX, usernameOCRY, 200, 36, 8500, "blue") ; merchant username ocr
-    Highlight(itemOCRX, itemOCRY, 323, 30, 8500) ; merchant on-sale item name ocr
+    secondItemX := FirstItemPosX_UpDown + 185 
+
+    ; Draw highlights with tooltips
+    Highlight(SliderX_UpDown-5, SliderY_UpDown-5, 10, 10, 8500) ; merchant slider box
+    Highlight(PurchaseAmountX_UpDown-5, PurchaseAmountY_UpDown-5, 10, 10, 8500, "lime") ; purchase amount pos
+    Highlight(PurchaseButtonX_UpDown-5, PurchaseButtonY_UpDown-5, 10, 10, 8500, "lime") ; purchase button po
+    Highlight(OpenButtonX_UpDown, OpenButtonY_UpDown, 10, 10, 8500) ; merchant open button
+    Highlight(UsernameOCRX_UpDown, UsernameOCRY_UpDown, 200, 42, 8500, "blue") ; merchant username ocr
+    Highlight(ItemNameOCRX_UpDown, ItemNameOCRY_UpDown, 323, 30, 8500) ; merchant on-sale item name ocr
 
     ; Highlight first and second item slots
-    Highlight(firstItemX-5, firstItemY-5, 10, 10, 8500, "purple") ; first item name slot
-    Highlight(secondItemX-5, firstItemY-5, 10, 10, 8500, "purple") ; second item slot
+    Highlight(FirstItemPosX_UpDown-5, FirstItemPosY_UpDown-5, 10, 10, 8500, "Yellow") ; first item name slot
+    Highlight(secondItemX-5, FirstItemPosY_UpDown-5, 10, 10, 8500, "Yellow") ; second item slot
 }
 
 
-Merchant_WebhooksGui() {
-    global options, NewWebhookAlias, NewWebhookURL, NewPingUserID, NewMerchantPrivateServerLink, WebhookList, NewJesterPingUserID
-    
-    Gui, MerchantWebhooksSettings:New, +AlwaysOnTop +LabelWebhooksGui
-    Gui Color, 0xDADADA
-    Gui Font, s9 norm
-
-    ; Title
-    Gui, Add, Text, x16 y10 w300 h30, ==Merchant Webhook== (only 1 webhook supported, more webhook ping will be avail soon)
-    
-    ; New Webhook Section
-    Gui, Add, Text, x16 y40 w250, New Webhook Alias (e.g., Mari or Jester omg real??! or any silly name you want):
-    Gui, Add, Edit, x16 y70 w250 vNewWebhookAlias, % options.MerchantWebhookAlias
-
-    Gui, Add, Text, x16 y100 w250, Webhook URL:
-    Gui, Add, Edit, x16 y120 w250 r1 vNewWebhookURL, % options.MerchantWebhookLink
-
-    Gui, Add, Text, x16 y150 w250, Ping Mari User ID/Role ID (Optional):
-    Gui, Add, Edit, x16 y170 w250 vNewPingUserID, % options.MerchantWebhook_Mari_UserID
-
-    Gui, Add, Text, x16 y200 w250, Ping Jester User ID/Role ID (Optional):
-    Gui, Add, Edit, x16 y220 w250 vNewJesterPingUserID, % options.MerchantWebhook_Jester_UserID
-
-    Gui, Add, Text, x16 y250 w250, Merchant Private Server Link (Optional):
-    Gui, Add, Edit, x16 y270 w250 vNewMerchantPrivateServerLink, % options.MerchantWebhook_PS_Link
-
-    Gui, Add, Button, x16 y320 w120 h30 gMerchant_AddWebhook, Add Webhook
-
-    ; Existing Webhooks Section
-    Gui, Add, ListBox, x16 y350 w300 h150 vWebhookList, % Merchant_ListWebhooks()
-
-    ; Add Delete Webhook Button
-    Gui, Add, Button, x16 y520 w120 h30 gMerchant_DeleteWebhook, Delete Webhook
-
-    Gui, Show, , Discord Webhooks
-}
-
-Merchant_AddWebhook() {
-    global options, NewWebhookAlias, NewWebhookURL, NewPingUserID, NewMerchantPrivateServerLink, NewJesterPingUserID
-    
-    Gui, Submit, NoHide
-
-    ; Validate the webhook URL
-    if (!validateWebhookLink(NewWebhookURL)) {
-        MsgBox, Invalid webhook URL! Please input a valid Discord webhook URL.
-        return
-    }
-
-    ; Update the options with new values
-    options.MerchantWebhookAlias := NewWebhookAlias
-    options.MerchantWebhookLink := NewWebhookURL
-    options.MerchantWebhook_Mari_UserID := NewPingUserID
-    options.MerchantWebhook_Jester_UserID := NewJesterPingUserID
-    options.MerchantWebhook_PS_Link := NewMerchantPrivateServerLink
-
-    ; Update ListBox with the new webhook (limit to one webhook)
-    GuiControl,, WebhookList, % NewWebhookAlias " | " NewWebhookURL
-    
-    ; Clear the input fields after submission
-    GuiControl,, NewWebhookAlias
-    GuiControl,, NewWebhookURL
-    GuiControl,, NewPingUserID
-    GuiControl,, NewJesterPingUserID
-    GuiControl,, NewMerchantPrivateServerLink
-}
-
-Merchant_DeleteWebhook() {
+Jester_ExchangeItemHighlight() {
     global options
+    ; Jester exchange thingie
+    GuiControlGet, JesterExchangeButtonX_UpDown
+    GuiControlGet, JesterExchangeButtonY_UpDown
+    GuiControlGet, JesterItemSearchBarX_UpDown
+    GuiControlGet, JesterItemSearchBarY_UpDown
+    GuiControlGet, FirstItemExchangeSlotX_UpDown
+    GuiControlGet, FirstItemExchangeSlotY_UpDown
 
-    options.MerchantWebhookAlias := ""
-    options.MerchantWebhookLink := ""
-    options.MerchantWebhook_Mari_UserID := ""
-    options.MerchantWebhook_Jester_UserID := ""
-    options.MerchantWebhook_PS_Link := ""
+    ; Jester Item Exchange stuff
+    Highlight(JesterExchangeButtonX_UpDown, JesterExchangeButtonY_UpDown, 10, 10, 8500, "Aqua")
+    Highlight(JesterItemSearchBarX_UpDown, JesterItemSearchBarY_UpDown, 10, 10, 8500, "Fuchsia")
 
-    ; Clear the ListBox
-    GuiControl,, WebhookList,
+    ; first item exchange slot
+    Highlight(FirstItemExchangeSlotX_UpDown, FirstItemExchangeSlotY_UpDown, 10, 10, 8500, "Lime")
 }
-Merchant_ListWebhooks() {
-    global options
-    output := ""
-    if (options.MerchantWebhookAlias != "") {
-        output := options.MerchantWebhookAlias " | " options.MerchantWebhookLink
-    }
-    return output
-}
+
+
+; Merchant_WebhooksGui() {
+;     global options, NewWebhookAlias, NewWebhookURL, NewPingUserID, NewMerchantPrivateServerLink, WebhookList, NewJesterPingUserID
+    
+;     Gui, MerchantWebhooksSettings:New, +AlwaysOnTop +LabelWebhooksGui
+;     Gui Color, 0xDADADA
+;     Gui Font, s9 norm
+
+;     ; Title
+;     Gui, Add, Text, x16 y10 w300 h30, ==Merchant Webhook== (only 1 webhook supported, more webhook ping will be avail soon)
+    
+;     ; New Webhook Section
+;     Gui, Add, Text, x16 y40 w250, Webhook Alias (e.g., Mari or Jester omg real??! or any silly name you want):
+;     Gui, Add, Edit, x16 y70 w250 vNewWebhookAlias, % options.MerchantWebhookAlias
+
+;     Gui, Add, Text, x16 y100 w250, Webhook URL:
+;     Gui, Add, Edit, x16 y120 w250 r1 vNewWebhookURL, % options.MerchantWebhookLink
+
+;     Gui, Add, Text, x16 y150 w250, Ping Mari User ID/Role ID (Optional):
+;     Gui, Add, Edit, x16 y170 w250 vNewPingUserID, % options.MerchantWebhook_Mari_UserID
+
+;     Gui, Add, Text, x16 y200 w250, Ping Jester User ID/Role ID (Optional):
+;     Gui, Add, Edit, x16 y220 w250 vNewJesterPingUserID, % options.MerchantWebhook_Jester_UserID
+
+;     Gui, Add, Text, x16 y250 w250, Merchant Private Server Link (Optional):
+;     Gui, Add, Edit, x16 y270 w250 r1 vNewMerchantPrivateServerLink, % options.MerchantWebhook_PS_Link ; Use the ps_link variable here
+
+;     Gui, Add, Button, x16 y320 w120 h30 gMerchant_AddWebhook, Add Webhook
+
+;     Gui, Add, Button, x220 y295 w95 h25 gMari_PingTest, Mari Ping (Test)
+;     Gui, Add, Button, x220 y323 w95 h25 gJester_PingTest, Jester Ping (Test)
+
+;     ; Existing Webhooks Section
+;     Gui, Add, ListBox, x16 y350 w300 h150 vWebhookList, % Merchant_ListWebhooks()
+
+;     ; Add Delete Webhook Button
+;     Gui, Add, Button, x16 y520 w120 h30 gMerchant_DeleteWebhook, Delete Webhook
+    
+;     GuiControl,, NewMerchantPrivateServerLink, %mouseY%
+;     Gui, Show, , Discord Webhooks
+; }
+
+; Merchant_AddWebhook() {
+;     global options, NewWebhookAlias, NewWebhookURL, NewPingUserID, NewMerchantPrivateServerLink, NewJesterPingUserID
+
+;     Gui, Submit, NoHide
+;     ; Validate the webhook URL
+;     if (!validateWebhookLink(NewWebhookURL)) {
+;         MsgBox, Invalid webhook URL! Please input a valid Discord webhook URL.
+;         return
+;     }
+
+;     GuiControlGet, Merchant_PS,, NewMerchantPrivateServerLink
+;     ; Update the options with new values
+;     options.MerchantWebhookAlias := NewWebhookAlias
+;     options.MerchantWebhookLink := NewWebhookURL
+;     options.MerchantWebhook_Mari_UserID := NewPingUserID
+;     options.MerchantWebhook_Jester_UserID := NewJesterPingUserID
+;     options.MerchantWebhook_PS_Link := Merchant_PS
+
+;     ; Update ListBox with the new webhook (limit to one webhook)
+;     GuiControl,, WebhookList, % NewWebhookAlias " | " NewWebhookURL
+    
+;     ; Clear the input fields after submission
+;     GuiControl,, NewWebhookURL
+;     GuiControl,, NewPingUserID
+;     GuiControl,, NewJesterPingUserID
+;     GuiControl,, NewMerchantPrivateServerLink
+; }
+
+; Merchant_DeleteWebhook() {
+;     global options
+
+;     options.MerchantWebhookAlias := ""
+;     options.MerchantWebhookLink := ""
+;     options.MerchantWebhook_Mari_UserID := ""
+;     options.MerchantWebhook_Jester_UserID := ""
+;     options.MerchantWebhook_PS_Link := ""
+
+;     ; Clear the ListBox
+;     GuiControl,, WebhookList,
+; }
+
+; Merchant_ListWebhooks() {
+;     global options
+;     output := ""
+;     if (options.MerchantWebhookAlias != "") {
+;         output := options.MerchantWebhookAlias " | " options.MerchantWebhookLink
+;     }
+;     return output
+; }
+
+
+; Mari_PingTest() {
+;     Sleep, 1500
+;     Merchant_Webhook_Main("Mari", options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], options["MerchantWebhook_Mari_UserID"], "Merchant Face Screenshot (PING TEST)")
+;     Merchant_Webhook_Main("Mari", options["MerchantWebhookLink"], , , "Item Screenshot (PING TEST)")
+; }
+
+; Jester_PingTest() {
+;     Sleep, 1500
+;     Merchant_Webhook_Main("Jester", options["MerchantWebhookLink"], options["MerchantWebhook_PS_Link"], options["MerchantWebhook_Jester_UserID"], "Merchant Face Screenshot (PING TEST)")
+;     Merchant_Webhook_Main("Jester", options["MerchantWebhookLink"], , , "Item Screenshot (PING TEST)")
+; }
+
+
+; // MERCHANT SECTION \\ ;
+
 
 ; Create the Aura settings popup
 ShowAuraSettings() {
@@ -4022,6 +4744,7 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"WebhookImportantOnlyCheckBox":"WebhookImportantOnly"
     ,"WebhookRollImageCheckBox":"WebhookAuraRollImages"
     ,"WebhookUserIDInput":"DiscordUserID"
+    ,"WebhookGlitchIDInput":"DiscordGlitchID"
     ,"WebhookInventoryScreenshots":"InvScreenshotsEnabled"
     ,"StatusBarCheckBox":"StatusBarEnabled"
     ,"SearchSpecialAurasCheckBox":"SearchSpecialAuras"
@@ -4030,6 +4753,7 @@ global directValues := {"ObbyCheckBox":"DoingObby"
     ,"ShifterCheckBox":"Shifter"
     ,"RecordAuraCheckBox":"RecordAura" ; Curious Pengu
     ,"AutoMerchantBooleanBox": "AutoMerchantEnabled"
+    ,"JesterExchangeBooleanBox": "JesterExchangeEnabled"
     ,"ScanLoopAttemptsUpDownInterval": "ScanLoopInterval" ; Noteab
     ,"StorageYPosScanInterval":"StorageButtonYPosScanVALUE" ; Noteab
     ,"StorageYOffsetInterval": "StorageYOffsetIntervalVALUE"
@@ -4056,7 +4780,7 @@ updateUIOptions(){
     } else {
         GuiControl,, PrivateServerInput,% ""
     }
-    
+
     Loop 8 {
         v := options["ItemSpot" . A_Index]
         GuiControl,,CollectSpot%A_Index%CheckBox,%v%
@@ -4065,16 +4789,6 @@ updateUIOptions(){
     Loop 3 {
         v := options["PotionCraftingSlot" . A_Index]
         GuiControl,ChooseString,PotionCraftingSlot%A_Index%DropDown,% potionIndex[v]
-    }
-
-    Loop 3 {
-        v := options["Mari_ItemSlot" . A_Index]
-        GuiControl, Choose, MariSlot%A_Index%DropDown, %v%
-    }
-
-    Loop 3 {
-        v := options["Jester_ItemSlot" . A_Index]
-        GuiControl, Choose, JesterSlot%A_Index%DropDown, %v%
     }
 }
 updateUIOptions()
@@ -4140,55 +4854,86 @@ applyNewUIOptions(){
         GuiControlGet, rValue,,PotionCraftingSlot%A_Index%DropDown
         options["PotionCraftingSlot" . A_Index] := reversePotionIndex[rValue]
     }
+    
+}
 
-    Loop 3 {
-        GuiControlGet, rValue,,MariSlot%A_Index%DropDown
-        options["Mari_ItemSlot" . A_Index] := rValue
+Jester_Exchange_SaveOptions(){
+    Gui JesterGUI:Default
+    GuiControlGet, CustomAmounts
+    options["Jester_Custom_Exchange_Amounts"] := CustomAmounts
+
+    Loop 8 {
+        GuiControlGet, jesterItemValue,, JesterItem%A_Index%DropDown
+        options["Jester_Exchange_ItemSlot" . A_Index] := jesterItemValue   
     }
 
-    Loop 3 {
-        GuiControlGet, rValue,,JesterSlot%A_Index%DropDown
-        options["Jester_ItemSlot" . A_Index] := rValue
-    }
+    saveOptions()
 }
 
 global importingSettings := 0
-handleImportSettings(){
-    global configPath
+global importingSettings := 0
 
-    if (importingSettings){
+handleImportSettings() {
+    global configPath, merchantConfigPath
+
+    if (importingSettings) {
         return
     }
 
-    MsgBox, % 1 + 4096, % "Import Settings", % "To import the settings from a previous version folder of the Macro, please select the ""config.ini"" file located in the previous version's ""settings"" folder when prompted. Press OK to begin."
+    MsgBox, % 1 + 4096, % "Import Settings", % "To import the settings from a previous version folder of the Macro, please select both the ""config.ini"" and ""merchant_config"" files located in the previous version's ""settings"" folder when prompted. Press OK to begin."
 
     IfMsgBox, Cancel
         return
-    
+
     importingSettings := 1
 
-    FileSelectFile, targetPath, 3,, Import dolphSol Settings Through a config.ini File, % "Configuration settings (config.ini)"
+    ; Import config.ini
+    FileSelectFile, targetConfigPath, 3,, Import dolphSol Settings Through a config.ini File, % "Configuration settings (config.ini)"
+    
+    ; Import merchant_config
+    FileSelectFile, targetMerchantConfigPath, 3,, Import merchant_config File, % "Merchant configuration (merchant_config)"
+    
+    ; Handle config.ini import
+    if (targetConfigPath && RegExMatch(targetConfigPath, "\\config\.ini")) {
+        if (targetConfigPath != configPath) {
+            FileRead, retrievedConfig, %targetConfigPath%
 
-    if (targetPath && RegExMatch(targetPath,"\\config\.ini")){
-        if (targetPath != configPath){
-            FileRead, retrieved, %targetPath%
-
-            if (!ErrorLevel){
+            if (!ErrorLevel) {
                 FileDelete, %configPath%
-                FileAppend, %retrieved%, %configPath%
-
-                loadData()
-                updateUIOptions()
-                saveOptions()
-
-                MsgBox, 0,Import Settings,% "Success!"
+                FileAppend, %retrievedConfig%, %configPath%
             } else {
-                MsgBox,0,Import Settings Error, % "An error occurred while reading the file, please try again."
+                MsgBox, 0, Import Settings Error, % "An error occurred while reading the config.ini file, please try again."
+                importingSettings := 0
+                return
             }
         } else {
-            MsgBox, 0,Import Settings Error, % "Cannot import settings from the current macro!"
+            MsgBox, 0, Import Settings Error, % "Cannot import settings from the current macro's config.ini!"
         }
     }
+
+    ; Handle merchant_config import
+    if (targetMerchantConfigPath && RegExMatch(targetMerchantConfigPath, "\\merchant_config")) {
+        if (targetMerchantConfigPath != merchantConfigPath) {
+            FileRead, retrievedMerchantConfig, %targetMerchantConfigPath%
+
+            if (!ErrorLevel) {
+                FileDelete, %merchantConfigPath%
+                FileAppend, %retrievedMerchantConfig%, %merchantConfigPath%
+            } else {
+                MsgBox, 0, Import Settings Error, % "An error occurred while reading the merchant_config file, please try again."
+                importingSettings := 0
+                return
+            }
+        } else {
+            MsgBox, 0, Import Settings Error, % "Cannot import settings from the current macro's merchant_config!"
+        }
+    }
+
+    loadData()
+    updateUIOptions()
+    saveOptions()
+
+    MsgBox, 0, Import Settings, % "Success!"
 
     importingSettings := 0
 }
@@ -4334,6 +5079,7 @@ completeAutoEquipSelection(){
     if (!selectingAutoEquip){
         return
     }
+
     applyNewUIOptions()
 
     MouseGetPos, mouseX,mouseY
@@ -4581,6 +5327,11 @@ GetRobloxVersion:
     options["RobloxUpdatedUI"] := (RobloxUpdatedUIRadio1 = 1) ? 1 : 2
     return
 
+Niko_OR_DefaultPath:
+    Gui, Submit, NoHide
+    options["IsNikoPath"] := (CollectPathRadio1 = 1) ? 1 : 2
+    return
+
 ShifterCheckBoxClick:
     Gui mainUI:Default
     GuiControlGet, v,, ShifterCheckBox
@@ -4704,10 +5455,24 @@ Spot8HelpClick:
     MsgBox, 0, Spots Status, % "Status:`n`nSpot 1: Working`nSpot 2: Fixed`nSpot 3: Working`nSpot 4: Reworked`nSpot 5: Working`nSpot 6: Fixed`nSpot 7: Fixed`nSpot 8: New route, Unstable, Currently in testing phase.`n`n`nAdditional Notes: _justalin made spot 8 possible. Thanks to him the potion collecting rate should improve."
     return
 
+AutoMerchantHelp:
+    MsgBox, 0, Auto Merchant, % "In order to make this work correctly, this requires: `n`n`1. Your Merchant Teleport should be added and enabled in Item Scheduler (Extras Tab) (2-3 minutes every uses recommended) `n`n`2. You've correct calibrated everything in merchant setting (If you want the bot notify you when merchant was found then make sure it had properly set up in 'Merchant Webhooks') `n`n`3. You have turned off Shiftlock mode in roblox setting so it can press merchant open button and able to do autobuy!"
+    return
+
 UIHelpClick:
     Gui, New 
-    Gui, Add, Picture, x20 y50, % mainDir "images\UIInformation.png" ; Change to the path of your image file
+    Gui, Add, Picture, x20 y50, % mainDir "images\UIInformation.png" ; Change to the path of your image fil7
     Gui, Show, AutoSize  ; Adjust the GUI window size to fit the image
+    return
+
+MerchantCalibrationHelp:
+    Gui, New
+    Gui, Add, Picture, x30 y10, % mainDir "images\merchant_skibidiTut.png"
+    Gui, Add, Text, x50 y635 w350, Some cool reminders:
+    Gui, Add, Text, x50 y655 w350, -> Item Name OCR: Wait for merchant like Mari to spawn and then open her menu, there should be a bar showing her item and make sure to calibrate like as example image does
+    Gui, Add, Text, x50 y698 w350, -> Merchant Name OCR and Merchant Open Button: You can do Jake's shop as a reference to save time since his and mari are the same dialogue (Note: Make sure to assign the open button at left side of the button because jester open button is smaller than mari, so assigning center or right side causing make the macro miss click the jester open button)
+    Gui, Add, Text, x50 y768 w350, -> First Item Position: Just calibrate the position to the center of the first item of the merchant they're selling so it can reliably and click others slot seamlessly
+    Gui, Show, w500 h850, Merchant Calibration Help
     return
 
 ; gui close buttons
@@ -4738,45 +5503,39 @@ ItemSchedulerGuiClose:
     Gui, ItemSchedulerSettings:Destroy
 return
 
+JesterUIClose:
+    Jester_Exchange_SaveOptions()
+    saveOptions()
+    Gui, JesterGUI:Destroy
+return
+
 ClearToolTip:
     ToolTip
 return
+
+HideToolTip:
+    ToolTip 
+return
+
+
 
 ; hotkeys
 #If !running
     F1::startMacro()
 
-    ^F2::
-        resetCameraAngle()
-        Sleep, 500
-        reset()
-        return
-
     F9:: ShowMousePos()
+    ; F7::
+    ;     WinGetPos, winX, winY, currentWinWidth, currentWinHeight, ahk_exe RobloxPlayerBeta.exe
+    ;     ItemNotEnough_closeButtonX := winX + (491 * (currentWinWidth / 1920)) ; 960 for windowed 1920x1080
+    ;     ItemNotEnough_closeButtonY := winY + (882 * (currentWinHeight / 1080)) + 9.5 ; 619 for windowed 1920x1080
+    ;     ClickMouse(ItemNotEnough_closeButtonX, ItemNotEnough_closeButtonY)
+    ;     return
+    
 #If
 
 #If running || reconnecting
     F2::handlePause()
 
-    ^F2::
-        handlePause()
-        Sleep, 500
-        resetCameraAngle()
-        Sleep, 500
-        reset()
-        Sleep, 1500
-        handlePause()
-        return
-
-    F8::
-        Sleep, 500
-        resetCameraAngle()
-        Sleep, 2000
-        reset()
-        Sleep, 500
-        handlePause()
-        return
-        
     F3::
         stop()
         Reload
@@ -4808,4 +5567,3 @@ F5:: ; For debugging/testing
     ToolTip, % disableAlignment ? "Initial Align Disabled" : "Initial Align Enabled"
     SetTimer, ClearToolTip, -5000
     return
-
