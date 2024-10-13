@@ -102,7 +102,7 @@ LogError(exc) {
 checkOCRLanguage() {
     languages := ocr("ShowAvailableLanguages")
     if (languages) {
-        logMessage("OCR languages installed:") 
+        logMessage("OCR languages installed:")
         logMessage(languages)
 
         if (InStr(languages, "en-US")) {
@@ -208,7 +208,7 @@ getAspectRatioSize(ratio, width, height){
 
 getPositionFromAspectRatioUV(x,y,aspectRatio){
     getRobloxPos(rX, rY, width, height)
-    
+
     ar := getAspectRatioSize(aspectRatio, width, height)
 
     oX := Floor((width-ar[1])/2) + rX
@@ -221,7 +221,7 @@ getPositionFromAspectRatioUV(x,y,aspectRatio){
 
 getAspectRatioUVFromPosition(x,y,aspectRatio){
     getRobloxPos(rX, rY, width, height)
-    
+
     ar := getAspectRatioSize(aspectRatio, width, height)
 
     oX := Floor((width-ar[1])/2) + rX
@@ -248,7 +248,7 @@ compareColors(color1, color2) ; determines how far apart 2 colors are
 
 getINIData(path){
     FileRead, retrieved, %path%
-    
+
     if (!retrieved){
         logMessage("[getINIData] No data found in " path)
         MsgBox, An error occurred while reading %path% data, please review the file.
@@ -484,7 +484,7 @@ webhookPost(data := 0){
 
     if ((!data.embedContent && !data.embedTitle) || data.noEmbed)
         payload_json := RegExReplace(payload_json, ",.*""embeds.*}]", "")
-    
+
 
     objParam := {payload_json: payload_json}
 
@@ -528,24 +528,24 @@ Merchant_Webhook_Main(Merchant_Name, webhook_url, ps_link := "", ping_user_id :=
     embedContent := Merchant_Name " has been detected on your screen."
     embedTitle := "**" Merchant_Name " Detected!**"
     embedColor := (Merchant_Name = "Mari") ? "255" : "8388736"  ; Blue for Mari, Purple for others
-    embedThumbnail := (Merchant_Name = "Mari") 
+    embedThumbnail := (Merchant_Name = "Mari")
         ? "https://static.wikia.nocookie.net/sol-rng/images/3/37/MARI_HIGH_QUALITYY.png/revision/latest?cb=20240704045119"
         : "https://static.wikia.nocookie.net/sol-rng/images/d/db/Headshot_of_Jester.png/revision/latest?cb=20240630142936"
 
     ; Construct the payload for the webhook
-    payload_json := "{""content"": """ messageContent """," 
+    payload_json := "{""content"": """ messageContent ""","
                   . """embeds"": [{"
-                  . """title"": """ embedTitle """," 
-                  . """description"": """ embedContent """," 
-                  . """color"": " embedColor "," 
-                  . """thumbnail"": {""url"": """ embedThumbnail """}," 
-                  . """image"": {""url"": ""attachment://hewo_merchant.jpg""}," 
+                  . """title"": """ embedTitle ""","
+                  . """description"": """ embedContent ""","
+                  . """color"": " embedColor ","
+                  . """thumbnail"": {""url"": """ embedThumbnail """},"
+                  . """image"": {""url"": ""attachment://hewo_merchant.jpg""},"
                   . """fields"": [{""name"": ""**" embedField "**"",""value"": """"}],"
                   . """footer"": {""text"": ""Auto Merchant Detection""}"
                   . "}]}"
 
     ; Loop all webhook URLs and send the notification in parallel
-    ; for i, url in webhook_urls {} 
+    ; for i, url in webhook_urls {}
     try {
         objParam := {payload_json: payload_json}
         objParam["file0"] := [merchant_ssPath]
@@ -566,7 +566,7 @@ Merchant_Webhook_Send(url, objParam) {
         WebRequest.SetRequestHeader("Content-Type", hdr_ContentType)
         WebRequest.Send(postdata)
         WebRequest.WaitForResponse()
-    
+
     } catch e {
         logMessage("[Webhook_Send] Error sending data: " e, 1)
     }
@@ -585,14 +585,14 @@ global similarCharacters := {"1":"l"
     identifyBiome(inputStr){
         if (!inputStr)
             return 0
-        
+
         internalStr := RegExReplace(inputStr,"\s")
         internalStr := RegExReplace(internalStr,"^([\[\(\{\|IJ]+)")
         internalStr := RegExReplace(internalStr,"([\]\)\}\|IJ]+)$")
-    
+
         highestRatio := 0
         matchingBiome := ""
-    
+
         for v,_ in biomeData {
             if (v = "Glitched"){
                 continue
@@ -621,7 +621,7 @@ global similarCharacters := {"1":"l"
                 highestRatio := ratio
             }
         }
-    
+
         if (highestRatio < 0.70){
             matchingBiome := 0
             glitchedCheck := StrLen(internalStr)-StrLen(RegExReplace(internalStr,"\d")) + (RegExMatch(internalStr,"\.") ? 4 : 0)
@@ -630,7 +630,7 @@ global similarCharacters := {"1":"l"
                 matchingBiome := "Glitched"
             }
         }
-    
+
         return matchingBiome
 }
 
@@ -657,7 +657,7 @@ determineBiome(){
     Gdip_BitmapApplyEffect(pBM,effect3)
 
     identifiedBiome := 0
-    Loop 10 {
+    Loop 20 {
         st := A_TickCount
         newSizedPBM := Gdip_ResizeBitmap(pBM,300+(A_Index*38),70+(A_Index*7.5),1,2)
 
@@ -742,7 +742,7 @@ global pi := 4*ATan(1)
 ; not in use
 determine1mStar(ByRef starMap){
     totalPixels := 32*32
-                
+
     starCheckMap := Gdip_ResizeBitmap(starMap,32,32,0,2)
 
     effect := Gdip_CreateEffect(5,30,150)
@@ -856,7 +856,7 @@ rollDetection(bypass := 0,is1m := 0,starMap := 0,originalCorners := 0){
             SystemCursor("Off")
             starMap := Gdip_BitmapFromScreen(topLeft[1] "|" topLeft[2] "|" squareScale[1] "|" squareScale[2])
             SystemCursor("On")
-            
+
             Sleep, 8000
             rollDetection(cColor,is1m,starMap,cornerResults)
         } else {
@@ -985,16 +985,31 @@ secondTick() {
         currentBiome := detectedBiome
         logMessage("[secondTick] Detected biome: " currentBiome)
         SendToMain(currentBiome)
-        
-        if(detectedBiome == "Glitched") {
-            Loop 1 {
-                FormatTime, fTime, , HH:mm:ss
-                webhookPost({embedContent: "[" fTime "]: (PLEASE IGNORE IF IT WAS FALSE DETECTION!!) Biome Started - " currentBiome " Private Server Link: " PrivateServerPre PrivateServerId, files:[ssPath], embedImage:"attachment://ss.jpg", embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
-            }
-        }
+
 
         targetData := biomeData[currentBiome]
-        if (targetData.display || targetData.ping) {
+
+        if(detectedBiome == "Glitched") {
+            GlitchTest := 0
+            Loop 20 {
+                if (determineBiome() == "Glitched") {
+                    GlitchTest += 1
+                }
+                sleep, 50
+            }
+            if (GlitchTest > 12) {
+                FormatTime, fTime, , HH:mm:ss
+                webhookPost({embedContent: "[" fTime "]: (Double Checked - Real Glitch Biome) Biome Started - " currentBiome " Private Server Link: " PrivateServerPre PrivateServerId, files:[ssPath], embedImage:"attachment://ss.jpg", embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
+                webhookPost({embedContent: "[" fTime "]: Biome Started - " currentBiome, files:[ssPath], embedImage:"attachment://ss.jpg", embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
+            } else {
+                targetData := biomeData[determineBiome()]
+                if (targetData.display || targetData.ping) {
+                    FormatTime, fTime, , HH:mm:ss
+                    webhookPost({embedContent: "[" fTime "]: (PLEASE IGNORE IF IT WAS FALSE DETECTION!!) Biome Started - " currentBiome " Private Server Link: " PrivateServerPre PrivateServerId, files:[ssPath], embedImage:"attachment://ss.jpg", embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
+                    webhookPost({embedContent: "[" fTime "]: Biome Started - " currentBiome, files:[ssPath], embedImage:"attachment://ss.jpg", embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
+                }
+            }
+        } else if (targetData.display || targetData.ping) {
             FormatTime, fTime, , HH:mm:ss
 
             webhookPost({embedContent: "[" fTime "]: Biome Started - " currentBiome, files:[ssPath], embedImage:"attachment://ss.jpg", embedColor: targetData.color, pings: targetData.ping, biome: currentBiome})
@@ -1016,9 +1031,9 @@ logMessage(message, indent := 0) {
     if (message = lastLoggedMessage) {
         return
     }
-    
+
     logFile := mainDir . "\lib\macro_status_log.txt"
-    
+
     ; Check the log file size and truncate if necessary
     if (FileExist(logFile) && FileGetSize(logFile) > maxLogSize) {
         FileDelete, %logFile%

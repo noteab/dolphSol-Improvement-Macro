@@ -35,7 +35,7 @@ CoordMode, Mouse, Screen
 #Include *i ItemScheduler.ahk
 #Include *i MerchantWebhook.ahk
 
-global version := "v1.4.1 (10/10)"
+global version := "v1.4.1 Patch 1 (13/10)"
 global currentVersion := version
 
 if (RegExMatch(A_ScriptDir,"\.zip") || IsFunc("ocr") = 0) {
@@ -95,7 +95,9 @@ logMessage("") ; empty line for separation
 logMessage("Macro opened")
 
 configPath := mainDir . "settings\config.ini"
-merchantConfigPath := mainDir . "settings\merchant_config.ini"
+merchantConfigPath := mainDir . "settings\merchant_webhook_config.ini"
+merchantConfigPath_2 := mainDir . "settings\merchant_item_config.ini"
+
 global ssPath := "ss.jpg"
 global pathDir := mainDir . "paths\"
 global merchant_ssPath := "hewo_merchant.jpg"
@@ -158,6 +160,38 @@ global merchantOptions := {"MerchantWebhookAlias": ""
     ,"MerchantWebhook_Jester_UserID": ""
     ,"MerchantWebhook_PS_Link": ""}
 
+global merchant_ItemOptions := {"Mari_ItemSlot1":0
+    ,"Mari_ItemSlot2":0
+    ,"Mari_ItemSlot3":0
+    ,"Mari_ItemSlot4":0
+    ,"Mari_ItemSlot5":0
+    ,"Mari_ItemSlot6":0
+    ,"Mari_ItemSlot7":0
+    ,"Mari_ItemSlot8":0
+    ,"Mari_ItemSlot9":0
+    ,"Mari_ItemSlot10":0
+    ,"Mari_ItemSlot11":0
+    ,"Mari_ItemSlot12":0
+    ,"Mari_ItemSlot13":0
+    ,"Mari_ItemSlot14":0
+    ,"Jester_ItemSlot1":0
+    ,"Jester_ItemSlot2":0
+    ,"Jester_ItemSlot3":0
+    ,"Jester_ItemSlot4":0
+    ,"Jester_ItemSlot5":0
+    ,"Jester_ItemSlot6":0
+    ,"Jester_ItemSlot7":0
+    ,"Jester_ItemSlot8":0
+    ,"Jester_ItemSlot9":0
+    ,"Jester_ItemSlot10":0
+    ,"Jester_ItemSlot11":0
+    ,"Jester_ItemSlot12":0
+    ,"Jester_ItemSlot13":0
+    ,"Jester_ItemSlot14":0
+    ,"Jester_ItemSlot15":0
+    ,"Jester_ItemSlot16":0}
+
+
 global JesterItemsArray := ["Oblivion Potion"
     ,"Heavenly Potion I"
     ,"Heavenly Potion II"
@@ -189,6 +223,7 @@ global MariItemsArray := ["Void Coin"
     ,"Speed Potion XL"
     ,"Gear A"
     ,"Gear B"]
+
 
 global options := {"DoingObby":1
     ,"AzertyLayout":0
@@ -274,15 +309,9 @@ global options := {"DoingObby":1
     ,"Jester_First_Item_Exchange_Slot_X":556
     ,"Jester_First_Item_Exchange_Slot_Y":726
 
-    ,"Mari_ItemSlot1":0
-    ,"Mari_ItemSlot2":0
-    ,"Mari_ItemSlot3":0
     ,"Mari_Amount_1":0
     ,"Mari_Amount_2":0
     ,"Mari_Amount_3":0
-    ,"Jester_ItemSlot1":0
-    ,"Jester_ItemSlot2":0
-    ,"Jester_ItemSlot3":0
     ,"Jester_Amount_1":0
     ,"Jester_Amount_2":0
     ,"Jester_Amount_3":0
@@ -633,27 +662,60 @@ loadData(){
 }
 
 Load_Merchant_WebhookSettings() {
-    global merchantOptions, merchantConfigPath
+    global merchantOptions, merchant_ItemOptions, merchantConfigPath, merchantConfigPath_2
 
+    ; Retrieve saved webhook settings
     savedRetrieve := getINIData(merchantConfigPath)
+    savedRetrieveItems := getINIData(merchantConfigPath_2)
     if (!savedRetrieve) {
         logMessage("[Load_Merchant_WebhookSettings] Unable to retrieve merchant config data, resetting to defaults.")
         savedRetrieve := {}
     }
     
+    ; Load Merchant Webhook settings
     merchantOptions.MerchantWebhookAlias := savedRetrieve.HasKey("MerchantWebhookAlias") ? savedRetrieve["MerchantWebhookAlias"] : ""
     merchantOptions.MerchantWebhookLink := savedRetrieve.HasKey("MerchantWebhookLink") ? savedRetrieve["MerchantWebhookLink"] : ""
     merchantOptions.MerchantWebhook_Mari_UserID := savedRetrieve.HasKey("MerchantWebhook_Mari_UserID") ? savedRetrieve["MerchantWebhook_Mari_UserID"] : ""
     merchantOptions.MerchantWebhook_Jester_UserID := savedRetrieve.HasKey("MerchantWebhook_Jester_UserID") ? savedRetrieve["MerchantWebhook_Jester_UserID"] : ""
     IniRead, psLink, %merchantConfigPath%, Options, MerchantWebhook_PS_Link
 
-    if (psLink != "")
-    {
+    if (psLink != "") {
         merchantOptions.MerchantWebhook_PS_Link := psLink
     }
-    
+
+
+    if (!savedRetrieveItems) {
+        logMessage("[Load_Merchant_WebhookSettings] Unable to retrieve merchant item data, resetting to defaults.")
+        savedRetrieveItems := {}
+    }
+
+    Loop, 14 {
+        slotKey := "Mari_ItemSlot" A_Index
+        merchant_ItemOptions[slotKey] := savedRetrieveItems.HasKey(slotKey) ? savedRetrieveItems[slotKey] : 0
+    }
+
+    Loop, 16 {
+        slotKey := "Jester_ItemSlot" A_Index
+        merchant_ItemOptions[slotKey] := savedRetrieveItems.HasKey(slotKey) ? savedRetrieveItems[slotKey] : 0
+    }
 }
 
+Save_Merchant_ItemSettings() {
+    global merchant_ItemOptions, merchantConfigPath_2, configHeader
+    iniData := {}
+
+    Loop, 14 {
+        slotKey := "Mari_ItemSlot" A_Index
+        iniData[slotKey] := merchant_ItemOptions[slotKey]
+    }
+
+    Loop, 16 {
+        slotKey := "Jester_ItemSlot" A_Index
+        iniData[slotKey] := merchant_ItemOptions[slotKey]
+    }
+
+    writeToINI(merchantConfigPath_2, iniData, configHeader)
+}
 
 saveOptions(){
     global configPath,configHeader
@@ -1212,6 +1274,7 @@ rotateCameraMode(){
     Sleep, 150 * delayMultiplier
 
     ; If enabled, use OCR to confirm the camera mode change
+
     while (options.OCREnabled && !containsText(1055, 305, 120, 30, mode)) {
         ; Avoid infinite loop
         if (retryCount >= maxRetries) {
@@ -1437,6 +1500,33 @@ searchForItems(){
     ; logMessage("[searchForItems] Items collected")
 }
 
+;searchForitems item scheduler
+checkItemScheduler() {
+    currentUnixTime := getUnixTime()
+
+    for each, entry in ItemSchedulerEntries {
+        if (entry.Enabled && currentUnixTime >= entry.NextRunTime) {
+            ; Account for biome
+            if (!entry.Biome || entry.Biome == "Any" || entry.Biome == currentBiome) {
+                ; Use specified number of item
+                UseItem(entry.ItemName, entry.Quantity)
+
+                ; Update the NextRunTime for the next scheduled run
+                if (entry.TimeUnit = "Seconds") {
+                    frequencyInSeconds := entry.Frequency
+                } else if (entry.TimeUnit = "Minutes") {
+                    frequencyInSeconds := entry.Frequency * 60
+                } else if (entry.TimeUnit = "Hours") {
+                    frequencyInSeconds := entry.Frequency * 3600
+                }
+
+                nextRunTime := currentUnixTime + frequencyInSeconds
+                entry.NextRunTime := nextRunTime
+            }
+        }
+    }
+}
+
 doObby(){
     updateStatus("Doing Obby")
     
@@ -1581,7 +1671,6 @@ checkInvOpen(){
 mouseActions(){
     updateStatus("Performing Mouse Actions")
     getRobloxPos(rX, rY, width, height)
-    
     MaxBank_X := Round(rX + (0.499 * width)) ; 958 / 1920 = 0.499
     MaxBank_Y := Round(rY + (0.737 * height)) ; 796 / 1080 = 0.737
 
@@ -2410,7 +2499,7 @@ useItem(itemName, useAmount := 1) {
                         clickMenuButton(3)
                         Sleep, 450
                         Send, {E 3}
-                        Hold_LeftClick(Hold_LeftX, Hold_LeftY, 1500)
+                        Hold_LeftClick(Hold_LeftX, Hold_LeftY, 2870)
                         jesterFound := false
 
                         Loop, 3 {
@@ -2471,9 +2560,9 @@ UpdateMerchantCooldown(merchantName) {
 
 
 LoadMerchantOptions(merchantName) {
-    global configPath, MerchantEntries
+    global merchantConfigPath_2, MerchantEntries
 
-    MerchantItems := getINIData(configPath)
+    MerchantItems := getINIData(merchantConfigPath_2)
     if (!MerchantItems) {
         logMessage("[LoadMerchantOptions] Unable to read merchant setting in config.ini")
         return
@@ -2757,7 +2846,7 @@ Jester_Exchange_Handler() {
         Sleep, 80
     }
     
-    Hold_LeftClick(Hold_LeftX, Hold_LeftY, 2500)
+    Hold_LeftClick(Hold_LeftX, Hold_LeftY, 2300)
     
     Sleep, 850
     MouseClickDrag, R, rX + rW*0.15, rY + 44 + rH*0.05, rX + rW*0.15, rY + 444 + rH*0.05
@@ -2786,7 +2875,7 @@ Jester_Exchange_Handler() {
             itemName := entry.ItemName
             logMessage("[Jester Exchange Skibidi] Searching and selecting item: " itemName, 1)
             ClickMouse(ItemNotEnough_closeButtonX, ItemNotEnough_closeButtonY)
-            Sleep, 250
+            Sleep, 150
             ClickMouse(options["Jester_Item_Search_Bar_X"], options["Jester_Item_Search_Bar_Y"])
             Sleep, 200
             Send, %itemName%
@@ -2802,7 +2891,6 @@ Jester_Exchange_Handler() {
                 Send, %amount%
                 Sleep, 350
                 ClickMouse(options["Merchant_Purchase_Button_X"], options["Merchant_Purchase_Button_Y"])
-                Sleep, 750
                 Hold_LeftClick(Hold_LeftX, Hold_LeftY, 2550)
             }
 
@@ -3544,21 +3632,7 @@ mainLoop(){
     Sleep, 250
 
     ; Run Item Scheduler entries
-    currentUnixTime := getUnixTime()
-    for each, entry in ItemSchedulerEntries {
-        if (entry.Enabled && currentUnixTime >= entry.NextRunTime) {
-            ; Account for biome
-            if (!entry.Biome || entry.Biome == "Any" || entry.Biome == currentBiome) { ; !entry.Biome check needed for pre-Biome legacy entries
-                ; Use specified number of item
-                UseItem(entry.ItemName, entry.Quantity)
-
-                ; Update the NextRunTime for the next scheduled run
-                frequencyInSeconds := entry.Frequency * (entry.TimeUnit = "Minutes" ? 60 : 3600)
-                nextRunTime := currentUnixTime + frequencyInSeconds
-                entry.NextRunTime := nextRunTime
-            }
-        }
-    }
+    checkItemScheduler()
 
     Sleep, 250
 
@@ -3987,7 +4061,6 @@ Jester_Exchange_GUI() {
     Gui Add, DropDownList, x65 y245 w120 h20 vJesterItem8DropDown R9, % JesterExchangeOptions
     GuiControl, Choose, JesterItem8DropDown, % (options["Jester_Exchange_ItemSlot8"] ? options["Jester_Exchange_ItemSlot8"] : "None")
 
-
     ; Jester Exchange Button
     Gui, Add, Text, x200 y38 w250, Jester Pink Exchange Button (X, Y):
     Gui, Add, Edit, x200 y58 w50 vJesterExchangeButtonX, % options["Jester_Exchange_Button_X"]
@@ -4109,7 +4182,7 @@ MariMerchantSettings() {
     Gui Add, Text, x145 y10 w50 h15 BackgroundTrans, % "Amount:"
 
     for i, itemName in MariItemsArray {
-        v := options["Mari_ItemSlot" . i]
+        v := merchant_ItemOptions["Mari_ItemSlot" . i]
         values := SplitNumbers(v)
 
         checkBoxState := (values[2] = "True") ? 1 : 0
@@ -4135,7 +4208,7 @@ MariMerchantSettings() {
 
 MariMerchantSettingsSave() {
     Gui, MariMerchantSettings:Default
-    global options
+    global merchant_ItemOptions
 
     for i, itemName in MariItemsArray {
         itemControl := "MariSlot" . i . "Item"
@@ -4146,10 +4219,10 @@ MariMerchantSettingsSave() {
 
         ; config formatto: ItemName, True/False (checkbox thing), Amount
         checkBoxState := (MariSlotItem = 1) ? "True" : "False"
-        options["Mari_ItemSlot" . i] := itemName . "," . checkBoxState . "," . MariSlotAmount
+        merchant_ItemOptions["Mari_ItemSlot" . i] := itemName . "," . checkBoxState . "," . MariSlotAmount
     }
 
-    saveOptions()
+    Save_Merchant_ItemSettings()
 }
 
 
@@ -4163,7 +4236,7 @@ JesterMerchantSettings() {
     Gui Add, Text, x145 y10 w50 h15 BackgroundTrans, % "Amount:"
 
     for i, itemName in JesterItemsArray {
-        v := options["Jester_ItemSlot" . i]
+        v := merchant_ItemOptions["Jester_ItemSlot" . i]
         values := SplitNumbers(v)
 
         checkBoxState := (values[2] = "True") ? 1 : 0
@@ -4188,7 +4261,7 @@ JesterMerchantSettings() {
 
 JesterMerchantSettingsSave() {
     Gui, JesterMerchantSettings:Default
-    global options
+    global merchant_ItemOptions
 
     for i, itemName in JesterItemsArray {
         itemControl := "JesterSlot" . i . "Item"
@@ -4199,10 +4272,10 @@ JesterMerchantSettingsSave() {
 
         ; Format: ItemName,True/False,Amount
         checkBoxState := (JesterSlotItem = 1) ? "True" : "False"
-        options["Jester_ItemSlot" . i] := itemName . "," . checkBoxState . "," . JesterSlotAmount
+        merchant_ItemOptions["Jester_ItemSlot" . i] := itemName . "," . checkBoxState . "," . JesterSlotAmount
     }
 
-    saveOptions()
+    Save_Merchant_ItemSettings()
 }
 
 SplitNumbers(inputString) {
@@ -5524,12 +5597,13 @@ return
     F1::startMacro()
 
     F9:: ShowMousePos()
-    ; F7::
-    ;     WinGetPos, winX, winY, currentWinWidth, currentWinHeight, ahk_exe RobloxPlayerBeta.exe
-    ;     ItemNotEnough_closeButtonX := winX + (491 * (currentWinWidth / 1920)) ; 960 for windowed 1920x1080
-    ;     ItemNotEnough_closeButtonY := winY + (882 * (currentWinHeight / 1080)) + 9.5 ; 619 for windowed 1920x1080
-    ;     ClickMouse(ItemNotEnough_closeButtonX, ItemNotEnough_closeButtonY)
-    ;     return
+    F11::
+        Highlight(1039, 245, 150, 40, 5000) ; highlight box of shiftlock
+        ; WinGetPos, winX, winY, currentWinWidth, currentWinHeight, ahk_exe RobloxPlayerBeta.exe
+        ; ItemNotEnough_closeButtonX := winX + (491 * (currentWinWidth / 1920)) ; 960 for windowed 1920x1080
+        ; ItemNotEnough_closeButtonY := winY + (882 * (currentWinHeight / 1080)) + 9.5 ; 619 for windowed 1920x1080
+        ; ClickMouse(ItemNotEnough_closeButtonX, ItemNotEnough_closeButtonY)
+        return
     
 #If
 
